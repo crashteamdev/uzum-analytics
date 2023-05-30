@@ -1,0 +1,193 @@
+package dev.crashteam.uzumanalytics.config
+
+import dev.crashteam.uzumanalytics.config.properties.UzumProperties
+import dev.crashteam.uzumanalytics.job.*
+import org.quartz.CronScheduleBuilder
+import org.quartz.CronTrigger
+import org.quartz.JobKey
+import org.quartz.Scheduler
+import org.quartz.TriggerBuilder
+import org.quartz.TriggerKey
+import org.quartz.impl.JobDetailImpl
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.context.annotation.Configuration
+import javax.annotation.PostConstruct
+
+@Configuration
+@ConditionalOnProperty(
+    value = ["uzum.scheduleEnabled"],
+    havingValue = "true",
+    matchIfMissing = true
+)
+class JobConfiguration(
+    private val uzumProperties: UzumProperties,
+) {
+
+    @Autowired
+    private lateinit var schedulerFactoryBean: Scheduler
+
+    @PostConstruct
+    fun init() {
+        schedulerFactoryBean.addJob(groupCollectorJob(), true, true)
+        if (!schedulerFactoryBean.checkExists(TriggerKey(CATEGORY_COLLECTOR_JOB, CATEGORY_COLLECTOR_GROUP))) {
+            schedulerFactoryBean.scheduleJob(triggerGroupCollectorJob())
+        }
+        schedulerFactoryBean.addJob(categoryProductMasterJob(), true, true)
+        if (!schedulerFactoryBean.checkExists(TriggerKey(CATEGORY_PRODUCT_MASTER_JOB, CATEGORY_PRODUCT_MASTER_GROUP))) {
+            schedulerFactoryBean.scheduleJob(triggerGroupProductMasterJob())
+        }
+//        schedulerFactoryBean.addJob(paymentJob(), true, true)
+//        if (!schedulerFactoryBean.checkExists(TriggerKey(PAYMENT_JOB, PAYMENT_JOB_GROUP))) {
+//            schedulerFactoryBean.scheduleJob(triggerPaymentJob())
+//        }
+        schedulerFactoryBean.addJob(sellerProductMasterJob(), true, true)
+        if (!schedulerFactoryBean.checkExists(TriggerKey(SELLER_COLLECTOR_MASTER_JOB, SELLER_COLLECTOR_MASTER_GROUP))) {
+            schedulerFactoryBean.scheduleJob(triggerSellerMasterJob())
+        }
+        schedulerFactoryBean.addJob(reportCleanupJob(), true, true)
+        if (!schedulerFactoryBean.checkExists(TriggerKey(REPORT_CLEANUP_JOB, REPORT_CLEANUP_GROUP))) {
+            schedulerFactoryBean.scheduleJob(triggerReportCleanupJob())
+        }
+        schedulerFactoryBean.addJob(reportGenerateMasterJob(), true, true)
+        if (!schedulerFactoryBean.checkExists(TriggerKey(REPORT_GENERATE_MASTER_JOB, REPORT_GENERATE_MASTER_GROUP))) {
+            schedulerFactoryBean.scheduleJob(triggerReportGenerateMasterJob())
+        }
+        schedulerFactoryBean.addJob(productPositionMasterJob(), true, true)
+        if (!schedulerFactoryBean.checkExists(TriggerKey(PRODUCT_POSITION_MASTER_JOB, PRODUCT_POSITION_MASTER_GROUP))) {
+            schedulerFactoryBean.scheduleJob(triggerProductPositionMasterJob())
+        }
+    }
+
+    private fun groupCollectorJob(): JobDetailImpl {
+        val jobDetail = JobDetailImpl()
+        jobDetail.key = JobKey(CATEGORY_COLLECTOR_JOB, CATEGORY_COLLECTOR_GROUP)
+        jobDetail.jobClass = GroupCollectorJob::class.java
+
+        return jobDetail
+    }
+
+    private fun triggerGroupCollectorJob(): CronTrigger {
+        return TriggerBuilder.newTrigger()
+            .forJob(groupCollectorJob())
+            .withIdentity(CATEGORY_COLLECTOR_JOB, CATEGORY_COLLECTOR_GROUP)
+            .withSchedule(CronScheduleBuilder.cronSchedule(uzumProperties.groupCron))
+            .build()
+    }
+
+    private fun categoryProductMasterJob(): JobDetailImpl {
+        val jobDetail = JobDetailImpl()
+        jobDetail.key = JobKey(CATEGORY_PRODUCT_MASTER_JOB, CATEGORY_PRODUCT_MASTER_GROUP)
+        jobDetail.jobClass = GroupProductMasterJob::class.java
+
+        return jobDetail
+    }
+
+    private fun triggerGroupProductMasterJob(): CronTrigger {
+        return TriggerBuilder.newTrigger()
+            .forJob(categoryProductMasterJob())
+            .withIdentity(CATEGORY_PRODUCT_MASTER_JOB, CATEGORY_PRODUCT_MASTER_GROUP)
+            .withSchedule(CronScheduleBuilder.cronSchedule(uzumProperties.productCron))
+            .build()
+    }
+//
+//    private fun paymentJob(): JobDetailImpl {
+//        val jobDetail = JobDetailImpl()
+//        jobDetail.key = JobKey(PAYMENT_JOB, PAYMENT_JOB_GROUP)
+//        jobDetail.jobClass = PaymentMasterJob::class.java
+//
+//        return jobDetail
+//    }
+//
+//    private fun triggerPaymentJob(): CronTrigger {
+//        return TriggerBuilder.newTrigger()
+//            .forJob(paymentJob())
+//            .withIdentity(PAYMENT_JOB, PAYMENT_JOB_GROUP)
+//            .withSchedule(CronScheduleBuilder.cronSchedule(uzumProperties.paymentCron))
+//            .withPriority(Int.MAX_VALUE)
+//            .build()
+//    }
+
+    private fun sellerProductMasterJob(): JobDetailImpl {
+        val jobDetail = JobDetailImpl()
+        jobDetail.key = JobKey(SELLER_COLLECTOR_MASTER_JOB, SELLER_COLLECTOR_MASTER_GROUP)
+        jobDetail.jobClass = SellerCollectorMasterJobV2::class.java
+
+        return jobDetail
+    }
+
+    private fun triggerSellerMasterJob(): CronTrigger {
+        return TriggerBuilder.newTrigger()
+            .forJob(sellerProductMasterJob())
+            .withIdentity(SELLER_COLLECTOR_MASTER_JOB, SELLER_COLLECTOR_MASTER_GROUP)
+            .withSchedule(CronScheduleBuilder.cronSchedule(uzumProperties.sellerCron))
+            .build()
+    }
+
+    private fun reportCleanupJob(): JobDetailImpl {
+        val jobDetail = JobDetailImpl()
+        jobDetail.key = JobKey(REPORT_CLEANUP_JOB, REPORT_CLEANUP_GROUP)
+        jobDetail.jobClass = ReportCleanUpJob::class.java
+
+        return jobDetail
+    }
+
+    private fun triggerReportCleanupJob(): CronTrigger {
+        return TriggerBuilder.newTrigger()
+            .forJob(reportCleanupJob())
+            .withIdentity(REPORT_CLEANUP_JOB, REPORT_CLEANUP_GROUP)
+            .withSchedule(CronScheduleBuilder.cronSchedule(uzumProperties.reportCleanUpCron))
+            .build()
+    }
+
+    private fun reportGenerateMasterJob(): JobDetailImpl {
+        val jobDetail = JobDetailImpl()
+        jobDetail.key = JobKey(REPORT_GENERATE_MASTER_JOB, REPORT_GENERATE_MASTER_GROUP)
+        jobDetail.jobClass = GenerateReportMasterJob::class.java
+
+        return jobDetail
+    }
+
+    private fun triggerReportGenerateMasterJob(): CronTrigger {
+        return TriggerBuilder.newTrigger()
+            .forJob(reportGenerateMasterJob())
+            .withIdentity(REPORT_GENERATE_MASTER_JOB, REPORT_GENERATE_MASTER_GROUP)
+            .withSchedule(CronScheduleBuilder.cronSchedule(uzumProperties.reportGenerateCron))
+            .withPriority(Int.MAX_VALUE)
+            .build()
+    }
+
+    private fun productPositionMasterJob(): JobDetailImpl {
+        val jobDetail = JobDetailImpl()
+        jobDetail.key = JobKey(PRODUCT_POSITION_MASTER_JOB, PRODUCT_POSITION_MASTER_GROUP)
+        jobDetail.jobClass = PositionProductMasterJob::class.java
+
+        return jobDetail
+    }
+
+    private fun triggerProductPositionMasterJob(): CronTrigger {
+        return TriggerBuilder.newTrigger()
+            .forJob(productPositionMasterJob())
+            .withIdentity(PRODUCT_POSITION_MASTER_JOB, PRODUCT_POSITION_MASTER_GROUP)
+            .withSchedule(CronScheduleBuilder.cronSchedule(uzumProperties.productPositionCron))
+            .withPriority(Int.MAX_VALUE)
+            .build()
+    }
+
+    companion object {
+        const val PAYMENT_JOB = "paymentJob"
+        const val PAYMENT_JOB_GROUP = "paymentJobGroup"
+        const val CATEGORY_COLLECTOR_JOB = "categoryCollectorJob"
+        const val CATEGORY_COLLECTOR_GROUP = "categoryCollectorJobGroup"
+        const val CATEGORY_PRODUCT_MASTER_JOB = "categoryProductMasterJob"
+        const val CATEGORY_PRODUCT_MASTER_GROUP = "categoryProductMasterJobGroup"
+        const val SELLER_COLLECTOR_MASTER_JOB = "sellerCollectorMasterJobV2"
+        const val SELLER_COLLECTOR_MASTER_GROUP = "sellerCollectorMasterJobGroupV2"
+        const val REPORT_CLEANUP_JOB = "reportCleanupJob"
+        const val REPORT_CLEANUP_GROUP = "reportCleanupGroup"
+        const val REPORT_GENERATE_MASTER_JOB = "reportGenerateMasterJob"
+        const val REPORT_GENERATE_MASTER_GROUP = "reportGenerateMasterGroup"
+        const val PRODUCT_POSITION_MASTER_JOB = "productPositionMasterJob"
+        const val PRODUCT_POSITION_MASTER_GROUP = "productPositionMasterGroup"
+    }
+}

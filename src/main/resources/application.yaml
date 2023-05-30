@@ -1,0 +1,97 @@
+server:
+  port: ${server.port}
+  error:
+    include-stacktrace: ALWAYS
+
+#logging:
+#  level:
+#    org.apache.http: DEBUG
+
+management:
+  security:
+    flag: false
+  server:
+    port: ${management.port}
+  metrics:
+    prometheus:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+spring:
+  application:
+    name: ${project.name}
+    output:
+      ansi:
+        enabled: always
+  main:
+    allow-bean-definition-overriding: true
+  data:
+    mongodb:
+      uri: mongodb+srv://${MONGO_USER:uzum}:${MONGO_PASSWORD:my5053strongPassword}@${MONGO_HOST:77.37.140.106}/${MONGO_DATABASE:uzum}?authSource=admin&replicaSet=${MONGO_REPLICASET:marketdb}&tls=true&maxPoolSize=200
+  redis:
+    host: marketdb-redis-do-user-9153772-0.b.db.ondigitalocean.com
+    port: 25061
+    username: default
+    password: password
+    ssl: false
+  quartz:
+    properties:
+      org.quartz.scheduler.instanceName: UzumMasterScheduler
+      org.quartz.scheduler.instanceId: AUTO
+      org.quartz.scheduler.skipUpdateCheck: true
+      org.quartz.scheduler.threadsInheritContextClassLoaderOfInitializer: true
+      org.quartz.threadPool.threadCount: 30
+      org.quartz.jobStore.isClustered: true
+      org.quartz.jobStore.misfireThreshold: 30000
+      org.quartz.jobStore.class: com.novemberain.quartz.mongodb.MongoDBJobStore
+      org.quartz.jobStore.mongoUri: ${spring.data.mongodb.uri}
+      org.quartz.jobStore.dbName: uzum
+      org.quartz.jobStore.collectionPrefix: qrtz
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com
+          issuer-uri: https://securetoken.google.com/${FIREBASE_APP_NAME:marketdb-gloom}
+
+uzum:
+  scheduleEnabled: true
+  groupCron: '0/30 * * * * ?'
+  productCron: '0 0 0/3 * * ?'
+  paymentCron: '0/10 * * * * ?'
+  sellerCron: '0 0 0/3 * * ?'
+  reportCleanUpCron: '0 0 0/1 * * ?'
+  reportGenerateCron: '0/3 * * * * ?'
+  productPositionCron: '0 0 3 ? * * *'
+  throttlingMs: 1000
+
+service:
+  proxy:
+    url: http://localhost:8022
+
+freekassa:
+  baseUrl: https://api.freekassa.ru
+  shopId: 26248
+  apiKey: 3359c65680927f67661345031fb0b738
+  secretWordFirst: 'mHPoH9jB_BZe%lL'
+  secretWordSecond: '{v5T0IKN93p4fKx'
+
+qiwi:
+  siteId: d9jje0-00
+  apiKey: api_key
+  publicKey: public_key
+  callbackSecret: callback_secret_key
+
+currency:
+  apiKey: gPdT9h5w4KUAnbckIQw4ciZXm38KZvsu2qrdWHeH
+
