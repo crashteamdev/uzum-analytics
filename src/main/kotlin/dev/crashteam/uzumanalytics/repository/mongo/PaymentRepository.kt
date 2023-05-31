@@ -1,6 +1,6 @@
 package dev.crashteam.uzumanalytics.repository.mongo
 
-import dev.crashteam.uzumanalytics.domain.mongo.PaymentDocument
+import dev.crashteam.uzumanalytics.mongo.PaymentDocument
 import org.springframework.data.repository.reactive.ReactiveCrudRepository
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux

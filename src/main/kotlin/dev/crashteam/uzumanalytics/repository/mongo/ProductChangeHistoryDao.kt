@@ -1,6 +1,6 @@
 package dev.crashteam.uzumanalytics.repository.mongo
 
-import dev.crashteam.uzumanalytics.domain.mongo.ProductChangeHistoryDocument
+import dev.crashteam.uzumanalytics.mongo.ProductChangeHistoryDocument
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.*
-import java.util.Date
 
 @Component
 class ProductChangeHistoryDao(

@@ -1,13 +1,12 @@
 package dev.crashteam.uzumanalytics.service
 
-import dev.crashteam.uzumanalytics.client.cbr.CbrClient
 import dev.crashteam.uzumanalytics.client.currencyapi.CurrencyApiClient
 import dev.crashteam.uzumanalytics.client.freekassa.FreeKassaClient
 import dev.crashteam.uzumanalytics.client.freekassa.model.PaymentFormRequestParams
 import dev.crashteam.uzumanalytics.client.qiwi.QiwiClient
 import dev.crashteam.uzumanalytics.client.qiwi.model.QiwiPaymentRequestParams
-import dev.crashteam.uzumanalytics.domain.mongo.*
 import dev.crashteam.uzumanalytics.extensions.mapToSubscription
+import dev.crashteam.uzumanalytics.mongo.*
 import dev.crashteam.uzumanalytics.repository.mongo.PaymentRepository
 import dev.crashteam.uzumanalytics.repository.mongo.PaymentSequenceDao
 import dev.crashteam.uzumanalytics.repository.mongo.ReferralCodeRepository

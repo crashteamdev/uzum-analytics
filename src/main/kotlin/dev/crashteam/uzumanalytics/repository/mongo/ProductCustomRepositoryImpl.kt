@@ -9,10 +9,9 @@ import com.mongodb.client.model.UpdateOptions
 import com.mongodb.client.result.UpdateResult
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.awaitSingleOrNull
-import dev.crashteam.uzumanalytics.domain.mongo.ProductChangeHistoryDocument
-import dev.crashteam.uzumanalytics.domain.mongo.ProductDocument
-import dev.crashteam.uzumanalytics.domain.mongo.ProductSkuData
+import dev.crashteam.uzumanalytics.mongo.ProductChangeHistoryDocument
+import dev.crashteam.uzumanalytics.mongo.ProductDocument
+import dev.crashteam.uzumanalytics.mongo.ProductSkuData
 import dev.crashteam.uzumanalytics.repository.mongo.model.*
 import dev.crashteam.uzumanalytics.repository.mongo.pageable.PageResult
 import dev.crashteam.uzumanalytics.repository.mongo.pageable.ProductHistoryPageResult

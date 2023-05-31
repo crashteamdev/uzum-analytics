@@ -1,4 +1,4 @@
-package dev.crashteam.uzumanalytics.domain.mongo
+package dev.crashteam.uzumanalytics.mongo
 
 import org.bson.types.ObjectId
 import org.springframework.data.domain.Range

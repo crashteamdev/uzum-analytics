@@ -1,6 +1,6 @@
 package dev.crashteam.uzumanalytics.repository.mongo
 
-import dev.crashteam.uzumanalytics.domain.mongo.ProductPositionTSDocument
+import dev.crashteam.uzumanalytics.mongo.ProductPositionTSDocument
 import dev.crashteam.uzumanalytics.repository.mongo.model.ProductPositionAggregate
 import org.springframework.data.domain.Sort
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate

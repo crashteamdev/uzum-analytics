@@ -1,7 +1,7 @@
 package dev.crashteam.uzumanalytics.controller.converter
 
 import dev.crashteam.uzumanalytics.controller.model.CategoryView
-import dev.crashteam.uzumanalytics.domain.mongo.CategoryDocument
+import dev.crashteam.uzumanalytics.mongo.CategoryDocument
 import org.springframework.stereotype.Component
 
 @Component

@@ -1,10 +1,9 @@
-package dev.crashteam.uzumanalytics.domain.mongo
+package dev.crashteam.uzumanalytics.mongo
 
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import java.math.BigDecimal
 import java.time.Instant
-import java.time.LocalDateTime
 
 @Document("product_change_history_v2")
 data class ProductChangeHistoryDocument(

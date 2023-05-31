@@ -5,8 +5,6 @@ import mu.KotlinLogging
 import dev.crashteam.uzumanalytics.controller.model.ReferralCodeView
 import dev.crashteam.uzumanalytics.controller.model.UserApiKey
 import dev.crashteam.uzumanalytics.controller.model.UserSubscriptionView
-import dev.crashteam.uzumanalytics.domain.mongo.DefaultSubscription
-import dev.crashteam.uzumanalytics.domain.mongo.SubscriptionDocument
 import dev.crashteam.uzumanalytics.extensions.mapToUserSubscription
 import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
 import dev.crashteam.uzumanalytics.service.UserService

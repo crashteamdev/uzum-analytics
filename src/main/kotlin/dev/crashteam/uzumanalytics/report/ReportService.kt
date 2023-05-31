@@ -2,7 +2,7 @@ package dev.crashteam.uzumanalytics.report
 
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactor.awaitSingleOrNull
-import dev.crashteam.uzumanalytics.domain.mongo.ReportStatus
+import dev.crashteam.uzumanalytics.mongo.ReportStatus
 import dev.crashteam.uzumanalytics.repository.mongo.ReportRepository
 import org.springframework.data.redis.core.ReactiveRedisCallback
 import org.springframework.data.redis.core.ReactiveRedisTemplate

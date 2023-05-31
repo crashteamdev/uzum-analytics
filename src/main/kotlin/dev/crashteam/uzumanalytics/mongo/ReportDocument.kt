@@ -1,4 +1,4 @@
-package dev.crashteam.uzumanalytics.domain.mongo
+package dev.crashteam.uzumanalytics.mongo
 
 import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document

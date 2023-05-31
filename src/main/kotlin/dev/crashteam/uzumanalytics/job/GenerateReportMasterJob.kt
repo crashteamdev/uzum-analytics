@@ -3,9 +3,9 @@ package dev.crashteam.uzumanalytics.job
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import dev.crashteam.uzumanalytics.domain.mongo.ReportDocument
-import dev.crashteam.uzumanalytics.domain.mongo.ReportStatus
-import dev.crashteam.uzumanalytics.domain.mongo.ReportType
+import dev.crashteam.uzumanalytics.mongo.ReportDocument
+import dev.crashteam.uzumanalytics.mongo.ReportStatus
+import dev.crashteam.uzumanalytics.mongo.ReportType
 import dev.crashteam.uzumanalytics.extensions.getApplicationContext
 import dev.crashteam.uzumanalytics.repository.mongo.ReportRepository
 import org.quartz.*

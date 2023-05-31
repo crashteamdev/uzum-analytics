@@ -1,7 +1,7 @@
 package dev.crashteam.uzumanalytics.repository.mongo
 
 import com.mongodb.client.result.UpdateResult
-import dev.crashteam.uzumanalytics.domain.mongo.CategoryDocument
+import dev.crashteam.uzumanalytics.mongo.CategoryDocument
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query

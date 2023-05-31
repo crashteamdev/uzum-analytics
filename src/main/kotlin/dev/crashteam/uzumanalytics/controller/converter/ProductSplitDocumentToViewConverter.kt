@@ -2,7 +2,7 @@ package dev.crashteam.uzumanalytics.controller.converter
 
 import dev.crashteam.uzumanalytics.controller.model.ItemCharacteristicView
 import dev.crashteam.uzumanalytics.controller.model.ProductItemView
-import dev.crashteam.uzumanalytics.domain.mongo.ProductSplitDocument
+import dev.crashteam.uzumanalytics.mongo.ProductSplitDocument
 import org.springframework.context.annotation.Lazy
 import org.springframework.core.convert.ConversionService
 import org.springframework.stereotype.Component

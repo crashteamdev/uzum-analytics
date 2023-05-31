@@ -1,8 +1,8 @@
 package dev.crashteam.uzumanalytics.repository.mongo
 
 import com.mongodb.client.result.UpdateResult
-import dev.crashteam.uzumanalytics.domain.mongo.ReportDocument
-import dev.crashteam.uzumanalytics.domain.mongo.ReportStatus
+import dev.crashteam.uzumanalytics.mongo.ReportDocument
+import dev.crashteam.uzumanalytics.mongo.ReportStatus
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query

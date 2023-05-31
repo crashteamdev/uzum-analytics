@@ -5,10 +5,10 @@ import dev.crashteam.uzumanalytics.client.uzum.model.ProductData
 import dev.crashteam.uzumanalytics.client.uzum.model.ProductPhoto
 import dev.crashteam.uzumanalytics.client.uzum.model.ProductSplit
 import dev.crashteam.uzumanalytics.controller.converter.ViewConverter
-import dev.crashteam.uzumanalytics.domain.mongo.ProductDocument
-import dev.crashteam.uzumanalytics.domain.mongo.ProductSplitCharacteristicDocument
-import dev.crashteam.uzumanalytics.domain.mongo.ProductSplitDocument
-import dev.crashteam.uzumanalytics.domain.mongo.SellerDocument
+import dev.crashteam.uzumanalytics.mongo.ProductDocument
+import dev.crashteam.uzumanalytics.mongo.ProductSplitCharacteristicDocument
+import dev.crashteam.uzumanalytics.mongo.ProductSplitDocument
+import dev.crashteam.uzumanalytics.mongo.SellerDocument
 import org.springframework.context.annotation.Lazy
 import org.springframework.core.convert.ConversionService
 import org.springframework.stereotype.Component

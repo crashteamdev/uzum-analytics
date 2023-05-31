@@ -7,7 +7,7 @@ import dev.crashteam.uzumanalytics.client.uzum.UzumClient
 import dev.crashteam.uzumanalytics.client.uzum.model.ProductResponse
 import dev.crashteam.uzumanalytics.client.uzum.model.ShopGQLQueryResponse
 import dev.crashteam.uzumanalytics.config.properties.UzumProperties
-import dev.crashteam.uzumanalytics.domain.mongo.ProductDocument
+import dev.crashteam.uzumanalytics.mongo.ProductDocument
 import dev.crashteam.uzumanalytics.extensions.getApplicationContext
 import dev.crashteam.uzumanalytics.service.ProductService
 import org.quartz.Job

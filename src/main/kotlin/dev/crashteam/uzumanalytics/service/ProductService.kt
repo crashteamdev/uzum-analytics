@@ -10,7 +10,7 @@ import kotlinx.coroutines.reactive.awaitLast
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import mu.KotlinLogging
-import dev.crashteam.uzumanalytics.domain.mongo.*
+import dev.crashteam.uzumanalytics.mongo.*
 import dev.crashteam.uzumanalytics.repository.mongo.CategoryRepository
 import dev.crashteam.uzumanalytics.repository.mongo.ProductChangeHistoryDao
 import dev.crashteam.uzumanalytics.repository.mongo.ProductPositionRepository
@@ -19,7 +19,6 @@ import dev.crashteam.uzumanalytics.repository.mongo.model.*
 import dev.crashteam.uzumanalytics.repository.mongo.pageable.PageResult
 import dev.crashteam.uzumanalytics.service.calculator.ProductHistoryCalculator
 import dev.crashteam.uzumanalytics.service.model.*
-import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.bson.Document
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate

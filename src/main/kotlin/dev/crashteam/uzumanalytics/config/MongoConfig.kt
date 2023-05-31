@@ -1,6 +1,6 @@
 package dev.crashteam.uzumanalytics.config
 
-import dev.crashteam.uzumanalytics.domain.mongo.ProductPositionTSDocument
+import dev.crashteam.uzumanalytics.mongo.ProductPositionTSDocument
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.runBlocking
 import org.bson.Document

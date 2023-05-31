@@ -5,9 +5,9 @@ import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.withContext
 import dev.crashteam.uzumanalytics.controller.model.*
-import dev.crashteam.uzumanalytics.domain.mongo.ReportDocument
-import dev.crashteam.uzumanalytics.domain.mongo.ReportStatus
-import dev.crashteam.uzumanalytics.domain.mongo.ReportType
+import dev.crashteam.uzumanalytics.mongo.ReportDocument
+import dev.crashteam.uzumanalytics.mongo.ReportStatus
+import dev.crashteam.uzumanalytics.mongo.ReportType
 import dev.crashteam.uzumanalytics.report.ReportFileService
 import dev.crashteam.uzumanalytics.report.ReportService
 import dev.crashteam.uzumanalytics.report.model.ReportJob

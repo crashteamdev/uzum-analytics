@@ -1,7 +1,7 @@
 package dev.crashteam.uzumanalytics.controller.converter
 
 import dev.crashteam.uzumanalytics.controller.model.ProductSellerView
-import dev.crashteam.uzumanalytics.domain.mongo.SellerDocument
+import dev.crashteam.uzumanalytics.mongo.SellerDocument
 import org.springframework.stereotype.Component
 
 @Component

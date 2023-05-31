@@ -1,7 +1,7 @@
 package dev.crashteam.uzumanalytics.repository.mongo
 
-import dev.crashteam.uzumanalytics.domain.mongo.ReportDocument
-import dev.crashteam.uzumanalytics.domain.mongo.ReportStatus
+import dev.crashteam.uzumanalytics.mongo.ReportDocument
+import dev.crashteam.uzumanalytics.mongo.ReportStatus
 import org.springframework.data.repository.reactive.ReactiveCrudRepository
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux

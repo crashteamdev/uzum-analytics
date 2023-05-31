@@ -29,6 +29,7 @@ data class CategoryGQLTreeDataWrapper(
 data class CategoryGQLTreeData(
     val id: Long,
     val title: String,
+    val adult: Boolean = false,
     val parent: CategoryGQLTreeDataParentId? = null
 )
 

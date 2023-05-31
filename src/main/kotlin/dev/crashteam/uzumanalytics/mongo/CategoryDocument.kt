@@ -1,4 +1,4 @@
-package dev.crashteam.uzumanalytics.domain.mongo
+package dev.crashteam.uzumanalytics.mongo
 
 import org.bson.types.ObjectId
 import org.springframework.data.mongodb.core.index.Indexed
@@ -12,7 +12,7 @@ data class CategoryDocument(
     @Indexed(unique = true)
     val publicId: Long,
 
-    val productAmount: Long,
+    val productAmount: Long? = null,
 
     val adult: Boolean,
 

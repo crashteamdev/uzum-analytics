@@ -1,7 +1,7 @@
 package dev.crashteam.uzumanalytics.controller.converter
 
 import dev.crashteam.uzumanalytics.controller.model.ItemCharacteristicView
-import dev.crashteam.uzumanalytics.domain.mongo.ProductSplitCharacteristicDocument
+import dev.crashteam.uzumanalytics.mongo.ProductSplitCharacteristicDocument
 import org.springframework.stereotype.Component
 
 @Component

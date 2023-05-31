@@ -3,12 +3,12 @@ package dev.crashteam.uzumanalytics.job
 import dev.crashteam.uzumanalytics.client.uzum.UzumClient
 import dev.crashteam.uzumanalytics.client.uzum.model.RootCategoriesResponse
 import dev.crashteam.uzumanalytics.client.uzum.model.SimpleCategory
+import dev.crashteam.uzumanalytics.extensions.getApplicationContext
+import dev.crashteam.uzumanalytics.mongo.CategoryDocument
+import dev.crashteam.uzumanalytics.repository.mongo.CategoryDao
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import dev.crashteam.uzumanalytics.domain.mongo.CategoryDocument
-import dev.crashteam.uzumanalytics.extensions.getApplicationContext
-import dev.crashteam.uzumanalytics.repository.mongo.CategoryDao
 import org.quartz.DisallowConcurrentExecution
 import org.quartz.Job
 import org.quartz.JobExecutionContext
@@ -68,81 +68,40 @@ class GroupCollectorJob : Job {
         appContext: ApplicationContext,
     ) {
         val categoryDao = appContext.getBean(CategoryDao::class.java)
+        val uzumClient = appContext.getBean(UzumClient::class.java)
         for (category in children) {
+            val categoryPath = if (path == null) {
+                ",${rootCategory.title.trim()},${category.title.trim()},"
+            } else "$path${category.title.trim()},"
             val categoryDocument = CategoryDocument(
                 category.id,
                 category.productAmount,
                 category.adult,
                 category.eco,
                 category.title.trim(),
-                if (path == null) ",${rootCategory.title.trim()},${category.title.trim()}," else "$path${category.title.trim()},",
+                categoryPath,
                 LocalDateTime.now()
             )
             categoryDao.saveCategory(categoryDocument).awaitSingle()
             if (category.children.isNotEmpty()) {
                 saveRootChildren(category, category.children, categories, categoryDocument.path, appContext)
+            } else {
+                val allCategories = uzumClient.getCategoryGQL(category.id.toString(), 0, 0)?.data?.makeSearch
+                    ?: throw IllegalStateException("Can't get categories")
+                val childCategories = allCategories.categoryTree.filter { it.category.parent?.id == category.id }
+                childCategories.forEach { childCategory ->
+                    val childCategory = CategoryDocument(
+                        childCategory.category.id,
+                        null,
+                        childCategory.category.adult,
+                        category.eco,
+                        childCategory.category.title.trim(),
+                        "$categoryPath${childCategory.category.title.trim()},",
+                        LocalDateTime.now()
+                    )
+                    categoryDao.saveCategory(childCategory).awaitSingle()
+                }
             }
-//            val childCategory = kazanExpressClient.getCategoryGQL(category.id.toString(), 10, 0)?.data?.makeSearch?.category
-//            if (childCategory != null) {
-//                saveInnerChildren(childCategory, categories, appContext)
-//            }
         }
     }
-
-//    private suspend fun saveInnerChildren(
-//        childCategory: CategoryGQLInfo,
-//        categories: RootCategoriesResponse,
-//        appContext: ApplicationContext,
-//    ) {
-//        val categoryDao = appContext.getBean(CategoryDao::class.java)
-//        if (childCategory.children.isNotEmpty()) {
-//            childCategory.children.forEach { category ->
-//                val categoryPathList = category.path?.drop(1)
-//                val sb = StringBuilder()
-//                val categoryRef = AtomicReference<SimpleCategory>()
-//                categoryPathList?.forEach { pathId ->
-//                    if (categoryRef.get() == null) {
-//                        for (category in categories.payload) {
-//                            if (category.id == pathId) {
-//                                sb.append(",${category.title.trim()}")
-//                                categoryRef.set(category)
-//                                break
-//                            }
-//                        }
-//                    } else {
-//                        if (categoryRef.get().children.isEmpty()) {
-//                            val kazanExpressClient = appContext.getBean(KazanExpressClient::class.java)
-//                            val response = kazanExpressClient.getCategory(
-//                                categoryRef.get().id.toString(),
-//                                10,
-//                                0
-//                            )?.payload?.category
-//                            val title = response?.children?.find { it.id == pathId }?.title?.trim()
-//                                ?: throw IllegalStateException("Unknown path $pathId")
-//                            sb.append(",${title.trim()}")
-//                        } else {
-//                            for (subCategory in categoryRef.get().children) {
-//                                if (subCategory.id == pathId) {
-//                                    sb.append(",${subCategory.title.trim()}")
-//                                    categoryRef.set(subCategory)
-//                                    break
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//                sb.append(",")
-//                val categoryDocument = CategoryDocument(
-//                    category.id,
-//                    category.productAmount,
-//                    category.adult,
-//                    category.eco,
-//                    category.title.trim(),
-//                    sb.toString(),
-//                    LocalDateTime.now()
-//                )
-//                categoryDao.saveCategory(categoryDocument).awaitSingle()
-//            }
-//        }
-//    }
 }

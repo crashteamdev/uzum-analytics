@@ -2,7 +2,8 @@ package dev.crashteam.uzumanalytics.domain.mongo.converter
 
 import dev.crashteam.uzumanalytics.client.uzum.model.Seller
 import dev.crashteam.uzumanalytics.controller.converter.ViewConverter
-import dev.crashteam.uzumanalytics.domain.mongo.*
+import dev.crashteam.uzumanalytics.mongo.ProductContactDocument
+import dev.crashteam.uzumanalytics.mongo.SellerDocument
 import org.springframework.stereotype.Component
 
 @Component
