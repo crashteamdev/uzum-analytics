@@ -165,6 +165,7 @@ class PaymentService(
         return paymentRepository.findByPaymentId(paymentId).awaitSingleOrNull()
     }
 
+    @Transactional
     suspend fun callbackPayment(
         paymentId: String,
         userId: String,
@@ -201,7 +202,6 @@ class PaymentService(
         }
     }
 
-    @Transactional
     suspend fun saveUserWithSubscription(
         paymentId: String,
         userId: String,
@@ -227,6 +227,8 @@ class PaymentService(
             val endAt = if (user.subscription?.endAt != null && user.subscription.endAt.isAfter(currentTime)) {
                 user.subscription.endAt.plusDays(subscriptionDays)
             } else LocalDateTime.now().plusDays(subscriptionDays)
+            log.info { "User ${user.userId}. Subscription days: $subscriptionDays; " +
+                    "End subscription date: $endAt. Old subscription end date=${user.subscription?.endAt}" }
             user.copy(
                 subscription = SubscriptionDocument(
                     subType = userSubscription.name,
@@ -252,7 +254,6 @@ class PaymentService(
         }
     }
 
-    @Transactional
     suspend fun upgradeUserSubscription(
         user: UserDocument,
         userSubscription: UserSubscription,
