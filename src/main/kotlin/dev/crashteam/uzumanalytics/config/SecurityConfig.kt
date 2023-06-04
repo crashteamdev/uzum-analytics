@@ -1,12 +1,10 @@
 package dev.crashteam.uzumanalytics.config
 
 import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
-import dev.crashteam.uzumanalytics.repository.redis.ApiKeyUserSessionInfo
 import dev.crashteam.uzumanalytics.security.ApiKeyAuthHandlerFilter
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.core.annotation.Order
-import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.http.HttpMethod
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
