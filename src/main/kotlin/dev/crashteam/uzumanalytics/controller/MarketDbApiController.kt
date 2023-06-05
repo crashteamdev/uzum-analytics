@@ -381,7 +381,6 @@ class MarketDbApiController(
                 status = ReportStatus.PROCESSING
             )
         ).awaitSingleOrNull()
-        reportService.incrementShopUserReportCount(user.userId)
 
         return ResponseEntity.ok().body(ReportJob(jobId))
     }
@@ -440,7 +439,6 @@ class MarketDbApiController(
                 status = ReportStatus.PROCESSING
             )
         ).awaitSingleOrNull()
-        reportService.incrementCategoryUserReportCount(user.userId)
 
         return ResponseEntity.ok().body(ReportJob(jobId))
     }
