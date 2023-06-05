@@ -36,7 +36,7 @@ class ReportService(
         reportRepository.setReportId(jobId, reportId).awaitSingleOrNull()
     }
 
-    suspend fun getUserShopReportDailyReportCount(userId: String): Int? {
+    suspend fun getUserShopReportDailyReportCount(userId: String): Long? {
         return reportRepository.countByUserIdAndCreatedAtBetweenAndReportType(
             userId,
             LocalDate.now().atStartOfDay(),
@@ -45,7 +45,7 @@ class ReportService(
         ).awaitSingleOrNull()
     }
 
-    suspend fun getUserCategoryReportDailyReportCount(userId: String): Int? {
+    suspend fun getUserCategoryReportDailyReportCount(userId: String): Long? {
         return reportRepository.countByUserIdAndCreatedAtBetweenAndReportType(
             userId,
             LocalDate.now().atStartOfDay(),

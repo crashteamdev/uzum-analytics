@@ -31,6 +31,6 @@ interface ReportRepository : ReactiveCrudRepository<ReportDocument, String>, Rep
         fromTime: LocalDateTime,
         toTime: LocalDateTime,
         reportType: ReportType
-    ): Mono<Int>
+    ): Mono<Long>
 
 }
