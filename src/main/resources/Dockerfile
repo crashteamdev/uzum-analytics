@@ -11,9 +11,9 @@ COPY ${JAR_FILE} /opt/uzum-analytics/uzum-analytics.jar
 COPY ${CERT_DIR} /opt/uzum-analytics/cert
 
 ENTRYPOINT ["java", "-server", "-Xms256M", "-Xss256k",\
-            "-XX:+UnlockDiagnosticVMOptions", "-XX:+UseContainerSupport", "-XX:+UseCGroupMemoryLimitForHeap",\
+            "-XX:+UnlockDiagnosticVMOptions", "-XX:+UseContainerSupport",\
             "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=dump.hprof", "-Djava.security.egd=/dev/zrandom",\
-            "-XX:+UseParallelGC", "XX:MinHeapFreeRatio=5", "-XX:MaxHeapFreeRatio=10", "-XX:GCTimeRatio=4", "XX:AdaptiveSizePolicyWeight=90",\
+            "-XX:+UseParallelGC", "-XX:MinHeapFreeRatio=5", "-XX:MaxHeapFreeRatio=10", "-XX:GCTimeRatio=4", "-XX:AdaptiveSizePolicyWeight=90",\
             "-XX:MaxRAMFraction=2",\
             "-Djavax.net.ssl.trustStore=/opt/uzum-analytics/cert/marketdb.jks", "-Djavax.net.ssl.trustStorePassword=StrongPasswd",\
             "-jar", "/opt/uzum-analytics/uzum-analytics.jar"]
