@@ -1,8 +1,8 @@
 package dev.crashteam.uzumanalytics.extensions
 
-import dev.crashteam.uzumanalytics.mongo.DefaultSubscription
-import dev.crashteam.uzumanalytics.mongo.SubscriptionDocument
-import dev.crashteam.uzumanalytics.mongo.UserSubscription
+import dev.crashteam.uzumanalytics.domain.mongo.DefaultSubscription
+import dev.crashteam.uzumanalytics.domain.mongo.SubscriptionDocument
+import dev.crashteam.uzumanalytics.domain.mongo.UserSubscription
 
 fun Int.mapToSubscription(): UserSubscription? {
     return UserSubscription::class.sealedSubclasses.firstOrNull {

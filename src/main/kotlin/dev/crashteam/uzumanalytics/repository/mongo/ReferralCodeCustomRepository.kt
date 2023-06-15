@@ -1,7 +1,7 @@
 package dev.crashteam.uzumanalytics.repository.mongo
 
 import com.mongodb.client.result.UpdateResult
-import dev.crashteam.uzumanalytics.mongo.ReferralCodeDocument
+import dev.crashteam.uzumanalytics.domain.mongo.ReferralCodeDocument
 import reactor.core.publisher.Mono
 
 interface ReferralCodeCustomRepository {

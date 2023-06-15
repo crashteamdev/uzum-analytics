@@ -1,12 +1,11 @@
 package dev.crashteam.uzumanalytics.config
 
-import dev.crashteam.uzumanalytics.controller.converter.ViewConverter
+import dev.crashteam.uzumanalytics.controller.converter.DataConverter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
 import org.springframework.context.support.ConversionServiceFactoryBean
-import org.springframework.core.convert.converter.Converter
 
 @Configuration
 @ComponentScan(
@@ -19,7 +18,7 @@ class ConverterConfig {
 
     @Bean
     @Primary
-    fun conversionServiceFactoryBean(converters: Set<ViewConverter<*, *>>): ConversionServiceFactoryBean {
+    fun conversionServiceFactoryBean(converters: Set<DataConverter<*, *>>): ConversionServiceFactoryBean {
         val conversionServiceFactoryBean = ConversionServiceFactoryBean()
         conversionServiceFactoryBean.setConverters(converters)
 

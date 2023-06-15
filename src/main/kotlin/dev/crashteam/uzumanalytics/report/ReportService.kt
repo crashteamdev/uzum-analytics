@@ -1,7 +1,7 @@
 package dev.crashteam.uzumanalytics.report
 
-import dev.crashteam.uzumanalytics.mongo.ReportStatus
-import dev.crashteam.uzumanalytics.mongo.ReportType
+import dev.crashteam.uzumanalytics.domain.mongo.ReportStatus
+import dev.crashteam.uzumanalytics.domain.mongo.ReportType
 import dev.crashteam.uzumanalytics.repository.mongo.ReportRepository
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.stereotype.Service

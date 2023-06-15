@@ -73,6 +73,7 @@ uzum:
   reportCleanUpCron: '0 0 0/1 * * ?'
   reportGenerateCron: '0/3 * * * * ?'
   productPositionCron: '0 0 3 ? * * *'
+  pendingMessageCron: '0 0/5 0 ? * * *'
   throttlingMs: 1000
 
 service:
@@ -94,4 +95,22 @@ qiwi:
 
 currency:
   apiKey: gPdT9h5w4KUAnbckIQw4ciZXm38KZvsu2qrdWHeH
+
+redis:
+  stream:
+    max-batch-size: 350
+    batch-buffer-duration-ms: 2000
+    batch-parallel-count: 5
+    ke-product-info:
+      streamName: uzum-product-stream
+      consumerGroup: uzum-analytics-product-group
+      consumerName: uzum-analytics-product-consumer
+    ke-product-position:
+      streamName: uzum-position-stream
+      consumerGroup: uzum-analytics-product-position-group
+      consumerName: uzum-analytics-position-consumer
+    ke-category-info:
+      streamName: uzum-category-stream
+      consumerGroup: uzum-analytics-category-group
+      consumerName: uzum-analytics-category-consumer
 

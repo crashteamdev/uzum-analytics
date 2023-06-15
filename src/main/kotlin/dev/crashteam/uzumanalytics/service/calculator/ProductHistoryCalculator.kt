@@ -1,6 +1,6 @@
 package dev.crashteam.uzumanalytics.service.calculator
 
-import dev.crashteam.uzumanalytics.mongo.ProductSkuData
+import dev.crashteam.uzumanalytics.domain.mongo.ProductSkuData
 import dev.crashteam.uzumanalytics.service.model.ProductHistory
 import dev.crashteam.uzumanalytics.service.model.ProductSkuHistorical
 import dev.crashteam.uzumanalytics.service.model.ProductSkuHistoricalCharacteristic

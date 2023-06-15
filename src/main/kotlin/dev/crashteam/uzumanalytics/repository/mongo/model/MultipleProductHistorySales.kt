@@ -1,7 +1,7 @@
 package dev.crashteam.uzumanalytics.repository.mongo.model
 
-import dev.crashteam.uzumanalytics.mongo.ProductSkuData
-import dev.crashteam.uzumanalytics.mongo.ProductSkuId
+import dev.crashteam.uzumanalytics.domain.mongo.ProductSkuData
+import dev.crashteam.uzumanalytics.domain.mongo.ProductSkuId
 
 data class MultipleProductHistorySales(
     val id: ProductSkuId,

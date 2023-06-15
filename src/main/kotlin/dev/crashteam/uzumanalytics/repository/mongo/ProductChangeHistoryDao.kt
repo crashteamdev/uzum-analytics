@@ -1,6 +1,6 @@
 package dev.crashteam.uzumanalytics.repository.mongo
 
-import dev.crashteam.uzumanalytics.mongo.ProductChangeHistoryDocument
+import dev.crashteam.uzumanalytics.domain.mongo.ProductChangeHistoryDocument
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query

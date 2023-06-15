@@ -1,6 +1,6 @@
 package dev.crashteam.uzumanalytics.service
 
-import dev.crashteam.uzumanalytics.mongo.CategoryDocument
+import dev.crashteam.uzumanalytics.domain.mongo.CategoryDocument
 import dev.crashteam.uzumanalytics.repository.mongo.CategoryRepository
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service

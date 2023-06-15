@@ -1,6 +1,6 @@
 package dev.crashteam.uzumanalytics.repository.mongo
 
-import dev.crashteam.uzumanalytics.mongo.ReferralCodeDocument
+import dev.crashteam.uzumanalytics.domain.mongo.ReferralCodeDocument
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Mono

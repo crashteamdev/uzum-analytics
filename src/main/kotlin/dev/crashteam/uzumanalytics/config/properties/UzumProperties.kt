@@ -23,5 +23,7 @@ data class UzumProperties(
     val reportGenerateCron: String? = null,
     @field:NotEmpty
     val productPositionCron: String? = null,
+    @field:NotEmpty
+    val pendingMessageCron: String? = null,
     val throttlingMs: Long? = null,
 )

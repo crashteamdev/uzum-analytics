@@ -5,8 +5,8 @@ import dev.crashteam.uzumanalytics.client.freekassa.FreeKassaClient
 import dev.crashteam.uzumanalytics.client.freekassa.model.PaymentFormRequestParams
 import dev.crashteam.uzumanalytics.client.qiwi.QiwiClient
 import dev.crashteam.uzumanalytics.client.qiwi.model.QiwiPaymentRequestParams
+import dev.crashteam.uzumanalytics.domain.mongo.*
 import dev.crashteam.uzumanalytics.extensions.mapToSubscription
-import dev.crashteam.uzumanalytics.mongo.*
 import dev.crashteam.uzumanalytics.repository.mongo.PaymentRepository
 import dev.crashteam.uzumanalytics.repository.mongo.PaymentSequenceDao
 import dev.crashteam.uzumanalytics.repository.mongo.ReferralCodeRepository
@@ -227,8 +227,10 @@ class PaymentService(
             val endAt = if (user.subscription?.endAt != null && user.subscription.endAt.isAfter(currentTime)) {
                 user.subscription.endAt.plusDays(subscriptionDays)
             } else LocalDateTime.now().plusDays(subscriptionDays)
-            log.info { "User ${user.userId}. Subscription days: $subscriptionDays; " +
-                    "End subscription date: $endAt. Old subscription end date=${user.subscription?.endAt}" }
+            log.info {
+                "User ${user.userId}. Subscription days: $subscriptionDays; " +
+                        "End subscription date: $endAt. Old subscription end date=${user.subscription?.endAt}"
+            }
             user.copy(
                 subscription = SubscriptionDocument(
                     subType = userSubscription.name,
