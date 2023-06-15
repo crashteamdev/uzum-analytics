@@ -125,14 +125,16 @@ class PaymentController(
                 log.warn { "Callback payment sign is not valid. expected=$hex; actual=${signature}" }
                 return ResponseEntity.badRequest().build()
             }
-            val userId = callbackBody.payment.customer.account
-            val paymentId = callbackBody.payment.billId
-            val currency = callbackBody.payment.amount.currency
-            paymentService.callbackPayment(
-                paymentId,
-                userId,
-                currency,
-            )
+            if (callbackBody.payment.status.value == "PAID") {
+                val userId = callbackBody.payment.customer.account
+                val paymentId = callbackBody.payment.billId
+                val currency = callbackBody.payment.amount.currency
+                paymentService.callbackPayment(
+                    paymentId,
+                    userId,
+                    currency,
+                )
+            }
             return ResponseEntity.ok().build()
         }
         return ResponseEntity.unprocessableEntity().build()
