@@ -95,23 +95,6 @@ class JobConfiguration(
             .build()
     }
 
-    private fun productPositionMasterJob(): JobDetailImpl {
-        val jobDetail = JobDetailImpl()
-        jobDetail.key = JobKey(PRODUCT_POSITION_MASTER_JOB, PRODUCT_POSITION_MASTER_GROUP)
-        jobDetail.jobClass = PositionProductMasterJob::class.java
-
-        return jobDetail
-    }
-
-    private fun triggerProductPositionMasterJob(): CronTrigger {
-        return TriggerBuilder.newTrigger()
-            .forJob(productPositionMasterJob())
-            .withIdentity(PRODUCT_POSITION_MASTER_JOB, PRODUCT_POSITION_MASTER_GROUP)
-            .withSchedule(CronScheduleBuilder.cronSchedule(uzumProperties.productPositionCron))
-            .withPriority(Int.MAX_VALUE)
-            .build()
-    }
-
     private fun pendingMessageJob(): JobDetailImpl {
         val jobDetail = JobDetailImpl()
         jobDetail.key = JobKey(PENDING_MESSAGE_JOB, PENDING_MESSAGE_GROUP)
