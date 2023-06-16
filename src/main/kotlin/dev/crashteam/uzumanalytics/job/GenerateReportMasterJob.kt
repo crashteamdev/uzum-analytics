@@ -9,6 +9,7 @@ import dev.crashteam.uzumanalytics.mongo.ReportType
 import dev.crashteam.uzumanalytics.extensions.getApplicationContext
 import dev.crashteam.uzumanalytics.repository.mongo.ReportRepository
 import org.quartz.*
+import org.quartz.impl.matchers.GroupMatcher
 import org.springframework.scheduling.quartz.SimpleTriggerFactoryBean
 import java.util.*
 
@@ -73,6 +74,12 @@ class GenerateReportMasterJob : Job {
         reportDoc: ReportDocument,
         schedulerFactoryBean: Scheduler
     ) {
+        val triggerKeys: MutableSet<TriggerKey> = schedulerFactoryBean.getTriggerKeys(
+            GroupMatcher.triggerGroupEquals("CATEGORY")
+        )
+        if (triggerKeys.size > 0) {
+            return
+        }
         val jobKey = JobKey(jobIdentity)
         val jobDetail =
             JobBuilder.newJob(GenerateCategoryReportJob::class.java).withIdentity(jobKey).build()
@@ -83,6 +90,7 @@ class GenerateReportMasterJob : Job {
             setRepeatCount(0)
             setMisfireInstruction(SimpleTrigger.MISFIRE_INSTRUCTION_FIRE_NOW)
             setPriority(Int.MAX_VALUE)
+            setGroup("CATEGORY")
             afterPropertiesSet()
         }.getObject()
         jobDetail.jobDataMap["categoryPublicId"] = reportDoc.categoryPublicId
