@@ -1,8 +1,8 @@
 package dev.crashteam.uzumanalytics.service
 
+import dev.crashteam.uzumanalytics.domain.mongo.ProSubscription
+import dev.crashteam.uzumanalytics.domain.mongo.UserDocument
 import dev.crashteam.uzumanalytics.extensions.mapToUserSubscription
-import dev.crashteam.uzumanalytics.mongo.ProSubscription
-import dev.crashteam.uzumanalytics.mongo.UserDocument
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.time.LocalDateTime
