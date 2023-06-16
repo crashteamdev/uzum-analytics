@@ -1,14 +1,11 @@
 package dev.crashteam.uzumanalytics.service
 
-import dev.crashteam.uzumanalytics.domain.mongo.DefaultSubscription
-import dev.crashteam.uzumanalytics.domain.mongo.ProSubscription
-import dev.crashteam.uzumanalytics.domain.mongo.UserDocument
 import dev.crashteam.uzumanalytics.extensions.mapToUserSubscription
-import org.springframework.data.domain.Range
+import dev.crashteam.uzumanalytics.mongo.ProSubscription
+import dev.crashteam.uzumanalytics.mongo.UserDocument
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.Month
 
 @Service
 class UserRestrictionService {
@@ -42,15 +39,7 @@ class UserRestrictionService {
             } else RestrictionResult.PROHIBIT
         }
         val userSubscription = user.subscription.mapToUserSubscription()!!
-        var days = userSubscription.days()
-        // TODO: temp fix. remove after date
-        if (userSubscription == DefaultSubscription
-            && user.subscription.createdAt.isBefore(
-                LocalDateTime.of(2023, Month.APRIL, 20, 23, 59, 59)
-            )
-        ) {
-            days = Range.closed(1, 90)
-        }
+        val days = userSubscription.days()
         if (!days.contains(daysRequestCount)) {
             return RestrictionResult.PROHIBIT
         }
@@ -64,15 +53,7 @@ class UserRestrictionService {
             } else RestrictionResult.PERMIT
         }
         val userSubscription = user.subscription.mapToUserSubscription()!!
-        var days = userSubscription.days()
-        // TODO: temp fix. remove after date
-        if (userSubscription == DefaultSubscription
-            && user.subscription.createdAt.isBefore(
-                LocalDateTime.of(2023, Month.APRIL, 20, 23, 59, 59)
-            )
-        ) {
-            days = Range.closed(1, 90)
-        }
+        val days = userSubscription.days()
         if (userSubscription != ProSubscription) {
             val minimalSubscriptionDay = LocalDate.now().minusDays(days.upperBound.value.get().toLong() + 1)
             if (fromTime.toLocalDate() < minimalSubscriptionDay) {
