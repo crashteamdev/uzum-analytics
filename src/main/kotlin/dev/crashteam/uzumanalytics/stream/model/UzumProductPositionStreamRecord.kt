@@ -1,6 +1,6 @@
-package dev.crashteam.keanalytics.stream.model
+package dev.crashteam.uzumanalytics.stream.model
 
-data class KeProductPositionStreamRecord(
+data class UzumProductPositionStreamRecord(
     val position: Long,
     val productId: Long,
     val skuId: Long,

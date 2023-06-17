@@ -2,9 +2,9 @@ package dev.crashteam.uzumanalytics.stream.listener
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import dev.crashteam.keanalytics.stream.model.KeItemSkuStreamRecord
-import dev.crashteam.keanalytics.stream.model.KeProductCategoryStreamRecord
-import dev.crashteam.keanalytics.stream.model.KeProductItemStreamRecord
+import dev.crashteam.uzumanalytics.stream.model.KeItemSkuStreamRecord
+import dev.crashteam.uzumanalytics.stream.model.KeProductCategoryStreamRecord
+import dev.crashteam.uzumanalytics.stream.model.UzumProductItemStreamRecord
 import dev.crashteam.uzumanalytics.domain.mongo.*
 import dev.crashteam.uzumanalytics.repository.mongo.SellerRepository
 import dev.crashteam.uzumanalytics.service.ProductService
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component
 private val log = KotlinLogging.logger {}
 
 @Component
-class KeProductItemStreamListener(
+class UzumProductItemStreamListener(
     private val objectMapper: ObjectMapper,
     private val productService: ProductService,
     private val conversionService: ConversionService,
@@ -28,15 +28,15 @@ class KeProductItemStreamListener(
 ) : BatchStreamListener<String, ObjectRecord<String, String>> {
 
     override suspend fun onMessage(messages: List<ObjectRecord<String, String>>) {
-        val keProductItemStreamRecords = messages.map {
-            objectMapper.readValue<KeProductItemStreamRecord>(it.value)
+        val uzumProductItemStreamRecords = messages.map {
+            objectMapper.readValue<UzumProductItemStreamRecord>(it.value)
         }
-        log.info { "Consumer product records count ${keProductItemStreamRecords.size}" }
+        log.info { "Consumer product records count ${uzumProductItemStreamRecords.size}" }
         coroutineScope {
             val oldSaveProductTask = async {
                 try {
-                    log.info { "Save ${keProductItemStreamRecords.size} products" }
-                    val productDocuments = keProductItemStreamRecords.map {
+                    log.info { "Save ${uzumProductItemStreamRecords.size} products" }
+                    val productDocuments = uzumProductItemStreamRecords.map {
                         ProductDocumentTimeWrapper(
                             productDocument = toOldProductDocument(it),
                             time = it.time
@@ -50,7 +50,7 @@ class KeProductItemStreamListener(
 
             val sellerTask = async {
                 try {
-                    val sellerDetailDocuments = keProductItemStreamRecords.map {
+                    val sellerDetailDocuments = uzumProductItemStreamRecords.map {
                         SellerDetailDocument(
                             sellerId = it.seller.id,
                             accountId = it.seller.accountId,
@@ -67,7 +67,7 @@ class KeProductItemStreamListener(
         }
     }
 
-    private fun toOldProductDocument(productRecord: KeProductItemStreamRecord): ProductDocument {
+    private fun toOldProductDocument(productRecord: UzumProductItemStreamRecord): ProductDocument {
         return ProductDocument(
             productId = productRecord.productId,
             title = productRecord.title,

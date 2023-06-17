@@ -2,7 +2,7 @@ package dev.crashteam.uzumanalytics.stream.listener
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import dev.crashteam.keanalytics.stream.model.KeCategoryStreamRecord
+import dev.crashteam.uzumanalytics.stream.model.UzumCategoryStreamRecord
 import dev.crashteam.uzumanalytics.domain.mongo.CategoryDocument
 import dev.crashteam.uzumanalytics.repository.mongo.CategoryDao
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -16,7 +16,7 @@ import java.time.LocalDateTime
 private val log = KotlinLogging.logger {}
 
 @Component
-class KeCategoryStreamListener(
+class UzumCategoryStreamListener(
     private val objectMapper: ObjectMapper,
     private val categoryDao: CategoryDao
 ) : StreamListener<String, ObjectRecord<String, String>> {
@@ -24,7 +24,7 @@ class KeCategoryStreamListener(
     override fun onMessage(message: ObjectRecord<String, String>) {
         runBlocking {
             try {
-                val categoryStreamRecord = objectMapper.readValue<KeCategoryStreamRecord>(message.value)
+                val categoryStreamRecord = objectMapper.readValue<UzumCategoryStreamRecord>(message.value)
                 log.info {
                     "Consume category record from stream." +
                             " categoryId=${categoryStreamRecord.id} childCount=${categoryStreamRecord.children?.size}"
@@ -47,8 +47,8 @@ class KeCategoryStreamListener(
     }
 
     private suspend fun saveChildCategories(
-        rootCategory: KeCategoryStreamRecord,
-        children: List<KeCategoryStreamRecord>,
+        rootCategory: UzumCategoryStreamRecord,
+        children: List<UzumCategoryStreamRecord>,
         path: String?,
     ) {
         for (childCategory in children) {

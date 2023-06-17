@@ -2,9 +2,9 @@ package dev.crashteam.uzumanalytics.stream.scheduler
 
 import dev.crashteam.uzumanalytics.config.properties.RedisProperties
 import dev.crashteam.uzumanalytics.stream.listener.BatchStreamListener
-import dev.crashteam.uzumanalytics.stream.listener.KeCategoryStreamListener
-import dev.crashteam.uzumanalytics.stream.listener.KeProductItemStreamListener
-import dev.crashteam.uzumanalytics.stream.listener.KeProductPositionStreamListener
+import dev.crashteam.uzumanalytics.stream.listener.UzumCategoryStreamListener
+import dev.crashteam.uzumanalytics.stream.listener.UzumProductItemStreamListener
+import dev.crashteam.uzumanalytics.stream.listener.UzumProductPositionStreamListener
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -32,9 +32,9 @@ class MessageScheduler(
     private val uzumProductPositionSubscription: StreamReceiver<String, ObjectRecord<String, String>>,
     private val uzumProductSubscription: StreamReceiver<String, ObjectRecord<String, String>>,
     private val uzumCategorySubscription: StreamReceiver<String, ObjectRecord<String, String>>,
-    private val keProductPositionStreamListener: KeProductPositionStreamListener,
-    private val keProductStreamListener: KeProductItemStreamListener,
-    private val keCategoryStreamListener: KeCategoryStreamListener,
+    private val uzumProductPositionStreamListener: UzumProductPositionStreamListener,
+    private val keProductStreamListener: UzumProductItemStreamListener,
+    private val uzumCategoryStreamListener: UzumCategoryStreamListener,
     private val redisProperties: RedisProperties,
     private val messageReactiveRedisTemplate: ReactiveRedisTemplate<String, String>,
     private val retryTemplate: RetryTemplate,
@@ -55,7 +55,7 @@ class MessageScheduler(
                                 redisProperties.stream.keProductPosition.consumerGroup,
                                 redisProperties.stream.keProductPosition.consumerName,
                                 uzumProductPositionSubscription,
-                                keProductPositionStreamListener
+                                uzumProductPositionStreamListener
                             )
                         }
                         val createProductConsumerTask = async {
@@ -73,7 +73,7 @@ class MessageScheduler(
                                 redisProperties.stream.keCategoryInfo.consumerGroup,
                                 redisProperties.stream.keCategoryInfo.consumerName,
                                 uzumCategorySubscription,
-                                keCategoryStreamListener
+                                uzumCategoryStreamListener
                             )
                         }
                         awaitAll(createPositionConsumerTask, createProductConsumerTask, createCategoryConsumerTask)

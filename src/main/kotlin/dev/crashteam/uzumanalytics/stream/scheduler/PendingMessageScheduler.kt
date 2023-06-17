@@ -3,9 +3,9 @@ package dev.crashteam.uzumanalytics.stream.scheduler
 import dev.crashteam.uzumanalytics.config.properties.RedisProperties
 import dev.crashteam.uzumanalytics.extensions.getApplicationContext
 import dev.crashteam.uzumanalytics.stream.listener.BatchStreamListener
-import dev.crashteam.uzumanalytics.stream.listener.KeCategoryStreamListener
-import dev.crashteam.uzumanalytics.stream.listener.KeProductItemStreamListener
-import dev.crashteam.uzumanalytics.stream.listener.KeProductPositionStreamListener
+import dev.crashteam.uzumanalytics.stream.listener.UzumCategoryStreamListener
+import dev.crashteam.uzumanalytics.stream.listener.UzumProductItemStreamListener
+import dev.crashteam.uzumanalytics.stream.listener.UzumProductPositionStreamListener
 import dev.crashteam.uzumanalytics.stream.service.PendingMessageService
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -26,16 +26,16 @@ class PendingMessageScheduler : Job {
         val appContext = context.getApplicationContext()
         val pendingMessageService = appContext.getBean(PendingMessageService::class.java)
         val redisProperties = appContext.getBean(RedisProperties::class.java)
-        val keProductItemStreamListener = appContext.getBean(KeProductItemStreamListener::class.java)
-        val keProductPositionStreamListener = appContext.getBean(KeProductPositionStreamListener::class.java)
-        val keCategoryStreamListener = appContext.getBean(KeCategoryStreamListener::class.java)
+        val uzumProductItemStreamListener = appContext.getBean(UzumProductItemStreamListener::class.java)
+        val uzumProductPositionStreamListener = appContext.getBean(UzumProductPositionStreamListener::class.java)
+        val uzumCategoryStreamListener = appContext.getBean(UzumCategoryStreamListener::class.java)
         runBlocking {
             val productPendingMessageTask = async {
                 processPendingMessage(
                     streamKey = redisProperties.stream.keProductInfo.streamName,
                     consumerGroup = redisProperties.stream.keProductInfo.consumerGroup,
                     consumerName = redisProperties.stream.keProductInfo.consumerName,
-                    batchListener = keProductItemStreamListener,
+                    batchListener = uzumProductItemStreamListener,
                     pendingMessageService
                 )
             }
@@ -44,7 +44,7 @@ class PendingMessageScheduler : Job {
                     streamKey = redisProperties.stream.keProductPosition.streamName,
                     consumerGroup = redisProperties.stream.keProductPosition.consumerGroup,
                     consumerName = redisProperties.stream.keProductPosition.consumerName,
-                    listener = keProductPositionStreamListener,
+                    listener = uzumProductPositionStreamListener,
                     pendingMessageService
                 )
             }
@@ -53,7 +53,7 @@ class PendingMessageScheduler : Job {
                     streamKey = redisProperties.stream.keCategoryInfo.streamName,
                     consumerGroup = redisProperties.stream.keCategoryInfo.consumerGroup,
                     consumerName = redisProperties.stream.keCategoryInfo.consumerName,
-                    listener = keCategoryStreamListener,
+                    listener = uzumCategoryStreamListener,
                     pendingMessageService
                 )
             }

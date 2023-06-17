@@ -1,12 +1,12 @@
-package dev.crashteam.keanalytics.stream.model
+package dev.crashteam.uzumanalytics.stream.model
 
-data class KeProductItemStreamRecord(
+data class UzumProductItemStreamRecord(
     val productId: Long,
     val time: Long,
     val title: String,
     val totalAvailableAmount: Long,
     val orders: Long,
-    val description: String,
+    val description: String?,
     val attributes: List<String>,
     val tags: List<String>,
     val reviewsAmount: Long,
