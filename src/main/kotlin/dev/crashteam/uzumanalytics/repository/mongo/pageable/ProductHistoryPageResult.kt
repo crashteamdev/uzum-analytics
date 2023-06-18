@@ -1,6 +1,6 @@
 package dev.crashteam.uzumanalytics.repository.mongo.pageable
 
-import dev.crashteam.uzumanalytics.mongo.ProductSkuData
+import dev.crashteam.uzumanalytics.domain.mongo.ProductSkuData
 
 data class ProductHistoryPageResult(
     val productId: Long,

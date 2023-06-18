@@ -3,9 +3,9 @@ package dev.crashteam.uzumanalytics.service
 import com.google.common.hash.Hashing
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
-import dev.crashteam.uzumanalytics.mongo.ApiKey
-import dev.crashteam.uzumanalytics.mongo.ReferralCodeDocument
-import dev.crashteam.uzumanalytics.mongo.UserDocument
+import dev.crashteam.uzumanalytics.domain.mongo.ApiKey
+import dev.crashteam.uzumanalytics.domain.mongo.ReferralCodeDocument
+import dev.crashteam.uzumanalytics.domain.mongo.UserDocument
 import dev.crashteam.uzumanalytics.generator.ReferralCodeGenerator
 import dev.crashteam.uzumanalytics.repository.mongo.ReferralCodeRepository
 import dev.crashteam.uzumanalytics.repository.mongo.UserRepository

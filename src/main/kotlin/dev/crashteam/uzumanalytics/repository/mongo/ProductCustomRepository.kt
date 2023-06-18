@@ -2,7 +2,7 @@ package dev.crashteam.uzumanalytics.repository.mongo
 
 import com.mongodb.bulk.BulkWriteResult
 import com.mongodb.client.result.UpdateResult
-import dev.crashteam.uzumanalytics.mongo.ProductDocument
+import dev.crashteam.uzumanalytics.domain.mongo.ProductDocument
 import dev.crashteam.uzumanalytics.repository.mongo.model.*
 import dev.crashteam.uzumanalytics.repository.mongo.pageable.PageResult
 import dev.crashteam.uzumanalytics.repository.mongo.pageable.ProductHistoryPageResult

@@ -5,12 +5,7 @@ import com.mongodb.client.model.Filters
 import com.mongodb.client.model.InsertOneModel
 import com.mongodb.client.model.UpdateOneModel
 import com.mongodb.client.model.WriteModel
-import kotlinx.coroutines.reactive.awaitFirstOrNull
-import kotlinx.coroutines.reactive.awaitLast
-import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.awaitSingleOrNull
-import mu.KotlinLogging
-import dev.crashteam.uzumanalytics.mongo.*
+import dev.crashteam.uzumanalytics.domain.mongo.*
 import dev.crashteam.uzumanalytics.repository.mongo.CategoryRepository
 import dev.crashteam.uzumanalytics.repository.mongo.ProductChangeHistoryDao
 import dev.crashteam.uzumanalytics.repository.mongo.ProductPositionRepository
@@ -19,6 +14,11 @@ import dev.crashteam.uzumanalytics.repository.mongo.model.*
 import dev.crashteam.uzumanalytics.repository.mongo.pageable.PageResult
 import dev.crashteam.uzumanalytics.service.calculator.ProductHistoryCalculator
 import dev.crashteam.uzumanalytics.service.model.*
+import kotlinx.coroutines.reactive.awaitFirstOrNull
+import kotlinx.coroutines.reactive.awaitLast
+import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
+import mu.KotlinLogging
 import org.bson.Document
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
@@ -30,6 +30,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.stream.Stream
@@ -160,12 +161,16 @@ class ProductService(
         return PageResult(calculateResult, pageResult.pageSize, pageResult.page, pageResult.totalPages)
     }
 
-    suspend fun saveProductWithHistory(productDocuments: List<ProductDocument>) {
+    suspend fun saveProductWithHistory(productDocumentWithTimeMark: List<ProductDocumentTimeWrapper>) {
         // Save product
-        productRepository.saveProductBatch(productDocuments).awaitLast()
+        productRepository.saveProductBatch(productDocumentWithTimeMark.map { it.productDocument }).awaitLast()
 
         // Save product history
-        val documentOps = productDocuments.flatMap { buildProductDocumentOps(it)!! }
+        val documentOps = productDocumentWithTimeMark.flatMap {
+            val productDateTime =
+                LocalDateTime.ofInstant(Instant.ofEpochMilli(it.time), ZoneId.of("UTC"))
+            buildProductDocumentOps(it.productDocument, productDateTime.toLocalDate())!!
+        }
         val collectionName =
             reactiveMongoTemplate.getCollectionName(ProductChangeHistoryDocument::class.java)
         if (documentOps.isNotEmpty()) {
@@ -180,12 +185,13 @@ class ProductService(
 
     private suspend fun buildProductDocumentOps(
         productDocument: ProductDocument,
+        productCollectDay: LocalDate,
     ): List<WriteModel<Document>>? {
         val documentOps = productDocument.split?.filter { productSplitDocument ->
             val isHistoryExists = productChangeHistoryDao.existsByProductIdSkuIdAndDay(
                 productDocument.productId,
                 productSplitDocument.id,
-                LocalDate.now()
+                productCollectDay
             ).awaitSingleOrNull() ?: false
             !isHistoryExists // Save once per day
         }?.map { productSplitDocument ->

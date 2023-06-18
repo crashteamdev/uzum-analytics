@@ -1,6 +1,6 @@
 package dev.crashteam.uzumanalytics.repository.mongo
 
-import dev.crashteam.uzumanalytics.mongo.CategoryDocument
+import dev.crashteam.uzumanalytics.domain.mongo.CategoryDocument
 import org.springframework.data.mongodb.repository.Query
 import org.springframework.data.repository.reactive.ReactiveCrudRepository
 import org.springframework.stereotype.Repository
