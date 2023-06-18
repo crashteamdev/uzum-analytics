@@ -1,6 +1,6 @@
 package dev.crashteam.uzumanalytics.config
 
-import dev.crashteam.uzumanalytics.controller.converter.DataConverter
+import dev.crashteam.uzumanalytics.converter.DataConverter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
@@ -10,8 +10,7 @@ import org.springframework.context.support.ConversionServiceFactoryBean
 @Configuration
 @ComponentScan(
     basePackages = [
-        "dev.crashteam.uzumanalytics.controller.converter",
-        "dev.crashteam.uzumanalytics.domain.mongo.converter"
+        "dev.crashteam.uzumanalytics.converter",
     ]
 )
 class ConverterConfig {

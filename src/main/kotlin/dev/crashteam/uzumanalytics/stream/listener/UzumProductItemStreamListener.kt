@@ -2,10 +2,12 @@ package dev.crashteam.uzumanalytics.stream.listener
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import dev.crashteam.uzumanalytics.stream.model.KeItemSkuStreamRecord
-import dev.crashteam.uzumanalytics.stream.model.KeProductCategoryStreamRecord
+import dev.crashteam.uzumanalytics.stream.model.UzumItemSkuStreamRecord
+import dev.crashteam.uzumanalytics.stream.model.UzumProductCategoryStreamRecord
 import dev.crashteam.uzumanalytics.stream.model.UzumProductItemStreamRecord
 import dev.crashteam.uzumanalytics.domain.mongo.*
+import dev.crashteam.uzumanalytics.repository.clickhouse.CHProductRepository
+import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChUzumProduct
 import dev.crashteam.uzumanalytics.repository.mongo.SellerRepository
 import dev.crashteam.uzumanalytics.service.ProductService
 import dev.crashteam.uzumanalytics.service.model.ProductDocumentTimeWrapper
@@ -23,8 +25,9 @@ private val log = KotlinLogging.logger {}
 class UzumProductItemStreamListener(
     private val objectMapper: ObjectMapper,
     private val productService: ProductService,
-    private val conversionService: ConversionService,
     private val sellerRepository: SellerRepository,
+    private val chProductRepository: CHProductRepository,
+    private val conversionService: ConversionService,
 ) : BatchStreamListener<String, ObjectRecord<String, String>> {
 
     override suspend fun onMessage(messages: List<ObjectRecord<String, String>>) {
@@ -35,7 +38,7 @@ class UzumProductItemStreamListener(
         coroutineScope {
             val oldSaveProductTask = async {
                 try {
-                    log.info { "Save ${uzumProductItemStreamRecords.size} products" }
+                    log.info { "Save ${uzumProductItemStreamRecords.size} products (OLD)" }
                     val productDocuments = uzumProductItemStreamRecords.map {
                         ProductDocumentTimeWrapper(
                             productDocument = toOldProductDocument(it),
@@ -45,6 +48,17 @@ class UzumProductItemStreamListener(
                     productService.saveProductWithHistory(productDocuments)
                 } catch (e: Exception) {
                     log.error(e) { "Exception during save products on OLD SCHEMA" }
+                }
+            }
+            val saveProductTask = async {
+                try {
+                    log.info { "Save ${uzumProductItemStreamRecords.size} products (NEW)" }
+                    val products = uzumProductItemStreamRecords.map {
+                        conversionService.convert(it, ChUzumProduct::class.java)!!
+                    }
+                    chProductRepository.saveProducts(products)
+                } catch (e: Exception) {
+                    log.error(e) { "Exception during save products on NEW SCHEMA" }
                 }
             }
 
@@ -63,7 +77,7 @@ class UzumProductItemStreamListener(
                     log.error(e) { "Exception during save seller info" }
                 }
             }
-            awaitAll(oldSaveProductTask, sellerTask)
+            awaitAll(oldSaveProductTask, saveProductTask, sellerTask)
         }
     }
 
@@ -81,7 +95,7 @@ class UzumProductItemStreamListener(
             description = productRecord.description,
             attributes = productRecord.attributes,
             tags = productRecord.tags,
-            split = productRecord.skuList.map { productSku: KeItemSkuStreamRecord ->
+            split = productRecord.skuList.map { productSku: UzumItemSkuStreamRecord ->
                 productSplitToMongoDomain(productSku)
             },
             seller = SellerDocument(
@@ -96,7 +110,7 @@ class UzumProductItemStreamListener(
         )
     }
 
-    private fun productSplitToMongoDomain(productSku: KeItemSkuStreamRecord): ProductSplitDocument {
+    private fun productSplitToMongoDomain(productSku: UzumItemSkuStreamRecord): ProductSplitDocument {
         return ProductSplitDocument(
             id = productSku.skuId,
             availableAmount = productSku.availableAmount,
@@ -109,9 +123,9 @@ class UzumProductItemStreamListener(
         )
     }
 
-    private fun productCategoriesToAncestorCategories(productCategory: KeProductCategoryStreamRecord): List<String> {
+    private fun productCategoriesToAncestorCategories(productCategory: UzumProductCategoryStreamRecord): List<String> {
         val ancestorCategories: MutableList<String> = ArrayList()
-        var currentCategory: KeProductCategoryStreamRecord? = productCategory
+        var currentCategory: UzumProductCategoryStreamRecord? = productCategory
         while (currentCategory != null) {
             ancestorCategories.add(currentCategory.title.trim())
             currentCategory = currentCategory.parent

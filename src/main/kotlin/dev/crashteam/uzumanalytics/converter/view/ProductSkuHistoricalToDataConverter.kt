@@ -1,7 +1,8 @@
-package dev.crashteam.uzumanalytics.controller.converter
+package dev.crashteam.uzumanalytics.converter.view
 
 import dev.crashteam.uzumanalytics.controller.model.ProductSkuHistoricalCharacteristicView
 import dev.crashteam.uzumanalytics.controller.model.ProductSkuHistoricalView
+import dev.crashteam.uzumanalytics.converter.DataConverter
 import dev.crashteam.uzumanalytics.service.model.ProductSkuHistorical
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime

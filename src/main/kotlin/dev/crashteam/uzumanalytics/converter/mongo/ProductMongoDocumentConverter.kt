@@ -1,10 +1,10 @@
-package dev.crashteam.uzumanalytics.domain.mongo.converter
+package dev.crashteam.uzumanalytics.converter.mongo
 
 import dev.crashteam.uzumanalytics.client.uzum.model.ProductCategory
 import dev.crashteam.uzumanalytics.client.uzum.model.ProductData
 import dev.crashteam.uzumanalytics.client.uzum.model.ProductPhoto
 import dev.crashteam.uzumanalytics.client.uzum.model.ProductSplit
-import dev.crashteam.uzumanalytics.controller.converter.DataConverter
+import dev.crashteam.uzumanalytics.converter.DataConverter
 import dev.crashteam.uzumanalytics.domain.mongo.ProductDocument
 import dev.crashteam.uzumanalytics.domain.mongo.ProductSplitCharacteristicDocument
 import dev.crashteam.uzumanalytics.domain.mongo.ProductSplitDocument
