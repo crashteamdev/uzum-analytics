@@ -114,7 +114,7 @@ class PaymentController(
         @RequestBody callbackBody: QiwiPaymentCallbackBody,
     ): ResponseEntity<String> {
         log.info { "Callback qiwi payment. Body=$callbackBody" }
-        if (callbackBody.type == "PAYMENT") {
+        if (callbackBody.type == "SUCCESS") {
             val concat =
                 "${callbackBody.payment.paymentId}|${callbackBody.payment.createdDateTime}|${callbackBody.payment.amount.value}"
             val hmac = Mac.getInstance("HmacSHA256")
