@@ -22,13 +22,12 @@ class CHProductRepository(
     fun saveProducts(productFetchList: List<ChUzumProduct>) {
         jdbcTemplate.batchUpdate(
             "INSERT INTO uzum.product " +
-                    "(timestamp, fetchTime, productId, skuId, title, rating, categoryPath, reviewsAmount," +
-                    " totalOrdersAmount, totalAvailableAmount, availableAmount, attributes," +
-                    " tags, photoKey, characteristics, sellerId, sellerAccountId, sellerTitle, sellerLink," +
-                    " sellerRegistrationDate, sellerRating, sellerReviewsCount, sellerOrders, sellerOfficial, sellerContacts, " +
-                    " isEco, isPerishable, hasVerticalPhoto, showKitty, bonusProduct, adultCategory, colorPhotoPreview, fullPrice, " +
-                    " purchasePrice, charityProfit, barcode, vatType, vatAmount, vatPrice)" +
-                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "(timestamp, product_id, sku_id, title, rating, latest_category_id, reviews_amount," +
+                    " total_orders_amount, total_available_amount, available_amount, attributes," +
+                    " tags, photo_key, characteristics, seller_id, seller_account_id, seller_title, seller_link," +
+                    " seller_registration_date, seller_rating, seller_reviews_count, seller_orders, seller_contacts, " +
+                    " is_eco, is_adult, fullPrice, purchasePrice)" +
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             ProductBatchPreparedStatementSetter(productFetchList)
         )
     }
@@ -49,10 +48,7 @@ class CHProductRepository(
             ps.setLong(l++, product.skuId)
             ps.setString(l++, product.title)
             ps.setObject(l++, product.rating)
-            ps.setArray(
-                l++,
-                ClickHouseArray(ClickHouseDataType.UInt64, product.categoryPaths.toTypedArray())
-            )
+            ps.setLong(l++, product.categoryPaths.last())
             ps.setInt(l++, product.reviewsAmount)
             ps.setLong(l++, product.totalOrdersAmount)
             ps.setLong(l++, product.totalAvailableAmount)
