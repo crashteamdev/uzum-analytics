@@ -14,7 +14,6 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ServerWebExchange
-import java.nio.charset.StandardCharsets
 import java.security.Principal
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
@@ -48,6 +47,7 @@ class PaymentController(
                     currencySymbolCode = "RUB"
                 )
             }
+
             PaymentProvider.QIWI -> {
                 paymentService.createQiwiPayment(
                     userId = principal.name,
@@ -114,29 +114,29 @@ class PaymentController(
         @RequestBody callbackBody: QiwiPaymentCallbackBody,
     ): ResponseEntity<String> {
         log.info { "Callback qiwi payment. Body=$callbackBody" }
+
+        val concat =
+            "${callbackBody.payment.paymentId}|${callbackBody.payment.createdDateTime}|${callbackBody.payment.amount.value}"
+        val hmac = Mac.getInstance("HmacSHA256")
+        val secretKey = SecretKeySpec(qiwiProperties.callbackSecret.toByteArray(), "HmacSHA256")
+        hmac.init(secretKey)
+        val hex = Hex.encodeHexString(hmac.doFinal(concat.toByteArray()))
+        if (signature != hex) {
+            log.warn { "Callback payment sign is not valid. expected=$hex; actual=${signature}" }
+            return ResponseEntity.badRequest().build()
+        }
         if (callbackBody.payment.status.value == "SUCCESS") {
-            val concat =
-                "${callbackBody.payment.paymentId}|${callbackBody.payment.createdDateTime}|${callbackBody.payment.amount.value}"
-            val hmac = Mac.getInstance("HmacSHA256")
-            val secretKey = SecretKeySpec(qiwiProperties.callbackSecret.toByteArray(), "HmacSHA256")
-            hmac.init(secretKey)
-            val hex = Hex.encodeHexString(hmac.doFinal(concat.toByteArray()))
-            if (signature != hex) {
-                log.warn { "Callback payment sign is not valid. expected=$hex; actual=${signature}" }
-                return ResponseEntity.badRequest().build()
-            }
-            if (callbackBody.payment.status.value == "PAID") {
-                val userId = callbackBody.payment.customer.account
-                val paymentId = callbackBody.payment.billId
-                val currency = callbackBody.payment.amount.currency
-                paymentService.callbackPayment(
-                    paymentId,
-                    userId,
-                    currency,
-                )
-            }
+            val userId = callbackBody.payment.customer.account
+            val paymentId = callbackBody.payment.billId
+            val currency = callbackBody.payment.amount.currency
+            paymentService.callbackPayment(
+                paymentId,
+                userId,
+                currency,
+            )
             return ResponseEntity.ok().build()
         }
+
         return ResponseEntity.unprocessableEntity().build()
     }
 }
