@@ -120,5 +120,6 @@ clickhouse:
   password: ${CLICKHOUSE_PASSWORD:strongPasswd}
   connection.timeout: 50000
   compress: false
+  ssl: false
   liquibase:
     change-log: "classpath:db/changelog/db.ch.changelog-main.yml"

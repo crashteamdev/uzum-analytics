@@ -15,5 +15,6 @@ data class ClickHouseDbProperties(
     val user: String? = null,
     val password: String? = null,
     val connectionTimeout: Long = 50000,
-    val compress: Boolean = false
+    val compress: Boolean = false,
+    val ssl: Boolean = false,
 )
