@@ -2,7 +2,7 @@
 --changeset vitaxa:create-uzum-db
 CREATE DATABASE IF NOT EXISTS uzum;
 
---changeset vitaxa:ke-tables
+--changeset vitaxa:create-uzum-product-table
 DROP TABLE IF EXISTS uzum.product;
 CREATE TABLE uzum.product
 (
@@ -11,7 +11,7 @@ CREATE TABLE uzum.product
     sku_id                  String,
     title                   String,
     rating                  Decimal32(2),
-    latest_category_id Array(UInt64),
+    latest_category_id      UInt64,
     reviews_amount          UInt32,
     total_orders_amount     UInt64,
     total_available_amount  UInt64,
