@@ -26,8 +26,7 @@ class ClickhouseConfig {
             ClickHouseQueryParam.CONNECT_TIMEOUT.key,
             clickHouseDbProperties.connectionTimeout.toString()
         )
-        info.setProperty("ssl", "true")
-        info.setProperty("sslmode", "NONE");
+        info.setProperty("ssl", clickHouseDbProperties.ssl.toString())
         return ClickHouseDataSource(clickHouseDbProperties.url, info)
     }
 
