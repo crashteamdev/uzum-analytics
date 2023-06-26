@@ -2,6 +2,7 @@ package dev.crashteam.uzumanalytics.stream.listener
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import dev.crashteam.uzumanalytics.converter.clickhouse.ChUzumProductConverterResultWrapper
 import dev.crashteam.uzumanalytics.stream.model.UzumItemSkuStreamRecord
 import dev.crashteam.uzumanalytics.stream.model.UzumProductCategoryStreamRecord
 import dev.crashteam.uzumanalytics.stream.model.UzumProductItemStreamRecord
@@ -54,8 +55,8 @@ class UzumProductItemStreamListener(
                 try {
                     log.info { "Save ${uzumProductItemStreamRecords.size} products (NEW)" }
                     val products = uzumProductItemStreamRecords.map {
-                        conversionService.convert(it, ChUzumProduct::class.java)!!
-                    }
+                        conversionService.convert(it, ChUzumProductConverterResultWrapper::class.java)!!
+                    }.flatMap { it.result }
                     chProductRepository.saveProducts(products)
                 } catch (e: Exception) {
                     log.error(e) { "Exception during save products on NEW SCHEMA" }
