@@ -25,7 +25,7 @@ class CHProductRepository(
                     "(timestamp, product_id, sku_id, title, rating, latest_category_id, reviews_amount," +
                     " total_orders_amount, total_available_amount, available_amount, attributes," +
                     " tags, photo_key, characteristics, seller_id, seller_account_id, seller_title, seller_link," +
-                    " seller_registration_date, seller_rating, seller_reviews_count, seller_orders, seller_contacts, " +
+                    " seller_registrationDate, seller_rating, seller_reviewsCount, seller_orders, seller_contacts, " +
                     " is_eco, is_adult, fullPrice, purchasePrice)" +
                     " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             ProductBatchPreparedStatementSetter(productFetchList)
