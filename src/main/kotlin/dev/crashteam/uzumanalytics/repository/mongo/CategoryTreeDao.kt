@@ -1,7 +1,6 @@
 package dev.crashteam.uzumanalytics.repository.mongo
 
 import com.mongodb.client.result.UpdateResult
-import dev.crashteam.uzumanalytics.domain.mongo.CategoryDocument
 import dev.crashteam.uzumanalytics.domain.mongo.CategoryTreeDocument
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.query.Criteria
@@ -23,6 +22,6 @@ class CategoryTreeDao(
             set("title", categoryTreeDocument.title)
         }
 
-        return reactiveMongoTemplate.upsert(query, update, CategoryDocument::class.java)
+        return reactiveMongoTemplate.upsert(query, update, CategoryTreeDocument::class.java)
     }
 }
