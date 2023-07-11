@@ -75,7 +75,9 @@ class SecurityConfig(
                     "/v1/report/**",
                     "/v1/reports/**",
                     "/v1/user/subscription/apikey",
-                    "/v2/seller/**"
+                    "/v2/seller/**",
+                    "/v2/product/**",
+                    "/v2/category/**"
                 )
             )
             .addFilterAt(ApiKeyAuthHandlerFilter(userRepository), SecurityWebFiltersOrder.AUTHORIZATION)

@@ -1,9 +1,10 @@
-package dev.crashteam.uzumanalytics.controller.converter
+package dev.crashteam.uzumanalytics.converter.view
 
 import dev.crashteam.uzumanalytics.controller.model.CategoryDataView
 import dev.crashteam.uzumanalytics.controller.model.CategorySalesSellerView
 import dev.crashteam.uzumanalytics.controller.model.CategorySalesView
 import dev.crashteam.uzumanalytics.controller.model.CategorySalesViewWrapper
+import dev.crashteam.uzumanalytics.converter.DataConverter
 import dev.crashteam.uzumanalytics.service.model.AggregateSalesWrapper
 import org.springframework.stereotype.Component
 

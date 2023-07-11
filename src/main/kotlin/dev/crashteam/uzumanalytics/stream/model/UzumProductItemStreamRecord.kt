@@ -11,49 +11,49 @@ data class UzumProductItemStreamRecord(
     val tags: List<String>,
     val reviewsAmount: Long,
     val rating: String,
-    val skuList: List<KeItemSkuStreamRecord>,
-    val seller: KeProductSellerStreamRecord,
-    val category: KeProductCategoryStreamRecord,
+    val skuList: List<UzumItemSkuStreamRecord>,
+    val seller: UzumProductSellerStreamRecord,
+    val category: UzumProductCategoryStreamRecord,
     val isEco: Boolean,
     val isAdult: Boolean,
-    val characteristics: List<KeProductCharacteristicsStreamRecord>
+    val characteristics: List<UzumProductCharacteristicsStreamRecord>
 )
 
-data class KeProductCharacteristicsStreamRecord(
+data class UzumProductCharacteristicsStreamRecord(
     val id: Long,
     val title: String,
-    val values: List<KeProductCharacteristicStreamRecord>
+    val values: List<UzumProductCharacteristicStreamRecord>
 )
 
-data class KeProductCharacteristicStreamRecord(
+data class UzumProductCharacteristicStreamRecord(
     val id: Long,
     val title: String,
     val value: String
 )
 
-data class KeProductCategoryStreamRecord(
+data class UzumProductCategoryStreamRecord(
     val id: Long,
     val title: String,
     val productAmount: Long,
-    val parent: KeProductCategoryStreamRecord?
+    val parent: UzumProductCategoryStreamRecord?
 )
 
-data class KeItemSkuStreamRecord(
+data class UzumItemSkuStreamRecord(
     val skuId: Long,
     val photoKey: String,
-    val characteristics: List<KeItemCharacteristicStreamRecord>,
+    val characteristics: List<UzumItemCharacteristicStreamRecord>,
     val purchasePrice: String,
     val fullPrice: String?,
     val availableAmount: Long,
 )
 
-data class KeItemCharacteristicStreamRecord(
+data class UzumItemCharacteristicStreamRecord(
     val type: String,
     val title: String,
     val value: String,
 )
 
-data class KeProductSellerStreamRecord(
+data class UzumProductSellerStreamRecord(
     val id: Long,
     val accountId: Long,
     val sellerLink: String,
@@ -63,10 +63,10 @@ data class KeProductSellerStreamRecord(
     val rating: String,
     val registrationDate: Long,
     val description: String?,
-    val contacts: List<KeProductSellerContact>,
+    val contacts: List<UzumProductSellerContact>,
 )
 
-data class KeProductSellerContact(
+data class UzumProductSellerContact(
     val type: String,
     val value: String,
 )

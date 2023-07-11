@@ -1,4 +1,4 @@
-package dev.crashteam.uzumanalytics.controller.converter
+package dev.crashteam.uzumanalytics.converter
 
 import org.springframework.core.convert.converter.Converter
 

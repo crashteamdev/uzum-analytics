@@ -1,8 +1,9 @@
-package dev.crashteam.uzumanalytics.controller.converter
+package dev.crashteam.uzumanalytics.converter.view
 
 import dev.crashteam.uzumanalytics.controller.model.ProductItemView
 import dev.crashteam.uzumanalytics.controller.model.ProductSellerView
 import dev.crashteam.uzumanalytics.controller.model.ProductView
+import dev.crashteam.uzumanalytics.converter.DataConverter
 import dev.crashteam.uzumanalytics.domain.mongo.ProductDocument
 import org.springframework.context.annotation.Lazy
 import org.springframework.core.convert.ConversionService
