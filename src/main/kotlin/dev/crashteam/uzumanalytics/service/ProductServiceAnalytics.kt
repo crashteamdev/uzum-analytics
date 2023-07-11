@@ -4,6 +4,7 @@ import dev.crashteam.uzumanalytics.config.RedisConfig
 import dev.crashteam.uzumanalytics.repository.clickhouse.CHProductRepository
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChCategoryOverallInfo
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductSalesHistory
+import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductsSales
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Component
 import java.time.LocalDate
@@ -32,4 +33,12 @@ class ProductServiceAnalytics(
         return chProductRepository.getProductSales(productId.toString(), skuId.toString(), fromTime, toTime)
     }
 
+    fun getProductSalesAnalytics(
+        productIds: List<Long>,
+        fromTime: LocalDateTime,
+        toTime: LocalDateTime
+    ): List<ChProductsSales> {
+        val productIdList = productIds.map { it.toString() }
+        return chProductRepository.getProductsSales(productIdList, fromTime, toTime)
+    }
 }

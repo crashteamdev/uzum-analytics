@@ -4,6 +4,7 @@ import dev.crashteam.openapi.keanalytics.api.CategoryApi
 import dev.crashteam.openapi.keanalytics.api.ProductApi
 import dev.crashteam.openapi.keanalytics.api.SellerApi
 import dev.crashteam.openapi.keanalytics.model.CategoryOverallInfo200Response
+import dev.crashteam.openapi.keanalytics.model.GetProductSales200ResponseInner
 import dev.crashteam.openapi.keanalytics.model.ProductSkuHistory
 import dev.crashteam.openapi.keanalytics.model.Seller
 import dev.crashteam.uzumanalytics.service.ProductServiceAnalytics
@@ -36,9 +37,7 @@ class MarketDbApiControllerV2(
         exchange: ServerWebExchange
     ): Mono<ResponseEntity<CategoryOverallInfo200Response>> {
         val categoryOverallAnalytics = productServiceAnalytics.getCategoryOverallAnalytics(categoryId)
-        if (categoryOverallAnalytics == null) {
-            return ResponseEntity.notFound().build<CategoryOverallInfo200Response>().toMono()
-        }
+            ?: return ResponseEntity.notFound().build<CategoryOverallInfo200Response>().toMono()
         return ResponseEntity.ok(CategoryOverallInfo200Response().apply {
             this.averagePrice = categoryOverallAnalytics.averagePrice.setScale(2, RoundingMode.HALF_UP).toDouble()
             this.orderCount = categoryOverallAnalytics.orderCount
@@ -98,5 +97,32 @@ class MarketDbApiControllerV2(
                 this.accountId = it.accountId
             }
         }).toMono().doOnError { log.error(it) { "Failed to get seller shops" } }
+    }
+
+    override fun getProductSales(
+        productIds: MutableList<Long>,
+        fromTime: OffsetDateTime,
+        toTime: OffsetDateTime,
+        exchange: ServerWebExchange
+    ): Mono<ResponseEntity<Flux<GetProductSales200ResponseInner>>> {
+        val productSalesAnalytics = productServiceAnalytics.getProductSalesAnalytics(
+            productIds,
+            fromTime.toLocalDateTime(),
+            toTime.toLocalDateTime()
+        )
+        val productSales = productSalesAnalytics.map {
+            GetProductSales200ResponseInner().apply {
+                this.productId = it.productId.toLong()
+                this.salesAmount = it.salesAmount.toDouble()
+                this.orderAmount = it.orderAmount
+                this.dailyOrder = it.dailyOrderAmount.setScale(2, RoundingMode.HALF_UP).toDouble()
+                this.seller = Seller().apply {
+                    this.accountId = it.sellerAccountId
+                    this.link = it.sellerLink
+                    this.title = it.sellerTitle
+                }
+            }
+        }
+        return ResponseEntity.ok(productSales.toFlux()).toMono()
     }
 }

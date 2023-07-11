@@ -2,8 +2,10 @@ package dev.crashteam.uzumanalytics.repository.clickhouse
 
 import dev.crashteam.uzumanalytics.repository.clickhouse.mapper.CategoryOverallInfoMapper
 import dev.crashteam.uzumanalytics.repository.clickhouse.mapper.ProductSalesHistoryMapper
+import dev.crashteam.uzumanalytics.repository.clickhouse.mapper.ProductsSalesMapper
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChCategoryOverallInfo
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductSalesHistory
+import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductsSales
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChUzumProduct
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.jdbc.core.BatchPreparedStatementSetter
@@ -83,9 +85,9 @@ class CHProductRepository(
                  title,
                  if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
                     total_orders_amount_diff, available_amount_diff)                  AS order_amount,
-                 purchase_price,
+                 purchase_price / 100,
                  if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                    total_orders_amount_diff, available_amount_diff) * purchase_price AS sales_amount,
+                    total_orders_amount_diff, available_amount_diff) * purchase_price / 100 AS sales_amount,
                  seller_title,
                  seller_link,
                  seller_account_id
@@ -201,11 +203,11 @@ class CHProductRepository(
         productIds: List<String>,
         fromTime: LocalDateTime,
         toTime: LocalDateTime
-    ): List<ChProductSalesHistory> {
+    ): List<ChProductsSales> {
         return jdbcTemplate.query(
             GET_PRODUCTS_SALES,
             ProductsSalesStatementSetter(productIds, fromTime, toTime),
-            ProductSalesHistoryMapper()
+            ProductsSalesMapper()
         )
     }
 
@@ -243,20 +245,7 @@ class CHProductRepository(
     ) : PreparedStatementSetter {
         override fun setValues(ps: PreparedStatement) {
             var l = 1
-            ps.setArray(l++, ClickHouseArray(ClickHouseDataType.String, productIds))
-            ps.setObject(l++, fromTime)
-            ps.setObject(l++, toTime)
-        }
-    }
-
-    internal class CategoryOverallInfoStatementSetter(
-        private val categoryId: Long,
-        private val fromTime: LocalDateTime,
-        private val toTime: LocalDateTime,
-    ) : PreparedStatementSetter {
-        override fun setValues(ps: PreparedStatement) {
-            var l = 1
-            ps.setLong(l++, categoryId)
+            ps.setArray(l++, ClickHouseArray(ClickHouseDataType.String, productIds.toTypedArray()))
             ps.setObject(l++, fromTime)
             ps.setObject(l++, toTime)
         }

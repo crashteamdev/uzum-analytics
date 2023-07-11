@@ -1,5 +1,6 @@
 package dev.crashteam.uzumanalytics.repository.clickhouse.mapper
 
+import dev.crashteam.uzumanalytics.extensions.getNullableBigDecimal
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductSalesHistory
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Component
@@ -17,17 +18,12 @@ class ProductSalesHistoryMapper : RowMapper<ChProductSalesHistory> {
             title = rs.getString("title"),
             orderAmount = rs.getLong("order_amount"),
             reviewAmount = rs.getLong("review_amount"),
-            fullPrice = getNullableBigDecimal(rs, "full_price"),
+            fullPrice = rs.getNullableBigDecimal("full_price"),
             purchasePrice = rs.getBigDecimal("purchase_price"),
             photoKey = rs.getString("photo_key"),
             salesAmount = rs.getBigDecimal("sales_amount"),
             totalAvailableAmount = rs.getLong("total_available_amount"),
             availableAmount = rs.getLong("available_amount")
         )
-    }
-
-    private fun getNullableBigDecimal(rs: ResultSet, columnName: String): BigDecimal? {
-        val value = rs.getString(columnName)
-        return (if (rs.wasNull()) null else value.toBigDecimal())
     }
 }
