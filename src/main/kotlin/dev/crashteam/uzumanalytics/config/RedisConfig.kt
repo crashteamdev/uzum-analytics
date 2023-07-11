@@ -5,6 +5,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import dev.crashteam.uzumanalytics.client.cbr.model.CbrCurrencyRateResponse
 import dev.crashteam.uzumanalytics.client.currencyapi.model.CurrencyApiResponse
 import dev.crashteam.uzumanalytics.config.properties.RedisProperties
+import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChCategoryOverallInfo
 import dev.crashteam.uzumanalytics.repository.redis.ApiKeyUserSessionInfo
 import mu.KotlinLogging
 import org.springframework.boot.autoconfigure.cache.RedisCacheManagerBuilderCustomizer
@@ -65,74 +66,74 @@ class RedisConfig(
         }
     }
 
-    @Bean
-    fun uzumProductSubscription(
-        redisConnectionFactory: ReactiveRedisConnectionFactory
-    ): StreamReceiver<String, ObjectRecord<String, String>> {
-        val options = StreamReceiver.StreamReceiverOptions.builder().pollTimeout(Duration.ofMillis(100))
-            .targetType(String::class.java).build()
-        try {
-//            redisConnectionFactory.reactiveConnection.streamCommands().xGroupDestroy(
+//    @Bean
+//    fun uzumProductSubscription(
+//        redisConnectionFactory: ReactiveRedisConnectionFactory
+//    ): StreamReceiver<String, ObjectRecord<String, String>> {
+//        val options = StreamReceiver.StreamReceiverOptions.builder().pollTimeout(Duration.ofMillis(100))
+//            .targetType(String::class.java).build()
+//        try {
+////            redisConnectionFactory.reactiveConnection.streamCommands().xGroupDestroy(
+////                ByteBuffer.wrap(redisProperties.stream.keProductInfo.streamName.toByteArray()),
+////                redisProperties.stream.keProductInfo.consumerGroup
+////            )?.subscribe()
+//            redisConnectionFactory.reactiveConnection.streamCommands().xGroupCreate(
 //                ByteBuffer.wrap(redisProperties.stream.keProductInfo.streamName.toByteArray()),
-//                redisProperties.stream.keProductInfo.consumerGroup
-//            )?.subscribe()
-            redisConnectionFactory.reactiveConnection.streamCommands().xGroupCreate(
-                ByteBuffer.wrap(redisProperties.stream.keProductInfo.streamName.toByteArray()),
-                redisProperties.stream.keProductInfo.consumerGroup,
-                ReadOffset.from("0-0"),
-                true
-            ).subscribe()
-        } catch (e: RedisSystemException) {
-            log.warn(e) { "Failed to create consumer group: ${redisProperties.stream.keProductInfo.consumerGroup}" }
-        }
-        return StreamReceiver.create(redisConnectionFactory, options)
-    }
-
-    @Bean
-    fun uzumProductPositionSubscription(
-        redisConnectionFactory: ReactiveRedisConnectionFactory
-    ): StreamReceiver<String, ObjectRecord<String, String>> {
-        val options = StreamReceiver.StreamReceiverOptions.builder().pollTimeout(Duration.ofMillis(100))
-            .targetType(String::class.java).build()
-        try {
-//            redisConnectionFactory.reactiveConnection.streamCommands().xGroupDestroy(
+//                redisProperties.stream.keProductInfo.consumerGroup,
+//                ReadOffset.from("0-0"),
+//                true
+//            ).subscribe()
+//        } catch (e: RedisSystemException) {
+//            log.warn(e) { "Failed to create consumer group: ${redisProperties.stream.keProductInfo.consumerGroup}" }
+//        }
+//        return StreamReceiver.create(redisConnectionFactory, options)
+//    }
+//
+//    @Bean
+//    fun uzumProductPositionSubscription(
+//        redisConnectionFactory: ReactiveRedisConnectionFactory
+//    ): StreamReceiver<String, ObjectRecord<String, String>> {
+//        val options = StreamReceiver.StreamReceiverOptions.builder().pollTimeout(Duration.ofMillis(100))
+//            .targetType(String::class.java).build()
+//        try {
+////            redisConnectionFactory.reactiveConnection.streamCommands().xGroupDestroy(
+////                ByteBuffer.wrap(redisProperties.stream.keProductPosition.streamName.toByteArray()),
+////                redisProperties.stream.keProductPosition.consumerGroup
+////            )?.subscribe()
+//            redisConnectionFactory.reactiveConnection.streamCommands().xGroupCreate(
 //                ByteBuffer.wrap(redisProperties.stream.keProductPosition.streamName.toByteArray()),
-//                redisProperties.stream.keProductPosition.consumerGroup
-//            )?.subscribe()
-            redisConnectionFactory.reactiveConnection.streamCommands().xGroupCreate(
-                ByteBuffer.wrap(redisProperties.stream.keProductPosition.streamName.toByteArray()),
-                redisProperties.stream.keProductPosition.consumerGroup,
-                ReadOffset.from("0-0"),
-                true
-            ).subscribe()
-        } catch (e: RedisSystemException) {
-            log.warn(e) { "Failed to create consumer group: ${redisProperties.stream.keProductPosition.consumerGroup}" }
-        }
-        return StreamReceiver.create(redisConnectionFactory, options)
-    }
-
-    @Bean
-    fun uzumCategorySubscription(
-        redisConnectionFactory: ReactiveRedisConnectionFactory
-    ): StreamReceiver<String, ObjectRecord<String, String>> {
-        val options = StreamReceiver.StreamReceiverOptions.builder().pollTimeout(Duration.ofMillis(100))
-            .targetType(String::class.java).build()
-        try {
-//            redisConnectionFactory.reactiveConnection.streamCommands().xGroupDestroy(
+//                redisProperties.stream.keProductPosition.consumerGroup,
+//                ReadOffset.from("0-0"),
+//                true
+//            ).subscribe()
+//        } catch (e: RedisSystemException) {
+//            log.warn(e) { "Failed to create consumer group: ${redisProperties.stream.keProductPosition.consumerGroup}" }
+//        }
+//        return StreamReceiver.create(redisConnectionFactory, options)
+//    }
+//
+//    @Bean
+//    fun uzumCategorySubscription(
+//        redisConnectionFactory: ReactiveRedisConnectionFactory
+//    ): StreamReceiver<String, ObjectRecord<String, String>> {
+//        val options = StreamReceiver.StreamReceiverOptions.builder().pollTimeout(Duration.ofMillis(100))
+//            .targetType(String::class.java).build()
+//        try {
+////            redisConnectionFactory.reactiveConnection.streamCommands().xGroupDestroy(
+////                ByteBuffer.wrap(redisProperties.stream.keCategoryInfo.streamName.toByteArray()),
+////                redisProperties.stream.keCategoryInfo.consumerGroup
+////            )?.subscribe()
+//            redisConnectionFactory.reactiveConnection.streamCommands().xGroupCreate(
 //                ByteBuffer.wrap(redisProperties.stream.keCategoryInfo.streamName.toByteArray()),
-//                redisProperties.stream.keCategoryInfo.consumerGroup
-//            )?.subscribe()
-            redisConnectionFactory.reactiveConnection.streamCommands().xGroupCreate(
-                ByteBuffer.wrap(redisProperties.stream.keCategoryInfo.streamName.toByteArray()),
-                redisProperties.stream.keCategoryInfo.consumerGroup,
-                ReadOffset.from("0-0"),
-                true
-            ).subscribe()
-        } catch (e: RedisSystemException) {
-            log.warn(e) { "Failed to create consumer group: ${redisProperties.stream.keCategoryInfo.consumerGroup}" }
-        }
-        return StreamReceiver.create(redisConnectionFactory, options)
-    }
+//                redisProperties.stream.keCategoryInfo.consumerGroup,
+//                ReadOffset.from("0-0"),
+//                true
+//            ).subscribe()
+//        } catch (e: RedisSystemException) {
+//            log.warn(e) { "Failed to create consumer group: ${redisProperties.stream.keCategoryInfo.consumerGroup}" }
+//        }
+//        return StreamReceiver.create(redisConnectionFactory, options)
+//    }
 
     @Bean
     fun redisCacheManagerBuilderCustomizer(): RedisCacheManagerBuilderCustomizer {
@@ -169,6 +170,21 @@ class RedisConfig(
 
                 }))
                 .entryTtl(Duration.ofSeconds(86400))
+            configurationMap[CATEGORY_OVERALL_INFO_CACHE] = RedisCacheConfiguration.defaultCacheConfig()
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(object :
+                    RedisSerializer<Any> {
+                    override fun serialize(t: Any?): ByteArray {
+                        return jacksonObjectMapper().writeValueAsBytes(t)
+                    }
+
+                    override fun deserialize(bytes: ByteArray?): Any? {
+                        return if (bytes != null) {
+                            jacksonObjectMapper().readValue(bytes, ChCategoryOverallInfo::class.java)
+                        } else null
+                    }
+
+                }))
+                .entryTtl(Duration.ofSeconds(86400))
             builder.withInitialCacheConfigurations(configurationMap)
         }
     }
@@ -176,6 +192,7 @@ class RedisConfig(
     companion object {
         const val UZUM_CBR_CURRENCIES_CACHE_NAME = "cbr-currencies"
         const val CURRENCY_API_CACHE_NAME = "currency-api"
+        const val CATEGORY_OVERALL_INFO_CACHE = "category-overall-info"
     }
 
 }
