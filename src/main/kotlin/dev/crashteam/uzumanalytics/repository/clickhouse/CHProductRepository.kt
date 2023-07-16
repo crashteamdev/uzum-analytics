@@ -156,7 +156,7 @@ class CHProductRepository(
                                                              AND latest_category_id IN
                                                                 if(length(dictGetDescendants('categories_dictionary', ?, 0)) > 0,
                                                                 dictGetDescendants('categories_dictionary', ?, 0),
-                                                                array(10003))
+                                                                array(?))
                                                         )
                                                   GROUP BY product_id))
 
