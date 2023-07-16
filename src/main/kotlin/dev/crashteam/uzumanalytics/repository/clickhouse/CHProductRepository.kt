@@ -150,12 +150,10 @@ class CHProductRepository(
                                                                   p.latest_category_id,
                                                                   p.total_orders_amount,
                                                                   p.purchase_price,
-                                                                  p.seller_id,
-                                                                  c.parentCategoryId AS parent_category_id
+                                                                  p.seller_id
                                                            FROM uzum.product p
-                                                                    INNER JOIN categories_dictionary c ON c.categoryId = p.latest_category_id
                                                            WHERE timestamp BETWEEN ? AND ?
-                                                             AND parent_category_id IN dictGetChildren('categories_dictionary', ?)
+                                                             AND latest_category_id IN dictGetDescendants('categories_dictionary', ?, 0)
                                                            )
                                                   GROUP BY product_id))
 
@@ -163,6 +161,7 @@ class CHProductRepository(
                    sum(order_amount)                                                    AS order_count,
                    sum(seller_count)                                                    AS seller_counts,
                    round(sum(order_amount) / sum(seller_count), 2)                      AS sales_per_seller,
+                   count(DISTINCT product_id)                      AS products_count,
                    (SELECT count()                           AS product_zero_sales_count,
                            count(DISTINCT seller_identifier) AS seller_zero_sales_count
                     FROM category_product_sales

@@ -7,6 +7,7 @@ data class ChCategoryOverallInfo(
     val orderCount: Long,
     val sellerCount: Long,
     val salesPerSeller: BigDecimal,
+    val productCount: Long,
     val productZeroSalesCount: Long,
     val sellersZeroSalesCount: Long,
 )

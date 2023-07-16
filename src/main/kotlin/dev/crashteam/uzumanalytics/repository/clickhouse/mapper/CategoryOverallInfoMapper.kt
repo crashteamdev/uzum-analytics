@@ -15,6 +15,7 @@ class CategoryOverallInfoMapper : RowMapper<ChCategoryOverallInfo> {
             orderCount = rs.getLong("order_count"),
             sellerCount = rs.getLong("seller_counts"),
             salesPerSeller = rs.getBigDecimal("sales_per_seller"),
+            productCount = rs.getLong("products_count"),
             productZeroSalesCount = zeroSalesArray[0].toLong(),
             sellersZeroSalesCount = zeroSalesArray[1].toLong(),
         )

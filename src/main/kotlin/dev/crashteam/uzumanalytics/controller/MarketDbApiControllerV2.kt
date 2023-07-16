@@ -43,6 +43,7 @@ class MarketDbApiControllerV2(
             this.orderCount = categoryOverallAnalytics.orderCount
             this.sellerCount = categoryOverallAnalytics.sellerCount
             this.salesPerSeller = categoryOverallAnalytics.salesPerSeller.setScale(2, RoundingMode.HALF_UP).toDouble()
+            this.productCount = categoryOverallAnalytics.productCount
             this.productZeroSalesCount = categoryOverallAnalytics.productZeroSalesCount
             this.sellersZeroSalesCount = categoryOverallAnalytics.sellersZeroSalesCount
         }).toMono()
