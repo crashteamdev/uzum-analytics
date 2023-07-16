@@ -153,8 +153,11 @@ class CHProductRepository(
                                                                   p.seller_id
                                                            FROM uzum.product p
                                                            WHERE timestamp BETWEEN ? AND ?
-                                                             AND latest_category_id IN dictGetDescendants('categories_dictionary', ?, 0)
-                                                           )
+                                                             AND latest_category_id IN
+                                                                if(length(dictGetDescendants('categories_dictionary', ?, 0)) > 0,
+                                                                dictGetDescendants('categories_dictionary', ?, 0),
+                                                                array(10003))
+                                                        )
                                                   GROUP BY product_id))
 
             SELECT round((sum(price) / 100) / count(), 2)                               AS avg_price,
