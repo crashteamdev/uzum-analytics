@@ -221,7 +221,7 @@ class CHProductRepository(
         return jdbcTemplate.queryForObject(
             GET_CATEGORY_OVERALL_INFO,
             CategoryOverallInfoMapper(),
-            fromTime, toTime, categoryId
+            fromTime, toTime, categoryId, categoryId, categoryId
         )
     }
 
