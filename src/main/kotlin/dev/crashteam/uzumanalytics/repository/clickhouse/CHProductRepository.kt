@@ -156,18 +156,14 @@ class CHProductRepository(
                            uniq(seller_identifier) AS seller_zero_sales_count
                     FROM (SELECT product_id,
                                  total_orders_amount_max - total_orders_amount_min AS order_amount,
-                                 purchase_price                                    AS price,
-                                 seller_identifier,
-                                 (SELECT uniq(seller_id) FROM category_products)   AS seller_count,
-                                 (SELECT uniq(product_id) FROM category_products)  AS product_count
+                                 seller_identifier
                           FROM (SELECT product_id,
                                        min(total_orders_amount) AS total_orders_amount_min,
                                        max(total_orders_amount) AS total_orders_amount_max,
-                                       max(purchase_price)      AS purchase_price,
                                        max(seller_id)           AS seller_identifier
                                 FROM category_products
                                 GROUP BY product_id))
-                    WHERE order_amount <= 0)                       AS zero_sales
+                    WHERE order_amount <= 0) AS zero_sales
             FROM (SELECT product_id,
                          total_orders_amount_max - total_orders_amount_min AS order_amount,
                          purchase_price                                    AS price,
@@ -181,7 +177,7 @@ class CHProductRepository(
                                max(seller_id)           AS seller_identifier
                         FROM category_products
                         GROUP BY product_id))
-            WHERE order_amount > 0;
+            WHERE order_amount > 0
         """.trimIndent()
     }
 
