@@ -132,46 +132,56 @@ class CHProductRepository(
           GROUP BY product_id
         """
         private val GET_CATEGORY_OVERALL_INFO = """
-            WITH category_product_sales AS (SELECT product_id,
-                                                   total_orders_amount_max - total_orders_amount_min AS order_amount,
-                                                   purchase_price                                    AS price,
-                                                   seller_count,
-                                                   seller_identifier
-                                            FROM (SELECT product_id,
-                                                         min(total_orders_amount)  AS total_orders_amount_min,
-                                                         max(total_orders_amount)  AS total_orders_amount_max,
-                                                         max(purchase_price)       AS purchase_price,
-                                                         any(seller_id)            AS seller_identifier,
-                                                         count(DISTINCT seller_id) AS seller_count
-                                                  FROM (
-                                                           SELECT p.timestamp,
-                                                                  p.product_id,
-                                                                  p.sku_id,
-                                                                  p.latest_category_id,
-                                                                  p.total_orders_amount,
-                                                                  p.purchase_price,
-                                                                  p.seller_id
-                                                           FROM uzum.product p
-                                                           WHERE timestamp BETWEEN ? AND ?
-                                                             AND latest_category_id IN
-                                                                if(length(dictGetDescendants('categories_dictionary', ?, 0)) > 0,
-                                                                dictGetDescendants('categories_dictionary', ?, 0),
-                                                                array(?))
-                                                        )
-                                                  GROUP BY product_id))
+            WITH category_products AS (SELECT p.timestamp,
+                                              p.product_id,
+                                              p.sku_id,
+                                              p.latest_category_id,
+                                              p.total_orders_amount,
+                                              p.purchase_price,
+                                              p.seller_id
+                                       FROM uzum.product p
+                                       WHERE timestamp BETWEEN ? AND ?
+                                         AND latest_category_id IN
+                                             if(length(dictGetDescendants('categories_dictionary', ?, 0)) >
+                                                0,
+                                                dictGetDescendants('categories_dictionary', ?, 0),
+                                                array(?)))
 
-            SELECT round((sum(price) / 100) / count(), 2)                               AS avg_price,
-                   sum(order_amount)                                                    AS order_count,
-                   sum(seller_count)                                                    AS seller_counts,
-                   round(sum(order_amount) / sum(seller_count), 2)                      AS sales_per_seller,
-                   count(DISTINCT product_id)                      AS products_count,
-                   (SELECT count()                           AS product_zero_sales_count,
-                           count(DISTINCT seller_identifier) AS seller_zero_sales_count
-                    FROM category_product_sales
+            SELECT round((sum(price) / 100) / count(), 2)          AS avg_price,
+                   sum(order_amount)                               AS order_count,
+                   any(seller_count)                               AS seller_counts,
+                   any(product_count)                              AS product_counts,
+                   round(sum(order_amount) / any(seller_count), 3) AS sales_per_seller,
+                   (SELECT count()                 AS product_zero_sales_count,
+                           uniq(seller_identifier) AS seller_zero_sales_count
+                    FROM (SELECT product_id,
+                                 total_orders_amount_max - total_orders_amount_min AS order_amount,
+                                 purchase_price                                    AS price,
+                                 seller_identifier,
+                                 (SELECT uniq(seller_id) FROM category_products)   AS seller_count,
+                                 (SELECT uniq(product_id) FROM category_products)  AS product_count
+                          FROM (SELECT product_id,
+                                       min(total_orders_amount) AS total_orders_amount_min,
+                                       max(total_orders_amount) AS total_orders_amount_max,
+                                       max(purchase_price)      AS purchase_price,
+                                       max(seller_id)           AS seller_identifier
+                                FROM category_products
+                                GROUP BY product_id))
                     WHERE order_amount <= 0)                       AS zero_sales
-            FROM category_product_sales
-            WHERE order_amount > 0
-
+            FROM (SELECT product_id,
+                         total_orders_amount_max - total_orders_amount_min AS order_amount,
+                         purchase_price                                    AS price,
+                         seller_identifier,
+                         (SELECT uniq(seller_id) FROM category_products)   AS seller_count,
+                         (SELECT uniq(product_id) FROM category_products)  AS product_count
+                  FROM (SELECT product_id,
+                               min(total_orders_amount) AS total_orders_amount_min,
+                               max(total_orders_amount) AS total_orders_amount_max,
+                               max(purchase_price)      AS purchase_price,
+                               max(seller_id)           AS seller_identifier
+                        FROM category_products
+                        GROUP BY product_id))
+            WHERE order_amount > 0;
         """.trimIndent()
     }
 
