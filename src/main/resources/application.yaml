@@ -114,3 +114,12 @@ redis:
       consumerGroup: uzum-analytics-category-group
       consumerName: uzum-analytics-category-consumer
 
+clickhouse:
+  url: "jdbc:clickhouse://${CLICKHOUSE_HOST:localhost}:${CLICKHOUSE_PORT:8443}/${CLICKHOUSE_DB:uzum}"
+  user: "dbuser"
+  password: ${CLICKHOUSE_PASSWORD:strongPasswd}
+  connection.timeout: 50000
+  compress: false
+  ssl: false
+  liquibase:
+    change-log: "classpath:db/changelog/db.ch.changelog-main.yml"

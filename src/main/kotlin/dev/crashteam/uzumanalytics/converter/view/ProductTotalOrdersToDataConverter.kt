@@ -1,7 +1,8 @@
-package dev.crashteam.uzumanalytics.controller.converter
+package dev.crashteam.uzumanalytics.converter.view
 
 import dev.crashteam.uzumanalytics.controller.model.ProductTotalOrderSellerView
 import dev.crashteam.uzumanalytics.controller.model.ProductTotalOrdersView
+import dev.crashteam.uzumanalytics.converter.DataConverter
 import dev.crashteam.uzumanalytics.repository.mongo.model.ProductTotalOrdersAggregate
 import org.springframework.stereotype.Component
 import java.math.RoundingMode
