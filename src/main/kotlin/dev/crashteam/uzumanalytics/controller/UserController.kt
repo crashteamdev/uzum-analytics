@@ -27,7 +27,7 @@ class UserController(
 
     @PostMapping("/api-key")
     suspend fun createApiKey(principal: Principal): ResponseEntity<UserApiKey> {
-        log.info { "Create apiKey. User=${principal.name}" }
+        log.debug { "Create apiKey. User=${principal.name}" }
         val email = (principal as JwtAuthenticationToken).token.claims["email"].toString()
         val apiKey = userService.createApiKey(principal.name, email)
 
@@ -36,7 +36,7 @@ class UserController(
 
     @GetMapping("/api-key")
     suspend fun getApiKey(principal: Principal): ResponseEntity<UserApiKey> {
-        log.info { "Get apiKey. User=${principal.name}" }
+        log.debug { "Get apiKey. User=${principal.name}" }
         var apiKey = userService.getApiKey(principal.name)
         if (apiKey == null) {
             // Trying to find user by email (Auth0 to Firebase migration)
@@ -51,7 +51,7 @@ class UserController(
 
     @PutMapping("/api-key")
     suspend fun updateApiKey(principal: Principal): ResponseEntity<UserApiKey> {
-        log.info { "Update apiKey. User=${principal.name}" }
+        log.debug { "Update apiKey. User=${principal.name}" }
         val apiKey = userService.recreateApiKey(principal.name) ?: return ResponseEntity.notFound().build()
 
         return ResponseEntity.ok(UserApiKey(apiKey.hashKey))
@@ -59,7 +59,7 @@ class UserController(
 
     @GetMapping("/subscription")
     suspend fun getSubscription(principal: Principal): ResponseEntity<UserSubscriptionView> {
-        log.info { "Get user subscription. User=${principal.name}" }
+        log.debug { "Get user subscription. User=${principal.name}" }
         var user = userService.findUser(principal.name)
         if (user == null) {
             // Trying to find user by email (Auth0 to Firebase migration)
@@ -85,7 +85,6 @@ class UserController(
     suspend fun getSubscriptionWithApiKey(
         @RequestHeader(name = "X-API-KEY", required = true) apiKey: String,
     ): ResponseEntity<UserSubscriptionView> {
-        log.info { "Get user subscription by api key" }
         val user = userRepository.findByApiKey_HashKey(apiKey).awaitSingleOrNull()
         if (user?.subscription == null) {
             return ResponseEntity.notFound().build()
