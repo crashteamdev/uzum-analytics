@@ -6,6 +6,10 @@ import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
 import org.springframework.context.support.ConversionServiceFactoryBean
+import org.springframework.format.Formatter
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.*
 
 @Configuration
 @ComponentScan(
@@ -22,5 +26,18 @@ class ConverterConfig {
         conversionServiceFactoryBean.setConverters(converters)
 
         return conversionServiceFactoryBean
+    }
+
+    @Bean
+    fun localDateFormatter(): Formatter<LocalDate> {
+        return object : Formatter<LocalDate> {
+            override fun parse(text: String, locale: Locale): LocalDate {
+                return LocalDate.parse(text, DateTimeFormatter.ISO_DATE)
+            }
+
+            override fun print(`object`: LocalDate, locale: Locale): String {
+                return DateTimeFormatter.ISO_DATE.format(`object`)
+            }
+        }
     }
 }

@@ -7,9 +7,13 @@ import dev.crashteam.openapi.keanalytics.model.CategoryOverallInfo200Response
 import dev.crashteam.openapi.keanalytics.model.GetProductSales200ResponseInner
 import dev.crashteam.openapi.keanalytics.model.ProductSkuHistory
 import dev.crashteam.openapi.keanalytics.model.Seller
+import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
 import dev.crashteam.uzumanalytics.service.ProductServiceAnalytics
 import dev.crashteam.uzumanalytics.service.SellerService
+import dev.crashteam.uzumanalytics.service.UserRestrictionService
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import mu.KotlinLogging
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.RequestMapping
@@ -19,8 +23,13 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.publisher.toMono
 import reactor.kotlin.core.publisher.toFlux
+import reactor.kotlin.core.publisher.toMono
 import java.math.RoundingMode
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
 
 private val log = KotlinLogging.logger {}
 
@@ -29,15 +38,45 @@ private val log = KotlinLogging.logger {}
 class MarketDbApiControllerV2(
     private val productServiceAnalytics: ProductServiceAnalytics,
     private val sellerService: SellerService,
+    private val userRepository: UserRepository,
+    private val userRestrictionService: UserRestrictionService,
 ) : CategoryApi, ProductApi, SellerApi {
 
     override fun categoryOverallInfo(
         xRequestID: String,
+        X_API_KEY: String,
         categoryId: Long,
+        fromTime: OffsetDateTime?,
+        toTime: OffsetDateTime?,
         exchange: ServerWebExchange
     ): Mono<ResponseEntity<CategoryOverallInfo200Response>> {
-        val categoryOverallAnalytics = productServiceAnalytics.getCategoryOverallAnalytics(categoryId)
-            ?: return ResponseEntity.notFound().build<CategoryOverallInfo200Response>().toMono()
+        val fromTimeLocalDateTime = fromTime?.toLocalDateTime() ?: LocalDate.now().minusDays(30).atTime(LocalTime.MIN)
+        val toTimeLocalDateTime = toTime?.toLocalDateTime() ?: LocalDate.now().atTime(LocalTime.MAX)
+//        return checkRequestDaysPermission(X_API_KEY, fromTimeLocalDateTime, toTimeLocalDateTime).flatMap { access ->
+//            if (access == false) {
+//                ResponseEntity.status(HttpStatus.FORBIDDEN).build<CategoryOverallInfo200Response>().toMono()
+//            } else {
+//                val categoryOverallAnalytics = productServiceAnalytics.getCategoryOverallAnalytics(
+//                    categoryId,
+//                    fromTimeLocalDateTime,
+//                    toTimeLocalDateTime
+//                ) ?: return@flatMap ResponseEntity.notFound().build<CategoryOverallInfo200Response>().toMono()
+//                return@flatMap ResponseEntity.ok(CategoryOverallInfo200Response().apply {
+//                    this.averagePrice = categoryOverallAnalytics.averagePrice.setScale(2, RoundingMode.HALF_UP).toDouble()
+//                    this.orderCount = categoryOverallAnalytics.orderCount
+//                    this.sellerCount = categoryOverallAnalytics.sellerCount
+//                    this.salesPerSeller = categoryOverallAnalytics.salesPerSeller.setScale(2, RoundingMode.HALF_UP).toDouble()
+//                    this.productCount = categoryOverallAnalytics.productCount
+//                    this.productZeroSalesCount = categoryOverallAnalytics.productZeroSalesCount
+//                    this.sellersZeroSalesCount = categoryOverallAnalytics.sellersZeroSalesCount
+//                }).toMono()
+//            }
+//        }
+        val categoryOverallAnalytics = productServiceAnalytics.getCategoryOverallAnalytics(
+            categoryId,
+            fromTimeLocalDateTime,
+            toTimeLocalDateTime
+        ) ?: return ResponseEntity.notFound().build<CategoryOverallInfo200Response>().toMono()
         return ResponseEntity.ok(CategoryOverallInfo200Response().apply {
             this.averagePrice = categoryOverallAnalytics.averagePrice.setScale(2, RoundingMode.HALF_UP).toDouble()
             this.orderCount = categoryOverallAnalytics.orderCount
@@ -51,6 +90,7 @@ class MarketDbApiControllerV2(
 
     override fun productSkuHistory(
         xRequestID: String,
+        X_API_KEY: String,
         productId: Long,
         skuId: Long,
         fromTime: OffsetDateTime,
@@ -101,6 +141,8 @@ class MarketDbApiControllerV2(
     }
 
     override fun getProductSales(
+        xRequestID: String,
+        X_API_KEY: String,
         productIds: MutableList<Long>,
         fromTime: OffsetDateTime,
         toTime: OffsetDateTime,
@@ -125,5 +167,25 @@ class MarketDbApiControllerV2(
             }
         }
         return ResponseEntity.ok(productSales.toFlux()).toMono()
+    }
+
+    private fun checkRequestDaysPermission(
+        apiKey: String,
+        fromTime: LocalDateTime,
+        toTime: LocalDateTime
+    ): Mono<Boolean> {
+        val daysCount = ChronoUnit.DAYS.between(fromTime, toTime)
+        if (daysCount <= 0) return true.toMono()
+        return userRepository.findByApiKey_HashKey(apiKey).flatMap { user ->
+            val checkDaysAccess = userRestrictionService.checkDaysAccess(user, daysCount.toInt())
+            if (checkDaysAccess == UserRestrictionService.RestrictionResult.PROHIBIT) {
+                return@flatMap false.toMono()
+            }
+            val checkDaysHistoryAccess = userRestrictionService.checkDaysHistoryAccess(user, fromTime)
+            if (checkDaysHistoryAccess == UserRestrictionService.RestrictionResult.PROHIBIT) {
+                return@flatMap false.toMono()
+            }
+            true.toMono()
+        }
     }
 }
