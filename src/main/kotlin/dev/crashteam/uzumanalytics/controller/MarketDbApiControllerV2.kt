@@ -79,6 +79,7 @@ class MarketDbApiControllerV2(
         ) ?: return ResponseEntity.notFound().build<CategoryOverallInfo200Response>().toMono()
         return ResponseEntity.ok(CategoryOverallInfo200Response().apply {
             this.averagePrice = categoryOverallAnalytics.averagePrice.setScale(2, RoundingMode.HALF_UP).toDouble()
+            this.revenue = categoryOverallAnalytics.revenue?.setScale(2, RoundingMode.HALF_UP)?.toDouble()
             this.orderCount = categoryOverallAnalytics.orderCount
             this.sellerCount = categoryOverallAnalytics.sellerCount
             this.salesPerSeller = categoryOverallAnalytics.salesPerSeller.setScale(2, RoundingMode.HALF_UP).toDouble()
