@@ -11,9 +11,7 @@ import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
 import dev.crashteam.uzumanalytics.service.ProductServiceAnalytics
 import dev.crashteam.uzumanalytics.service.SellerService
 import dev.crashteam.uzumanalytics.service.UserRestrictionService
-import kotlinx.coroutines.reactor.awaitSingleOrNull
 import mu.KotlinLogging
-import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.RequestMapping
@@ -23,7 +21,6 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.publisher.toMono
 import reactor.kotlin.core.publisher.toFlux
-import reactor.kotlin.core.publisher.toMono
 import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.LocalDateTime
