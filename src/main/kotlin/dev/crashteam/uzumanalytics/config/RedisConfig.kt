@@ -1,6 +1,7 @@
 package dev.crashteam.uzumanalytics.config
 
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import dev.crashteam.uzumanalytics.client.cbr.model.CbrCurrencyRateResponse
 import dev.crashteam.uzumanalytics.client.currencyapi.model.CurrencyApiResponse
@@ -156,43 +157,42 @@ class RedisConfig(
                 }))
                 .entryTtl(Duration.ofSeconds(86400))
             configurationMap[CURRENCY_API_CACHE_NAME] = RedisCacheConfiguration.defaultCacheConfig()
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(object :
-                    RedisSerializer<Any> {
-                    override fun serialize(t: Any?): ByteArray {
-                        return jacksonObjectMapper().writeValueAsBytes(t)
-                    }
-
-                    override fun deserialize(bytes: ByteArray?): Any? {
-                        return if (bytes != null) {
-                            jacksonObjectMapper().readValue(bytes, CurrencyApiResponse::class.java)
-                        } else null
-                    }
-
-                }))
+                .serializeValuesWith(redisJsonSerializer(CurrencyApiResponse::class.java))
                 .entryTtl(Duration.ofSeconds(86400))
             configurationMap[CATEGORY_OVERALL_INFO_CACHE] = RedisCacheConfiguration.defaultCacheConfig()
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(object :
-                    RedisSerializer<Any> {
-                    override fun serialize(t: Any?): ByteArray {
-                        return jacksonObjectMapper().writeValueAsBytes(t)
-                    }
-
-                    override fun deserialize(bytes: ByteArray?): Any? {
-                        return if (bytes != null) {
-                            jacksonObjectMapper().readValue(bytes, ChCategoryOverallInfo::class.java)
-                        } else null
-                    }
-
-                }))
-                .entryTtl(Duration.ofSeconds(86400))
+                .serializeValuesWith(redisJsonSerializer(ChCategoryOverallInfo::class.java))
+                .entryTtl(Duration.ofSeconds(21600))
+            configurationMap[SELLER_OVERALL_INFO_CACHE_NAME] = RedisCacheConfiguration.defaultCacheConfig()
+                .serializeValuesWith(redisJsonSerializer(ChCategoryOverallInfo::class.java))
+                .entryTtl(Duration.ofSeconds(21600))
             builder.withInitialCacheConfigurations(configurationMap)
         }
+    }
+
+    private inline fun <reified T> redisJsonSerializer(
+        valueClass: Class<T>
+    ): RedisSerializationContext.SerializationPair<Any> {
+        val objectMapper = jacksonObjectMapper().registerModules(JavaTimeModule())
+        return RedisSerializationContext.SerializationPair.fromSerializer(object :
+            RedisSerializer<Any> {
+            override fun serialize(t: Any?): ByteArray {
+                return objectMapper.writeValueAsBytes(t)
+            }
+
+            override fun deserialize(bytes: ByteArray?): Any? {
+                return if (bytes != null) {
+                    objectMapper.readValue(bytes, valueClass)
+                } else null
+            }
+
+        })
     }
 
     companion object {
         const val UZUM_CBR_CURRENCIES_CACHE_NAME = "cbr-currencies"
         const val CURRENCY_API_CACHE_NAME = "currency-api"
         const val CATEGORY_OVERALL_INFO_CACHE = "category-overall-info"
+        const val SELLER_OVERALL_INFO_CACHE_NAME = "seller-overall-info"
     }
 
 }

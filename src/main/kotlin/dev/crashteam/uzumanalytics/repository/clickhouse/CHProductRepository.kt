@@ -1,12 +1,7 @@
 package dev.crashteam.uzumanalytics.repository.clickhouse
 
-import dev.crashteam.uzumanalytics.repository.clickhouse.mapper.CategoryOverallInfoMapper
-import dev.crashteam.uzumanalytics.repository.clickhouse.mapper.ProductSalesHistoryMapper
-import dev.crashteam.uzumanalytics.repository.clickhouse.mapper.ProductsSalesMapper
-import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChCategoryOverallInfo
-import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductSalesHistory
-import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductsSales
-import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChUzumProduct
+import dev.crashteam.uzumanalytics.repository.clickhouse.mapper.*
+import dev.crashteam.uzumanalytics.repository.clickhouse.model.*
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.jdbc.core.BatchPreparedStatementSetter
 import org.springframework.jdbc.core.JdbcTemplate
@@ -28,7 +23,7 @@ class CHProductRepository(
 ) {
 
     private companion object {
-        const val GET_PRODUCT_HISTORY_SQL = """
+        private const val GET_PRODUCT_HISTORY_SQL = """
             SELECT date,
                    product_id,
                    sku_id,
@@ -79,7 +74,7 @@ class CHProductRepository(
                  )
          )
         """
-        private const val GET_PRODUCTS_SALES = """
+        private val GET_PRODUCTS_SALES = """
             WITH product_sales AS
          (SELECT product_id,
                  title,
@@ -130,7 +125,7 @@ class CHProductRepository(
                  avg(s.order_amount)      AS daily_order_amount
           FROM product_sales s
           GROUP BY product_id
-        """
+        """.trimIndent()
         private val GET_CATEGORY_OVERALL_INFO = """
             WITH category_products AS (SELECT p.timestamp,
                                               p.product_id,
@@ -195,7 +190,108 @@ class CHProductRepository(
                         GROUP BY product_id))
             WHERE order_amount > 0
         """.trimIndent()
+        private val GET_SELLER_OVERALL_INFO = """
+            WITH product_sales AS
+                (SELECT date,
+                        product_id,
+                        sku_id,
+                        title,
+                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
+                           total_orders_amount_diff, available_amount_diff)                  AS order_amount,
+                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
+                           total_orders_amount_diff, available_amount_diff) * purchase_price AS revenue,
+                        purchase_price,
+                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
+                           total_orders_amount_diff, available_amount_diff) * purchase_price AS sales_amount,
+                        available_amount
+                 FROM (
+                          SELECT date,
+                                 product_id,
+                                 sku_id,
+                                 title,
+                                 available_amount_max                              AS available_amount,
+                                 available_amount_max - available_amount_min       AS available_amount_diff,
+                                 total_orders_amount_max - total_orders_amount_min AS total_orders_amount_diff,
+                                 purchase_price
+                          FROM (
+                                   SELECT date,
+                                          product_id,
+                                          sku_id,
+                                          any(title)               AS title,
+                                          min(available_amount)    AS available_amount_min,
+                                          max(available_amount)    AS available_amount_max,
+                                          min(total_orders_amount) AS total_orders_amount_min,
+                                          max(total_orders_amount) AS total_orders_amount_max,
+                                          any(purchase_price)      AS purchase_price
+                                   FROM uzum.product
+                                   WHERE seller_link = ?
+                                     AND timestamp BETWEEN ? AND ?
+                                   GROUP BY product_id, sku_id, toDate(timestamp) AS date
+                                   ORDER BY date
+                                   )
+                          ))
+
+            SELECT sum(order_amount_sum)                                     AS order_amount,
+                   sum(revenue) / 100                                        AS revenue,
+                   count(product_id)                                         AS product_count,
+                   countIf(order_amount_sum > 0)                                 AS product_with_sales,
+                   round((sum(avg_price) / 100) / countIf(order_amount_sum > 0)) AS avg_price
+            FROM (
+                     SELECT product_id,
+                            any(title)               AS title,
+                            sum(order_amount)        AS order_amount_sum,
+                            sum(revenue)             AS revenue,
+                            max(available_amount)    AS last_available_amount,
+                            avg(purchase_price)      AS avg_price
+                     FROM product_sales s
+                     GROUP BY product_id
+                     )
+        """.trimIndent()
+        private val GET_SELLER_ORDER_DYNAMIC = """
+            WITH product_sales AS
+                (SELECT date,
+                        product_id,
+                        sku_id,
+                        title,
+                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
+                           total_orders_amount_diff, available_amount_diff)                  AS order_amount,
+                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
+                           total_orders_amount_diff, available_amount_diff) * purchase_price AS revenue,
+                        purchase_price,
+                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
+                           total_orders_amount_diff, available_amount_diff) * purchase_price AS sales_amount,
+                        available_amount
+                 FROM (
+                          SELECT date,
+                                 product_id,
+                                 sku_id,
+                                 title,
+                                 available_amount_max                              AS available_amount,
+                                 available_amount_max - available_amount_min       AS available_amount_diff,
+                                 total_orders_amount_max - total_orders_amount_min AS total_orders_amount_diff,
+                                 purchase_price
+                          FROM (
+                                   SELECT date,
+                                          product_id,
+                                          sku_id,
+                                          any(title)               AS title,
+                                          min(available_amount)    AS available_amount_min,
+                                          max(available_amount)    AS available_amount_max,
+                                          min(total_orders_amount) AS total_orders_amount_min,
+                                          max(total_orders_amount) AS total_orders_amount_max,
+                                          any(purchase_price)      AS purchase_price
+                                   FROM uzum.product
+                                   WHERE seller_link = ?
+                                     AND timestamp BETWEEN ? AND ?
+                                   GROUP BY product_id, sku_id, toDate(timestamp) AS date
+                                   ORDER BY date
+                                   )
+                          ))
+
+            SELECT date, sum(order_amount) AS order_amount FROM product_sales GROUP BY date
+        """.trimIndent()
     }
+
 
     fun saveProducts(productFetchList: List<ChUzumProduct>) {
         jdbcTemplate.batchUpdate(
@@ -214,7 +310,7 @@ class CHProductRepository(
         productId: String,
         skuId: String,
         fromTime: LocalDateTime,
-        toTime: LocalDateTime
+        toTime: LocalDateTime,
     ): List<ChProductSalesHistory> {
         return jdbcTemplate.query(
             GET_PRODUCT_HISTORY_SQL,
@@ -226,7 +322,7 @@ class CHProductRepository(
     fun getProductsSales(
         productIds: List<String>,
         fromTime: LocalDateTime,
-        toTime: LocalDateTime
+        toTime: LocalDateTime,
     ): List<ChProductsSales> {
         return jdbcTemplate.query(
             GET_PRODUCTS_SALES,
@@ -238,12 +334,36 @@ class CHProductRepository(
     fun getCategoryAnalytics(
         categoryId: Long,
         fromTime: LocalDateTime,
-        toTime: LocalDateTime
+        toTime: LocalDateTime,
     ): ChCategoryOverallInfo? {
         return jdbcTemplate.queryForObject(
             GET_CATEGORY_OVERALL_INFO,
             CategoryOverallInfoMapper(),
             fromTime, toTime, categoryId, categoryId, categoryId
+        )
+    }
+
+    fun getSellerAnalytics(
+        sellerLink: String,
+        fromTime: LocalDateTime,
+        toTime: LocalDateTime,
+    ): ChSellerOverallInfo? {
+        return jdbcTemplate.queryForObject(
+            GET_SELLER_OVERALL_INFO,
+            SellerOverallInfoMapper(),
+            sellerLink, fromTime, toTime
+        )
+    }
+
+    fun getSellerOrderDynamic(
+        sellerLink: String,
+        fromTime: LocalDateTime,
+        toTime: LocalDateTime,
+    ): List<ChSellerOrderDynamic> {
+        return jdbcTemplate.query(
+            GET_SELLER_ORDER_DYNAMIC,
+            SellerOrderDynamicMapper(),
+            sellerLink, fromTime, toTime
         )
     }
 

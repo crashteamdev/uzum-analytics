@@ -3,15 +3,14 @@ package dev.crashteam.uzumanalytics.controller
 import dev.crashteam.openapi.keanalytics.api.CategoryApi
 import dev.crashteam.openapi.keanalytics.api.ProductApi
 import dev.crashteam.openapi.keanalytics.api.SellerApi
-import dev.crashteam.openapi.keanalytics.model.CategoryOverallInfo200Response
-import dev.crashteam.openapi.keanalytics.model.GetProductSales200ResponseInner
-import dev.crashteam.openapi.keanalytics.model.ProductSkuHistory
-import dev.crashteam.openapi.keanalytics.model.Seller
+import dev.crashteam.openapi.keanalytics.model.*
 import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
 import dev.crashteam.uzumanalytics.service.ProductServiceAnalytics
 import dev.crashteam.uzumanalytics.service.SellerService
 import dev.crashteam.uzumanalytics.service.UserRestrictionService
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import mu.KotlinLogging
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.RequestMapping
@@ -49,41 +48,60 @@ class MarketDbApiControllerV2(
     ): Mono<ResponseEntity<CategoryOverallInfo200Response>> {
         val fromTimeLocalDateTime = fromTime?.toLocalDateTime() ?: LocalDate.now().minusDays(30).atTime(LocalTime.MIN)
         val toTimeLocalDateTime = toTime?.toLocalDateTime() ?: LocalDate.now().atTime(LocalTime.MAX)
-//        return checkRequestDaysPermission(X_API_KEY, fromTimeLocalDateTime, toTimeLocalDateTime).flatMap { access ->
-//            if (access == false) {
-//                ResponseEntity.status(HttpStatus.FORBIDDEN).build<CategoryOverallInfo200Response>().toMono()
-//            } else {
-//                val categoryOverallAnalytics = productServiceAnalytics.getCategoryOverallAnalytics(
-//                    categoryId,
-//                    fromTimeLocalDateTime,
-//                    toTimeLocalDateTime
-//                ) ?: return@flatMap ResponseEntity.notFound().build<CategoryOverallInfo200Response>().toMono()
-//                return@flatMap ResponseEntity.ok(CategoryOverallInfo200Response().apply {
-//                    this.averagePrice = categoryOverallAnalytics.averagePrice.setScale(2, RoundingMode.HALF_UP).toDouble()
-//                    this.orderCount = categoryOverallAnalytics.orderCount
-//                    this.sellerCount = categoryOverallAnalytics.sellerCount
-//                    this.salesPerSeller = categoryOverallAnalytics.salesPerSeller.setScale(2, RoundingMode.HALF_UP).toDouble()
-//                    this.productCount = categoryOverallAnalytics.productCount
-//                    this.productZeroSalesCount = categoryOverallAnalytics.productZeroSalesCount
-//                    this.sellersZeroSalesCount = categoryOverallAnalytics.sellersZeroSalesCount
-//                }).toMono()
-//            }
-//        }
-        val categoryOverallAnalytics = productServiceAnalytics.getCategoryOverallAnalytics(
-            categoryId,
-            fromTimeLocalDateTime,
-            toTimeLocalDateTime
-        ) ?: return ResponseEntity.notFound().build<CategoryOverallInfo200Response>().toMono()
-        return ResponseEntity.ok(CategoryOverallInfo200Response().apply {
-            this.averagePrice = categoryOverallAnalytics.averagePrice.setScale(2, RoundingMode.HALF_UP).toDouble()
-            this.revenue = categoryOverallAnalytics.revenue?.setScale(2, RoundingMode.HALF_UP)?.toDouble()
-            this.orderCount = categoryOverallAnalytics.orderCount
-            this.sellerCount = categoryOverallAnalytics.sellerCount
-            this.salesPerSeller = categoryOverallAnalytics.salesPerSeller.setScale(2, RoundingMode.HALF_UP).toDouble()
-            this.productCount = categoryOverallAnalytics.productCount
-            this.productZeroSalesCount = categoryOverallAnalytics.productZeroSalesCount
-            this.sellersZeroSalesCount = categoryOverallAnalytics.sellersZeroSalesCount
-        }).toMono()
+        return checkRequestDaysPermission(X_API_KEY, fromTimeLocalDateTime, toTimeLocalDateTime).flatMap { access ->
+            if (access == false) {
+                ResponseEntity.status(HttpStatus.FORBIDDEN).build<CategoryOverallInfo200Response>().toMono()
+            } else {
+                val categoryOverallAnalytics = productServiceAnalytics.getCategoryOverallAnalytics(
+                    categoryId,
+                    fromTimeLocalDateTime,
+                    toTimeLocalDateTime
+                ) ?: return@flatMap ResponseEntity.notFound().build<CategoryOverallInfo200Response>().toMono()
+                return@flatMap ResponseEntity.ok(CategoryOverallInfo200Response().apply {
+                    this.averagePrice = categoryOverallAnalytics.averagePrice.setScale(2, RoundingMode.HALF_UP).toDouble()
+                    this.orderCount = categoryOverallAnalytics.orderCount
+                    this.sellerCount = categoryOverallAnalytics.sellerCount
+                    this.salesPerSeller = categoryOverallAnalytics.salesPerSeller.setScale(2, RoundingMode.HALF_UP).toDouble()
+                    this.productCount = categoryOverallAnalytics.productCount
+                    this.productZeroSalesCount = categoryOverallAnalytics.productZeroSalesCount
+                    this.sellersZeroSalesCount = categoryOverallAnalytics.sellersZeroSalesCount
+                }).toMono()
+            }
+        }
+    }
+
+    @ExperimentalCoroutinesApi
+    override fun sellerOverallInfo(
+        xRequestID: String,
+        X_API_KEY: String,
+        sellerLink: String,
+        fromTime: OffsetDateTime,
+        toTime: OffsetDateTime,
+        exchange: ServerWebExchange
+    ): Mono<ResponseEntity<SellerOverallInfo200Response>> {
+        val fromTimeLocalDateTime = fromTime.toLocalDateTime()
+        val toTimeLocalDateTime = toTime.toLocalDateTime()
+        return checkRequestDaysPermission(X_API_KEY, fromTimeLocalDateTime, toTimeLocalDateTime).flatMap { access ->
+            if (access == false) {
+                ResponseEntity.status(HttpStatus.FORBIDDEN).build<SellerOverallInfo200Response>().toMono()
+            } else {
+                val categoryOverallAnalytics = productServiceAnalytics.getSellerAnalytics(sellerLink, fromTimeLocalDateTime, toTimeLocalDateTime)
+                    ?: return@flatMap ResponseEntity.notFound().build<SellerOverallInfo200Response>().toMono()
+                return@flatMap ResponseEntity.ok(SellerOverallInfo200Response().apply {
+                    this.averagePrice = categoryOverallAnalytics.averagePrice.setScale(2, RoundingMode.HALF_UP).toDouble()
+                    this.orderCount = categoryOverallAnalytics.orderCount
+                    this.productCount = categoryOverallAnalytics.productCount
+                    this.revenue = categoryOverallAnalytics.revenue.toDouble()
+                    this.productCountWithSales = categoryOverallAnalytics.productCountWithSales
+                    this.salesDynamic = categoryOverallAnalytics.salesDynamic.map { chSellerOrderDynamic ->
+                        DynamicSales().apply {
+                            date = chSellerOrderDynamic.date
+                            orderAmount = chSellerOrderDynamic.orderAmount
+                        }
+                    }
+                }).toMono()
+            }
+        }
     }
 
     override fun productSkuHistory(
