@@ -65,6 +65,7 @@ class MarketDbApiControllerV2(
                     this.productCount = categoryOverallAnalytics.productCount
                     this.productZeroSalesCount = categoryOverallAnalytics.productZeroSalesCount
                     this.sellersZeroSalesCount = categoryOverallAnalytics.sellersZeroSalesCount
+                    this.revenue = categoryOverallAnalytics.revenue?.setScale(2, RoundingMode.HALF_UP)?.toDouble()
                 }).toMono()
             }
         }
@@ -91,7 +92,7 @@ class MarketDbApiControllerV2(
                     this.averagePrice = categoryOverallAnalytics.averagePrice.setScale(2, RoundingMode.HALF_UP).toDouble()
                     this.orderCount = categoryOverallAnalytics.orderCount
                     this.productCount = categoryOverallAnalytics.productCount
-                    this.revenue = categoryOverallAnalytics.revenue.toDouble()
+                    this.revenue = categoryOverallAnalytics.revenue.setScale(2, RoundingMode.HALF_UP).toDouble()
                     this.productCountWithSales = categoryOverallAnalytics.productCountWithSales
                     this.salesDynamic = categoryOverallAnalytics.salesDynamic.map { chSellerOrderDynamic ->
                         DynamicSales().apply {
