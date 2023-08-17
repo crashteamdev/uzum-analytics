@@ -5,6 +5,7 @@ import org.springframework.boot.context.properties.ConstructorBinding
 import org.springframework.core.io.Resource
 import org.springframework.validation.annotation.Validated
 import javax.validation.constraints.NotEmpty
+import javax.validation.constraints.NotNull
 
 @Validated
 @ConstructorBinding
@@ -12,6 +13,9 @@ import javax.validation.constraints.NotEmpty
 data class UzumBankProperties(
     @NotEmpty
     val baseUrl: String,
+    @NotEmpty
+    val terminalId: String,
+    @NotNull
     val ssl: UzumBankSslProperties,
 )
 

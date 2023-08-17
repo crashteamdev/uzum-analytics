@@ -95,6 +95,7 @@ qiwi:
 
 uzumbank:
   baseUrl: https://www.inplat-tech.ru
+  terminalId: fake-terminal-id
   ssl:
     key-store: classpath:client-nonprod.jks
     key-store-password: changeme
