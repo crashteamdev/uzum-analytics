@@ -94,6 +94,7 @@ class MarketDbApiControllerV2(
                     this.productCount = categoryOverallAnalytics.productCount
                     this.revenue = categoryOverallAnalytics.revenue.setScale(2, RoundingMode.HALF_UP).toDouble()
                     this.productCountWithSales = categoryOverallAnalytics.productCountWithSales
+                    this.productCountWithoutSales = categoryOverallAnalytics.productCountWithoutSales
                     this.salesDynamic = categoryOverallAnalytics.salesDynamic.map { chSellerOrderDynamic ->
                         DynamicSales().apply {
                             date = chSellerOrderDynamic.date
