@@ -15,6 +15,8 @@ data class UzumBankProperties(
     val baseUrl: String,
     @NotEmpty
     val terminalId: String,
+    @NotEmpty
+    val fingerprint: String,
     @NotNull
     val ssl: UzumBankSslProperties,
 )
@@ -23,6 +25,4 @@ data class UzumBankSslProperties(
     val keyStore: Resource,
     val keyStorePassword: String,
     val keyPassword: String,
-    val trustStore: Resource,
-    val trustStorePassword: String,
 )

@@ -47,7 +47,14 @@ class PaymentController(
                     currencySymbolCode = "RUB"
                 )
             }
-
+            PaymentProvider.UZUM_BANK -> {
+                paymentService.createUzumBankPayment(
+                    userId = principal.name,
+                    userSubscription = body.subscriptionType.mapToSubscription()!!,
+                    referralCode = body.referralCode,
+                    multiply = body.multiply,
+                )
+            }
             PaymentProvider.QIWI -> {
                 paymentService.createQiwiPayment(
                     userId = principal.name,

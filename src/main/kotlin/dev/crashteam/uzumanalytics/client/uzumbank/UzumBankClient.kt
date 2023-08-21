@@ -1,12 +1,12 @@
 package dev.crashteam.uzumanalytics.client.uzumbank
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import dev.crashteam.uzumanalytics.client.uzumbank.model.UzumBankCreatePaymentRequest
-import dev.crashteam.uzumanalytics.client.uzumbank.model.UzumBankCreatePaymentResponse
+import dev.crashteam.uzumanalytics.client.uzumbank.model.*
 import dev.crashteam.uzumanalytics.config.properties.UzumBankProperties
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestTemplate
 import java.io.File
@@ -30,8 +30,31 @@ class UzumBankClient(
         val paymentResponseResponseEntity = uzumBankRestTemplate.exchange(
             url, HttpMethod.POST, httpEntity, UzumBankCreatePaymentResponse::class.java
         )
+        checkOnError(paymentResponseResponseEntity)
 
         return paymentResponseResponseEntity.body!!
+    }
+
+    fun getStatus(getStatusRequest: UzumBankGetStatusRequest): UzumBankGetStatusResponse {
+        val requestBody = objectMapper.writeValueAsString(getStatusRequest)
+        val httpHeaders = buildHeaders(requestBody)
+        val httpEntity = HttpEntity(getStatusRequest, httpHeaders)
+        val url = uzumBankProperties.baseUrl + "/api/v1/payment/getOrderStatus"
+        val getStatusResponseResponseEntity = uzumBankRestTemplate.exchange(
+            url, HttpMethod.POST, httpEntity, UzumBankGetStatusResponse::class.java
+        )
+        checkOnError(getStatusResponseResponseEntity)
+
+        return getStatusResponseResponseEntity.body!!
+    }
+
+    private fun <T : UzumBankBaseResponse> checkOnError(response: ResponseEntity<T>) {
+        val uzumBankBaseResponse = response.body!!
+        if (uzumBankBaseResponse.errorCode != 0) {
+            throw UzumBankClientException("Bad response. " +
+                    "errorCode=${uzumBankBaseResponse.errorCode};" +
+                    " message=${uzumBankBaseResponse.message}")
+        }
     }
 
     private fun buildHeaders(requestBody: String): HttpHeaders {
@@ -41,12 +64,10 @@ class UzumBankClient(
             "JKS"
         )
         val keyPair = getKeyPair(keyStore, "", "") // TODO
-        val publicKey: PublicKey = keyPair.public
-        val privateKey: PrivateKey = keyPair.private
         val signature = generateSign(keyPair.private, keyPair.public, requestBody)
         return HttpHeaders().apply {
             set("Content-Language", "ru-RU")
-            set("X-Fingerprint", "") // TODO
+            set("X-Fingerprint", uzumBankProperties.fingerprint)
             set("X-Signature", signature)
             set("X-Terminal-Id", uzumBankProperties.terminalId)
         }
@@ -57,7 +78,8 @@ class UzumBankClient(
         ecdsaSign.initSign(privateKey)
         ecdsaSign.update(data.toByteArray(StandardCharsets.UTF_8))
         val signature = ecdsaSign.sign()
-        val pub: String = Base64.getEncoder().encodeToString(publicKey.encoded)
+        // TODO: delete after finalize integration
+        // val pub: String = Base64.getEncoder().encodeToString(publicKey.encoded)
 
         return Base64.getEncoder().encodeToString(signature)
     }

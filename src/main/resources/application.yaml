@@ -96,12 +96,11 @@ qiwi:
 uzumbank:
   baseUrl: https://www.inplat-tech.ru
   terminalId: fake-terminal-id
+  fingerprint: fake-fingerprint
   ssl:
     key-store: classpath:client-nonprod.jks
     key-store-password: changeme
     key-password: changeme
-    trust-store: classpath:client-nonprod.jks
-    trust-store-password: changeme
 
 currency:
   apiKey: gPdT9h5w4KUAnbckIQw4ciZXm38KZvsu2qrdWHeH

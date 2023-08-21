@@ -4,6 +4,7 @@ import dev.crashteam.uzumanalytics.config.properties.UzumBankProperties
 import org.apache.http.client.HttpClient
 import org.apache.http.conn.ssl.NoopHostnameVerifier
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory
+import org.apache.http.conn.ssl.TrustAllStrategy
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.ssl.SSLContexts
 import org.springframework.context.annotation.Bean
@@ -39,10 +40,10 @@ class UzumBankHttpClientConfig(
     private fun httpClient(): HttpClient {
         val sslContext: SSLContext =
             SSLContexts.custom().loadTrustMaterial(
-                uzumBankProperties.ssl.trustStore.file,
-                uzumBankProperties.ssl.trustStorePassword.toCharArray()
+                null, TrustAllStrategy()
             ).loadKeyMaterial(
-                uzumBankProperties.ssl.keyStore.file, uzumBankProperties.ssl.keyStorePassword.toCharArray(),
+                uzumBankProperties.ssl.keyStore.file,
+                uzumBankProperties.ssl.keyStorePassword.toCharArray(),
                 uzumBankProperties.ssl.keyPassword.toCharArray()
             ).build()
         val sslConnectionSocketFactory = SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier())

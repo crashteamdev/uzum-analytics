@@ -10,5 +10,5 @@ data class PaymentCreate(
 )
 
 enum class PaymentProvider {
-    QIWI, FREEKASSA
+    QIWI, FREEKASSA, UZUM_BANK
 }
