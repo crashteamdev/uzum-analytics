@@ -51,9 +51,11 @@ class UzumBankClient(
     private fun <T : UzumBankBaseResponse> checkOnError(response: ResponseEntity<T>) {
         val uzumBankBaseResponse = response.body!!
         if (uzumBankBaseResponse.errorCode != 0) {
-            throw UzumBankClientException("Bad response. " +
-                    "errorCode=${uzumBankBaseResponse.errorCode};" +
-                    " message=${uzumBankBaseResponse.message}")
+            throw UzumBankClientException(
+                "Bad response. " +
+                        "errorCode=${uzumBankBaseResponse.errorCode};" +
+                        " message=${uzumBankBaseResponse.message}"
+            )
         }
     }
 
@@ -63,7 +65,7 @@ class UzumBankClient(
             uzumBankProperties.ssl.keyStorePassword,
             "JKS"
         )
-        val keyPair = getKeyPair(keyStore, "", "") // TODO
+        val keyPair = getKeyPair(keyStore, uzumBankProperties.ssl.alias, uzumBankProperties.ssl.certPassword)
         val signature = generateSign(keyPair.private, keyPair.public, requestBody)
         return HttpHeaders().apply {
             set("Content-Language", "ru-RU")

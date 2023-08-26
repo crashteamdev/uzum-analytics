@@ -23,6 +23,8 @@ data class UzumBankProperties(
 
 data class UzumBankSslProperties(
     val keyStore: Resource,
+    val alias: String,
+    val certPassword: String,
     val keyStorePassword: String,
     val keyPassword: String,
 )
