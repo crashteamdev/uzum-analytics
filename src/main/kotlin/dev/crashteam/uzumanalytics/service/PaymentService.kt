@@ -216,6 +216,15 @@ class PaymentService(
     }
 
     @Transactional
+    suspend fun uzumCallbackPayment(
+        paymentId: String,
+    ) {
+        val payment = findPayment(paymentId)!!
+        val userId = payment.userId
+        return callbackPayment(paymentId, userId, "UZS")
+    }
+
+    @Transactional
     suspend fun callbackPayment(
         paymentId: String,
         userId: String,
