@@ -8,7 +8,6 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Component
-import org.springframework.util.ResourceUtils
 import org.springframework.web.client.RestTemplate
 import java.io.File
 import java.nio.charset.StandardCharsets
@@ -60,7 +59,7 @@ class UzumBankClient(
 
     private fun buildHeaders(requestBody: String): HttpHeaders {
         val keyStore = loadKeyStore(
-            ResourceUtils.getFile(uzumBankProperties.ssl.keyStore),
+            uzumBankProperties.ssl.keyStore.file,
             uzumBankProperties.ssl.keyStorePassword,
             "JKS"
         )
