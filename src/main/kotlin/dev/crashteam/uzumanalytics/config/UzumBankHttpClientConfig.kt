@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpStatus
 import org.springframework.http.client.ClientHttpRequestFactory
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory
+import org.springframework.util.ResourceUtils
 import org.springframework.web.client.DefaultResponseErrorHandler
 import org.springframework.web.client.RestTemplate
 import javax.net.ssl.SSLContext
@@ -42,7 +43,7 @@ class UzumBankHttpClientConfig(
             SSLContexts.custom().loadTrustMaterial(
                 null, TrustAllStrategy()
             ).loadKeyMaterial(
-                uzumBankProperties.ssl.keyStore.file,
+                ResourceUtils.getFile(uzumBankProperties.ssl.keyStore),
                 uzumBankProperties.ssl.keyStorePassword.toCharArray(),
                 uzumBankProperties.ssl.keyPassword.toCharArray()
             ).build()

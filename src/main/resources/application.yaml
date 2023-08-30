@@ -98,7 +98,7 @@ uzumbank:
   terminalId: fake-terminal-id
   fingerprint: fake-fingerprint
   ssl:
-    key-store: classpath:client-nonprod.jks
+    key-store: classpath:cert/client-nonprod.jks
     key-store-password: changeme
     key-password: changeme
 
