@@ -42,7 +42,7 @@ class UzumBankHttpClientConfig(
             SSLContexts.custom().loadTrustMaterial(
                 null, TrustAllStrategy()
             ).loadKeyMaterial(
-                uzumBankProperties.ssl.keyStore.file,
+                uzumBankProperties.ssl.keyStore.url,
                 uzumBankProperties.ssl.keyStorePassword.toCharArray(),
                 uzumBankProperties.ssl.keyPassword.toCharArray()
             ).build()
