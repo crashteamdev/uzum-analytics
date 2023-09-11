@@ -94,6 +94,7 @@ class MarketDbApiControllerV2(
                     this.productCount = categoryOverallAnalytics.productCount
                     this.revenue = categoryOverallAnalytics.revenue.setScale(2, RoundingMode.HALF_UP).toDouble()
                     this.productCountWithSales = categoryOverallAnalytics.productCountWithSales
+                    this.productCountWithoutSales = categoryOverallAnalytics.productCountWithoutSales
                     this.salesDynamic = categoryOverallAnalytics.salesDynamic.map { chSellerOrderDynamic ->
                         DynamicSales().apply {
                             date = chSellerOrderDynamic.date
@@ -112,8 +113,8 @@ class MarketDbApiControllerV2(
         skuId: Long,
         fromTime: OffsetDateTime,
         toTime: OffsetDateTime,
-        limit: Int,
-        offset: Int,
+        limit: Int?,
+        offset: Int?,
         exchange: ServerWebExchange
     ): Mono<ResponseEntity<Flux<ProductSkuHistory>>> {
         val productAnalytics = productServiceAnalytics.getProductAnalytics(

@@ -28,7 +28,7 @@ class GenerateSellerReportJob : Job {
             ?: throw IllegalStateException("job_id can't be null")
         val now = LocalDateTime.now().toLocalDate().atStartOfDay()
         val fromTime = now.minusDays(interval.toLong())
-        val toTime = now.plusDays(interval.toLong())
+        val toTime = now
         runBlocking {
             try {
                 log.info { "Generating report job. sellerLink=${sellerLink}; jobId=${jobId}" }
