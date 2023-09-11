@@ -113,8 +113,8 @@ class MarketDbApiControllerV2(
         skuId: Long,
         fromTime: OffsetDateTime,
         toTime: OffsetDateTime,
-        limit: Int,
-        offset: Int,
+        limit: Int?,
+        offset: Int?,
         exchange: ServerWebExchange
     ): Mono<ResponseEntity<Flux<ProductSkuHistory>>> {
         val productAnalytics = productServiceAnalytics.getProductAnalytics(
