@@ -64,7 +64,7 @@ class UzumBankClient(
             uzumBankProperties.ssl.keyStorePassword,
             "JKS"
         )
-        val keyPair = getKeyPair(keyStore, "", "") // TODO
+        val keyPair = getKeyPair(keyStore, uzumBankProperties.ssl.alias, uzumBankProperties.ssl.certPassword)
         val signature = generateSign(keyPair.private, keyPair.public, requestBody)
         return HttpHeaders().apply {
             set("Content-Language", "ru-RU")
