@@ -75,7 +75,7 @@ class UzumBankClient(
     }
 
     private fun generateSign(privateKey: PrivateKey, publicKey: PublicKey, data: String): String {
-        val ecdsaSign = Signature.getInstance("SHA256withECDSA")
+        val ecdsaSign = Signature.getInstance("SHA256withRSA")
         ecdsaSign.initSign(privateKey)
         ecdsaSign.update(data.toByteArray(StandardCharsets.UTF_8))
         val signature = ecdsaSign.sign()
