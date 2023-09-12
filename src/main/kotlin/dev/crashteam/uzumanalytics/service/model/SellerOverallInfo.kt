@@ -9,5 +9,6 @@ data class SellerOverallInfo(
     val orderCount: Long,
     val productCount: Long,
     val productCountWithSales: Long,
+    val productCountWithoutSales: Long,
     val salesDynamic: List<ChSellerOrderDynamic>,
 )
