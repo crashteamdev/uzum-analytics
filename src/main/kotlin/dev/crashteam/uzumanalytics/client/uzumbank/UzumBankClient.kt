@@ -69,7 +69,7 @@ class UzumBankClient(
         return HttpHeaders().apply {
             set("Content-Language", "ru-RU")
             set("X-Fingerprint", uzumBankProperties.fingerprint)
-            set("X-Signature", signature)
+            set("X-Signature", "123")
             set("X-Terminal-Id", uzumBankProperties.terminalId)
         }
     }
