@@ -6,6 +6,7 @@ import dev.crashteam.uzumanalytics.config.properties.UzumBankProperties
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestTemplate
@@ -71,6 +72,7 @@ class UzumBankClient(
             set("X-Fingerprint", uzumBankProperties.fingerprint)
             set("X-Signature", "123")
             set("X-Terminal-Id", uzumBankProperties.terminalId)
+            set("Content-Type", MediaType.APPLICATION_JSON_VALUE)
         }
     }
 
