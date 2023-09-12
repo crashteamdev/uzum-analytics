@@ -7,8 +7,8 @@ import dev.crashteam.uzumanalytics.client.cbr.model.CbrCurrencyRateResponse
 import dev.crashteam.uzumanalytics.client.currencyapi.model.CurrencyApiResponse
 import dev.crashteam.uzumanalytics.config.properties.RedisProperties
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChCategoryOverallInfo
-import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChSellerOverallInfo
 import dev.crashteam.uzumanalytics.repository.redis.ApiKeyUserSessionInfo
+import dev.crashteam.uzumanalytics.service.model.SellerOverallInfo
 import mu.KotlinLogging
 import org.springframework.boot.autoconfigure.cache.RedisCacheManagerBuilderCustomizer
 import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer
@@ -164,7 +164,7 @@ class RedisConfig(
                 .serializeValuesWith(redisJsonSerializer(ChCategoryOverallInfo::class.java))
                 .entryTtl(Duration.ofSeconds(21600))
             configurationMap[SELLER_OVERALL_INFO_CACHE_NAME] = RedisCacheConfiguration.defaultCacheConfig()
-                .serializeValuesWith(redisJsonSerializer(ChSellerOverallInfo::class.java))
+                .serializeValuesWith(redisJsonSerializer(SellerOverallInfo::class.java))
                 .entryTtl(Duration.ofSeconds(21600))
             builder.withInitialCacheConfigurations(configurationMap)
         }
