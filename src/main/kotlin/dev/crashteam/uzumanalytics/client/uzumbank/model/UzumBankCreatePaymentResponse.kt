@@ -7,6 +7,6 @@ data class UzumBankCreatePaymentResponse(
 ) : UzumBankBaseResponse(errorCode, message)
 
 data class UzumBankCreatePaymentRedirect(
-    val orderId: String?,
+    val orderId: String,
     val paymentRedirectUrl: String,
 )
