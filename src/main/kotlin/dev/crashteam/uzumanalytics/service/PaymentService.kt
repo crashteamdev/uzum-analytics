@@ -156,7 +156,9 @@ class PaymentService(
                 orderNumber = paymentId,
                 viewType = UzumBankViewType.REDIRECT,
                 paymentParams = UzumBankPaymentParams(UzumBankPayType.ONE_STEP),
-                sessionTimeoutSecs = 600
+                sessionTimeoutSecs = 600,
+                successUrl = "https://lk.marketdb.org/#/payment/success",
+                failureUrl = "https://lk.marketdb.org/#/payment/error"
             )
         )
         val orderId = paymentSequenceDao.getNextSequenceId(PAYMENT_SEQ_KEY)

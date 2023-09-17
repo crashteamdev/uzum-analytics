@@ -42,10 +42,10 @@ class JobConfiguration(
         if (!schedulerFactoryBean.checkExists(TriggerKey(PENDING_MESSAGE_JOB, PENDING_MESSAGE_GROUP))) {
             schedulerFactoryBean.scheduleJob(triggerPendingMessageJob())
         }
-        schedulerFactoryBean.addJob(paymentJob(), true, true)
-        if (!schedulerFactoryBean.checkExists(TriggerKey(PAYMENT_JOB, PAYMENT_JOB_GROUP))) {
-            schedulerFactoryBean.scheduleJob(triggerPaymentJob())
-        }
+//        schedulerFactoryBean.addJob(paymentJob(), true, true)
+//        if (!schedulerFactoryBean.checkExists(TriggerKey(PAYMENT_JOB, PAYMENT_JOB_GROUP))) {
+//            schedulerFactoryBean.scheduleJob(triggerPaymentJob())
+//        }
     }
 
 

@@ -92,7 +92,8 @@ class SecurityConfig(
             .cors().configurationSource(createCorsConfigSource()).and()
             .csrf().disable()
             //.csrf().requireCsrfProtectionMatcher(getURLsForDisabledCSRF()).and()
-            .authorizeExchange().pathMatchers("/v1/payment/callback", "/v1/payment/qiwi/callback").permitAll().and()
+            .authorizeExchange().pathMatchers("/v1/payment/callback", "/v1/payment/qiwi/callback",
+                "/v1/payment/uzum/callback").permitAll().and()
             .authorizeExchange().anyExchange().authenticated().and()
             .oauth2ResourceServer()
             .jwt()

@@ -8,6 +8,8 @@ data class UzumBankCreatePaymentRequest(
     val viewType: UzumBankViewType,
     val paymentParams: UzumBankPaymentParams,
     val sessionTimeoutSecs: Int,
+    val successUrl: String?,
+    val failureUrl: String?
 )
 
 data class UzumBankPaymentParams(

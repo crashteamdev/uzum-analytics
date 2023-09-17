@@ -99,6 +99,8 @@ uzumbank:
   fingerprint: fake-fingerprint
   ssl:
     key-store: classpath:cert/client-nonprod.jks
+    alias: uzum-bank
+    cert-password: changeme
     key-store-password: changeme
     key-password: changeme
 
