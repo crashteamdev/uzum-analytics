@@ -1,134 +1,144 @@
 package dev.crashteam.uzumanalytics.client.payme
 
+import com.googlecode.jsonrpc4j.JsonRpcParam
 import com.googlecode.jsonrpc4j.spring.AutoJsonRpcServiceImpl
+import dev.crashteam.uzumanalytics.client.currencyapi.CurrencyApiClient
 import dev.crashteam.uzumanalytics.client.payme.model.*
-import org.springframework.stereotype.Service
-import uz.paycom.merchant.entity.CustomerOrder
-import uz.paycom.merchant.entity.OrderCancelReason
-import uz.paycom.merchant.entity.OrderTransaction
-import dev.crashteam.uzumanalytics.client.payme.model.TransactionState
-import dev.crashteam.uzumanalytics.client.payme.model.Transactions
-import dev.crashteam.uzumanalytics.exception.*
+import dev.crashteam.uzumanalytics.controller.model.PaymentProvider
+import dev.crashteam.uzumanalytics.domain.mongo.PaycomDocument
+import dev.crashteam.uzumanalytics.domain.mongo.PaymentDocument
+import dev.crashteam.uzumanalytics.exception.TransactionNotFoundException
+import dev.crashteam.uzumanalytics.exception.UnableCancelTransactionException
+import dev.crashteam.uzumanalytics.exception.UnableCompleteException
 import dev.crashteam.uzumanalytics.repository.mongo.PaymentRepository
-import uz.paycom.merchant.entity.json.result.*
+import dev.crashteam.uzumanalytics.repository.mongo.PaymentSequenceDao
+import dev.crashteam.uzumanalytics.service.PaymentService
+import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
+import org.springframework.stereotype.Service
+import uz.paycom.merchant.entity.OrderCancelReason
+import java.math.BigDecimal
+import java.math.RoundingMode
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.*
 
 @Service
 @AutoJsonRpcServiceImpl
-class MerchantService(private val paymentRepository: PaymentRepository) : IMerchantService {
+class MerchantService(
+    private val paymentRepository: PaymentRepository,
+    private val paymentSequenceDao: PaymentSequenceDao,
+    private val currencyApiClient: CurrencyApiClient,
+    private val transactionStateMapper: TransactionStateMapper
+) : IMerchantService {
 
-    private val time_expired = 43_200_000L
+    override suspend fun createTransaction(
+        id: String,
+        time: Long,
+        amount: BigDecimal,
+        account: Account
+    ): CreateTransactionResult {
+        val paymentDocument = paymentRepository.findByPaycomId(id).awaitSingleOrNull()
+        if (paymentDocument != null) throw UnableCompleteException()
 
+        val paymentId = UUID.randomUUID().toString()
+        val orderId = paymentSequenceDao.getNextSequenceId(PaymentService.PAYMENT_SEQ_KEY)
+        val currencyApiData = currencyApiClient.getCurrency("UZS").data["UZS"]!!
+        val finalAmount = (amount * (currencyApiData.value.setScale(2, RoundingMode.HALF_UP)))
+        val paycomDocument =
+            PaycomDocument(
+                paycomId = id, createTime = time, account = account,
+                performTime = null, amount = amount, cancelTime = null
+            )
+        val payment = PaymentDocument(
+            paymentId = paymentId,
+            orderId = orderId,
+            userId = account.user,
+            status = "pending",
+            paid = false,
+            amount = finalAmount,
+            subscriptionType = account.order,
+            createdAt = LocalDateTime.now(),
+            currencyId = "UZS",
+            paymentSystem = PaymentProvider.PAYME.name,
+            paycomDocument = paycomDocument
+        )
+        paymentRepository.save(payment).awaitSingleOrNull()
+        val transactionState = transactionStateMapper.paymentStatusToTransactionState("pending")
+        return CreateTransactionResult(
+            transaction = paymentId,
+            create_time = time,
+            state = transactionState.code,
+        )
+    }
 
-    var order: CustomerOrder? = null
-
-    /**
-     * http://paycom.uz/api/#merchant-api-metody-createtransaction-sozdanie-finansovoj-tranzakcii
-     */
-    override fun createTransaction(id: String, time: Date, amount: Int, account: Account): CreateTransactionResult {
-        val transaction = transactionRepository.findByPaycomId(id)
-        if (transaction == null) {
-            if (checkPerformTransaction(amount, account).allow) {
-                val newTransaction = OrderTransaction(
-                    paycomId = id, paycomTime = time, createTime = Date(),
-                    state = TransactionState.STATE_IN_PROGRESS, order = order
+    override suspend fun performTransaction(id: String): PerformTransactionResult {
+        val payment = paymentRepository.findByPaycomId(id).awaitSingleOrNull()
+        if (payment != null) {
+            if (payment.status == "pending") {
+                val paycomDocument = payment.paycomDocument?.copy(performTime = System.currentTimeMillis())
+                val updatedPayment = payment.copy(paid = true, status = "success", paycomDocument = paycomDocument)
+                paymentRepository.save(updatedPayment).awaitSingleOrNull()
+                return PerformTransactionResult(
+                    transaction = updatedPayment.paymentId,
+                    perform_time = System.currentTimeMillis(),
+                    state = transactionStateMapper.paymentStatusToTransactionState("success").code
                 )
-                transactionRepository.save(newTransaction)
-                return CreateTransactionResult(newTransaction.createTime, newTransaction.id, newTransaction.state.code)
-            }
-        } else {
-            if (transaction.state == TransactionState.STATE_IN_PROGRESS) {
-                if (System.currentTimeMillis() - transaction.paycomTime.time > time_expired) {
-                    throw UnableCompleteException()
-                } else {
-                    return CreateTransactionResult(transaction.createTime, transaction.id, transaction.state.code)
-                }
-            } else {
-                throw UnableCompleteException()
+            } else if (payment.status == "success") {
+                return PerformTransactionResult(
+                    transaction = payment.paymentId,
+                    perform_time = payment.paycomDocument?.performTime,
+                    state = transactionStateMapper.paymentStatusToTransactionState("success").code
+                )
             }
         }
-
-        throw UnableCompleteException()
+        throw TransactionNotFoundException()
     }
 
-    /**
-     * http://paycom.uz/api/#merchant-api-metody-performtransaction-provedenie-finansovoj-tranzakcii
-     */
-    override fun performTransaction(id: String): PerformTransactionResult {
-        val transaction = transactionRepository.findByPaycomId(id)
-        transaction?.let {
-            if (transaction.state == TransactionState.STATE_IN_PROGRESS) {
-                if (System.currentTimeMillis() - transaction.paycomTime.time > time_expired) {
-                    transaction.state = TransactionState.STATE_CANCELED
-                    transactionRepository.save(transaction)
-                    throw UnableCompleteException()
-                } else {
-                    transaction.state = TransactionState.STATE_DONE
-                    transaction.performTime = Date()
-                    transactionRepository.save(transaction)
-                    return PerformTransactionResult(transaction.id, transaction.performTime, transaction.state.code)
-                }
-            } else if (transaction.state == TransactionState.STATE_DONE) {
-                return PerformTransactionResult(transaction.id, transaction.performTime, transaction.state.code)
-            } else {
-                throw UnableCompleteException()
+    override suspend fun cancelTransaction(id: String, reason: OrderCancelReason): CancelTransactionResult {
+        val paymentDocument = paymentRepository.findByPaycomId(id).awaitSingleOrNull()
+        if (paymentDocument != null) {
+            if (paymentDocument.status == "pending") {
+                val cancelTime = System.currentTimeMillis()
+                val paycomDocument = paymentDocument.paycomDocument?.copy(cancelTime = cancelTime)
+                val document = paymentDocument.copy(status = "canceled", paycomDocument = paycomDocument)
+
+                paymentRepository.save(document).awaitSingle()
+                return CancelTransactionResult(
+                    transaction = document.paymentId,
+                    cancel_time = cancelTime,
+                    state = transactionStateMapper.paymentStatusToTransactionState("canceled").code
+                )
+            } else if (paymentDocument.status == "success" || paymentDocument.status == "canceled") {
+                throw UnableCancelTransactionException()
             }
-        } ?: throw TransactionNotFoundException()
+        }
+        throw TransactionNotFoundException()
     }
 
-    /**
-     * http://paycom.uz/api/#merchant-api-metody-canceltransaction-otmena-finansovoj-tranzakcii
-     */
-    override fun cancelTransaction(id: String, reason: OrderCancelReason): CancelTransactionResult {
-        val transaction = transactionRepository.findByPaycomId(id)
-        transaction?.let {
-            if (transaction.state == TransactionState.STATE_IN_PROGRESS) {
-                transaction.state = TransactionState.STATE_CANCELED
-            } else if (transaction.state == TransactionState.STATE_DONE) {
-                if (transaction.order?.delivered == true) { //Check, can we cancel a transaction? (example business logic)
-                    throw UnableCancelTransactionException()
-                } else {
-                    transaction.state = TransactionState.STATE_POST_CANCELED
-                }
-            } else {
-                transaction.state = TransactionState.STATE_CANCELED
-            }
-            transaction.cancelTime = Date()
-            transaction.reason = reason
-            transactionRepository.save(transaction)
-
-            return CancelTransactionResult(transaction.id, transaction.cancelTime, transaction.state.code)
-        } ?: throw TransactionNotFoundException()
-    }
-
-    /**
-     * http://paycom.uz/api/#merchant-api-metody-checktransaction-proverka-sostoyaniya-finansovoj-tranzakcii
-     */
-    override fun checkTransaction(id: String): CheckTransactionResult {
-        val transaction = transactionRepository.findByPaycomId(id)
-        transaction?.let {
-            return CheckTransactionResult(
-                transaction.createTime, transaction.performTime, transaction.cancelTime,
-                transaction.id, transaction.state.code, transaction.reason?.code
-            )
-        } ?: throw TransactionNotFoundException()
-    }
-
-    /**
-     * http://paycom.uz/api/#merchant-api-metody-getstatement-informaciya-o-tranzakciyah-merchanta
-     */
-    override fun getStatement(from: Date, to: Date): Transactions {
+    override fun getStatement(
+        @JsonRpcParam(value = "from") from: Long,
+        @JsonRpcParam(value = "to") to: Long
+    ): Transactions {
         val result = mutableListOf<GetStatementResult>()
-        val transactions = transactionRepository.findByPaycomTimeAndState(from, to, TransactionState.STATE_DONE)
-        transactions?.forEach {
+        val fromTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(from), ZoneId.systemDefault())
+        val toTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(to), ZoneId.systemDefault())
+        val paymentDocuments =
+            paymentRepository.findByPaycomDocumentNotNullAndCreatedAtBetween(fromTime, toTime).collectList().block()
+        paymentDocuments?.forEach {
             result.add(
                 GetStatementResult(
-                    it.paycomId, it.paycomTime, it.order?.amount, Account(it.order?.id),
-                    it.createTime, it.performTime, it.cancelTime, it.id, it.state.code, it.reason?.code
+                    id = it.paycomDocument?.paycomId,
+                    create_time = it.paycomDocument?.createTime,
+                    amount = it.amount,
+                    account = Account(user = it.userId, it.subscriptionType),
+                    cancel_time = it.paycomDocument?.cancelTime,
+                    perform_time = it.paycomDocument?.performTime,
+                    state = transactionStateMapper.paymentStatusToTransactionState(it.status).code
                 )
             )
         }
-
         return Transactions(result)
     }
 

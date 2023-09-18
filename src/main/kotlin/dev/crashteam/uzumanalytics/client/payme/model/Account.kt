@@ -1,3 +1,3 @@
 package dev.crashteam.uzumanalytics.client.payme.model
 
-class Account(val order: Long? = null)
+class Account(val user: String, val order: Int)

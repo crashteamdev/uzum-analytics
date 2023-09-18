@@ -7,6 +7,7 @@ import com.googlecode.jsonrpc4j.JsonRpcService
 import dev.crashteam.uzumanalytics.client.payme.model.*
 import dev.crashteam.uzumanalytics.exception.*
 import uz.paycom.merchant.entity.OrderCancelReason
+import java.math.BigDecimal
 import java.util.*
 
 @JsonRpcService("/api")
@@ -20,9 +21,9 @@ interface IMerchantService {
             data = "transaction"
         )
     )
-    fun createTransaction(
-        @JsonRpcParam(value = "id") id: String, @JsonRpcParam(value = "time") time: Date,
-        @JsonRpcParam(value = "amount") amount: Int, @JsonRpcParam(value = "account") account: Account
+    suspend fun createTransaction(
+        @JsonRpcParam(value = "id") id: String, @JsonRpcParam(value = "time") time: Long,
+        @JsonRpcParam(value = "amount") amount: BigDecimal, @JsonRpcParam(value = "account") account: Account
     ): CreateTransactionResult
 
     @JsonRpcErrors(
@@ -39,7 +40,7 @@ interface IMerchantService {
             data = "transaction"
         )
     )
-    fun performTransaction(@JsonRpcParam(value = "id") id: String): PerformTransactionResult
+    suspend fun performTransaction(@JsonRpcParam(value = "id") id: String): PerformTransactionResult
 
     @JsonRpcErrors(
         JsonRpcError(
@@ -55,20 +56,10 @@ interface IMerchantService {
             data = "transaction"
         )
     )
-    fun cancelTransaction(
+    suspend fun cancelTransaction(
         @JsonRpcParam(value = "id") id: String,
         @JsonRpcParam(value = "reason") reason: OrderCancelReason
     ): CancelTransactionResult
 
-    @JsonRpcErrors(
-        JsonRpcError(
-            exception = TransactionNotFoundException::class,
-            code = -31003,
-            message = "Order transaction not found",
-            data = "transaction"
-        )
-    )
-    fun checkTransaction(@JsonRpcParam(value = "id") id: String): CheckTransactionResult
-
-    fun getStatement(@JsonRpcParam(value = "from") from: Date, @JsonRpcParam(value = "to") to: Date): Transactions
+    fun getStatement(@JsonRpcParam(value = "from") from: Long, @JsonRpcParam(value = "to") to: Long): Transactions
 }
