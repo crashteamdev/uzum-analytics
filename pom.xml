@@ -84,6 +84,11 @@
             <artifactId>openapi-uzum-analytics</artifactId>
             <version>1.13-257a790-server</version>
         </dependency>
+        <dependency>
+            <groupId>dev.crashteam</groupId>
+            <artifactId>uzum-scrapper-proto</artifactId>
+            <version>0.0.3</version>
+        </dependency>
 
         <!-- Third party -->
         <dependency>
@@ -159,6 +164,16 @@
             <groupId>com.clickhouse</groupId>
             <artifactId>clickhouse-jdbc</artifactId>
             <version>0.4.6</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-kinesis</artifactId>
+            <version>1.12.380</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>amazon-kinesis-client</artifactId>
+            <version>1.14.9</version>
         </dependency>
 
         <!-- Kotlin -->

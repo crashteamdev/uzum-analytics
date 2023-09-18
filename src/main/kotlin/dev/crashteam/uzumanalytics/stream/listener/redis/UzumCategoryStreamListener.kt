@@ -1,4 +1,4 @@
-package dev.crashteam.uzumanalytics.stream.listener
+package dev.crashteam.uzumanalytics.stream.listener.redis
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -7,7 +7,6 @@ import dev.crashteam.uzumanalytics.domain.mongo.CategoryDocument
 import dev.crashteam.uzumanalytics.domain.mongo.CategoryTreeDocument
 import dev.crashteam.uzumanalytics.repository.mongo.CategoryDao
 import dev.crashteam.uzumanalytics.repository.mongo.CategoryTreeDao
-import dev.crashteam.uzumanalytics.repository.mongo.CategoryTreeRepository
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging

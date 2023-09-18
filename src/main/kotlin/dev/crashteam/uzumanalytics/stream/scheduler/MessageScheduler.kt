@@ -1,10 +1,10 @@
 package dev.crashteam.uzumanalytics.stream.scheduler
 
 import dev.crashteam.uzumanalytics.config.properties.RedisProperties
-import dev.crashteam.uzumanalytics.stream.listener.BatchStreamListener
-import dev.crashteam.uzumanalytics.stream.listener.UzumCategoryStreamListener
-import dev.crashteam.uzumanalytics.stream.listener.UzumProductItemStreamListener
-import dev.crashteam.uzumanalytics.stream.listener.UzumProductPositionStreamListener
+import dev.crashteam.uzumanalytics.stream.listener.redis.RedisBatchStreamListener
+import dev.crashteam.uzumanalytics.stream.listener.redis.UzumCategoryStreamListener
+import dev.crashteam.uzumanalytics.stream.listener.redis.UzumProductItemStreamListener
+import dev.crashteam.uzumanalytics.stream.listener.redis.UzumProductPositionStreamListener
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -113,7 +113,7 @@ class MessageScheduler(
         consumerGroup: String,
         consumerName: String,
         receiver: StreamReceiver<String, ObjectRecord<String, String>>,
-        listener: BatchStreamListener<String, ObjectRecord<String, String>>,
+        listener: RedisBatchStreamListener<String, ObjectRecord<String, String>>,
     ) {
         val consumer = Consumer.from(consumerGroup, consumerName)
         receiver.receive(

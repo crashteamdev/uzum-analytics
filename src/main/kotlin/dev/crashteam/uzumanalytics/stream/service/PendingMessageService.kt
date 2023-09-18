@@ -2,7 +2,7 @@ package dev.crashteam.uzumanalytics.stream.service
 
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import mu.KotlinLogging
-import dev.crashteam.uzumanalytics.stream.listener.BatchStreamListener
+import dev.crashteam.uzumanalytics.stream.listener.redis.RedisBatchStreamListener
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import org.springframework.data.domain.Range
 import org.springframework.data.redis.connection.ReactiveRedisConnection
@@ -65,7 +65,7 @@ class PendingMessageService(
         streamKey: String,
         consumerGroupName: String,
         consumerName: String,
-        listener: BatchStreamListener<String, ObjectRecord<String, String>>
+        listener: RedisBatchStreamListener<String, ObjectRecord<String, String>>
     ) {
         messageReactiveRedisTemplate.opsForStream<String, String>().pending(
             streamKey,

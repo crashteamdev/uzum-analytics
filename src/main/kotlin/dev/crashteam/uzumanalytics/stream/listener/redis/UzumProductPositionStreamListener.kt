@@ -1,4 +1,4 @@
-package dev.crashteam.uzumanalytics.stream.listener
+package dev.crashteam.uzumanalytics.stream.listener.redis
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue

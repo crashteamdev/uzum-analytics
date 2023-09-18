@@ -2,10 +2,10 @@ package dev.crashteam.uzumanalytics.stream.scheduler
 
 import dev.crashteam.uzumanalytics.config.properties.RedisProperties
 import dev.crashteam.uzumanalytics.extensions.getApplicationContext
-import dev.crashteam.uzumanalytics.stream.listener.BatchStreamListener
-import dev.crashteam.uzumanalytics.stream.listener.UzumCategoryStreamListener
-import dev.crashteam.uzumanalytics.stream.listener.UzumProductItemStreamListener
-import dev.crashteam.uzumanalytics.stream.listener.UzumProductPositionStreamListener
+import dev.crashteam.uzumanalytics.stream.listener.redis.RedisBatchStreamListener
+import dev.crashteam.uzumanalytics.stream.listener.redis.UzumCategoryStreamListener
+import dev.crashteam.uzumanalytics.stream.listener.redis.UzumProductItemStreamListener
+import dev.crashteam.uzumanalytics.stream.listener.redis.UzumProductPositionStreamListener
 import dev.crashteam.uzumanalytics.stream.service.PendingMessageService
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -65,7 +65,7 @@ class PendingMessageScheduler : Job {
         streamKey: String,
         consumerGroup: String,
         consumerName: String,
-        batchListener: BatchStreamListener<String, ObjectRecord<String, String>>,
+        batchListener: RedisBatchStreamListener<String, ObjectRecord<String, String>>,
         pendingMessageService: PendingMessageService
     ) {
         try {

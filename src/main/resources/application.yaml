@@ -123,3 +123,11 @@ clickhouse:
   ssl: false
   liquibase:
     change-log: "classpath:db/changelog/db.ch.changelog-main.yml"
+
+aws-stream:
+  endpoint: 'yds.serverless.yandexcloud.net'
+  accessKey: fake-access-key
+  secretKey: fake-secret-key
+  region: ru-central-1
+  uzum-stream:
+    name: '/ru-central1/b1gtojcphtuae1n9siie/etnvck8jo3kuh0vilc57/uzum-stream'

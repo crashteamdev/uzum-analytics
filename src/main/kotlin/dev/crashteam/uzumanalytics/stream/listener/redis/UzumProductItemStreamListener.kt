@@ -1,4 +1,4 @@
-package dev.crashteam.uzumanalytics.stream.listener
+package dev.crashteam.uzumanalytics.stream.listener.redis
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -8,7 +8,6 @@ import dev.crashteam.uzumanalytics.stream.model.UzumProductCategoryStreamRecord
 import dev.crashteam.uzumanalytics.stream.model.UzumProductItemStreamRecord
 import dev.crashteam.uzumanalytics.domain.mongo.*
 import dev.crashteam.uzumanalytics.repository.clickhouse.CHProductRepository
-import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChUzumProduct
 import dev.crashteam.uzumanalytics.repository.mongo.SellerRepository
 import dev.crashteam.uzumanalytics.service.ProductService
 import dev.crashteam.uzumanalytics.service.model.ProductDocumentTimeWrapper
@@ -29,7 +28,7 @@ class UzumProductItemStreamListener(
     private val sellerRepository: SellerRepository,
     private val chProductRepository: CHProductRepository,
     private val conversionService: ConversionService,
-) : BatchStreamListener<String, ObjectRecord<String, String>> {
+) : RedisBatchStreamListener<String, ObjectRecord<String, String>> {
 
     override suspend fun onMessage(messages: List<ObjectRecord<String, String>>) {
         val uzumProductItemStreamRecords = messages.map {
