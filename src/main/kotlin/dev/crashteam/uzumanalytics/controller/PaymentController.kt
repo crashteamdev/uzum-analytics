@@ -3,6 +3,7 @@ package dev.crashteam.uzumanalytics.controller
 import dev.crashteam.uzumanalytics.config.properties.FreeKassaProperties
 import dev.crashteam.uzumanalytics.config.properties.QiwiProperties
 import dev.crashteam.uzumanalytics.controller.model.*
+import dev.crashteam.uzumanalytics.exception.UnknownProviderException
 import dev.crashteam.uzumanalytics.extensions.mapToSubscription
 import dev.crashteam.uzumanalytics.service.PaymentService
 import kotlinx.coroutines.reactor.awaitSingle
@@ -65,6 +66,8 @@ class PaymentController(
                     currencySymbolCode = "RUB"
                 )
             }
+
+            else -> throw UnknownProviderException("Unknown provider - {${body.provider}}")
         }
         return ResponseEntity.ok(PaymentCreateResponse(paymentUrl = paymentUrl))
     }
