@@ -2,14 +2,21 @@ package dev.crashteam.uzumanalytics.controller
 
 import dev.crashteam.openapi.keanalytics.api.CategoryApi
 import dev.crashteam.openapi.keanalytics.api.ProductApi
+import dev.crashteam.openapi.keanalytics.api.PromoCodeApi
 import dev.crashteam.openapi.keanalytics.api.SellerApi
 import dev.crashteam.openapi.keanalytics.model.*
+import dev.crashteam.uzumanalytics.domain.mongo.PromoCodeType
+import dev.crashteam.uzumanalytics.domain.mongo.UserRole
 import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
 import dev.crashteam.uzumanalytics.service.ProductServiceAnalytics
+import dev.crashteam.uzumanalytics.service.PromoCodeService
 import dev.crashteam.uzumanalytics.service.SellerService
 import dev.crashteam.uzumanalytics.service.UserRestrictionService
+import dev.crashteam.uzumanalytics.service.model.PromoCodeCheckCode
+import dev.crashteam.uzumanalytics.service.model.PromoCodeCreateData
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import mu.KotlinLogging
+import org.springframework.core.convert.ConversionService
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -21,6 +28,7 @@ import reactor.core.publisher.Mono
 import reactor.core.publisher.toMono
 import reactor.kotlin.core.publisher.toFlux
 import java.math.RoundingMode
+import java.security.Principal
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -36,7 +44,9 @@ class MarketDbApiControllerV2(
     private val sellerService: SellerService,
     private val userRepository: UserRepository,
     private val userRestrictionService: UserRestrictionService,
-) : CategoryApi, ProductApi, SellerApi {
+    private val promoCodeService: PromoCodeService,
+    private val conversionService: ConversionService,
+) : CategoryApi, ProductApi, SellerApi, PromoCodeApi {
 
     override fun categoryOverallInfo(
         xRequestID: String,
@@ -185,6 +195,64 @@ class MarketDbApiControllerV2(
             }
         }
         return ResponseEntity.ok(productSales.toFlux()).toMono()
+    }
+
+    override fun createPromoCode(
+        xRequestID: String,
+        promoCode: Mono<PromoCode>,
+        exchange: ServerWebExchange
+    ): Mono<ResponseEntity<PromoCode>> {
+        return exchange.getPrincipal<Principal>().flatMap { principal ->
+            promoCode.flatMap { promoCode ->
+                return@flatMap userRepository.findByUserId(principal.name).flatMap { userDocument ->
+                    if (userDocument.role != UserRole.ADMIN) {
+                        return@flatMap ResponseEntity.status(HttpStatus.FORBIDDEN).build<PromoCode>().toMono()
+                    }
+                    promoCodeService.createPromoCode(
+                        PromoCodeCreateData(
+                            description = promoCode.description,
+                            validUntil = promoCode.validUntil.toLocalDateTime(),
+                            useLimit = promoCode.useLimit,
+                            type = when (promoCode.context.type) {
+                                PromoCodeContext.TypeEnum.ADDITIONAL_TIME -> PromoCodeType.ADDITIONAL_DAYS
+                                PromoCodeContext.TypeEnum.DISCOUNT -> PromoCodeType.DISCOUNT
+                                else -> PromoCodeType.DISCOUNT
+                            },
+                            discount = if (promoCode.context is DiscountPromoCode) {
+                                (promoCode.context as DiscountPromoCode).discount.toShort()
+                            } else null,
+                            additionalDays = if (promoCode.context is AdditionalTimePromoCode) {
+                                (promoCode.context as AdditionalTimePromoCode).additionalDays
+                            } else null,
+                            prefix = promoCode.prefix,
+                        )
+                    ).flatMap { promoCodeDocument ->
+                        ResponseEntity.ok(conversionService.convert(promoCodeDocument, PromoCode::class.java)).toMono()
+                    }
+                }
+            }
+        }
+    }
+
+    override fun checkPromoCode(
+        xRequestID: String,
+        promoCode: String,
+        exchange: ServerWebExchange
+    ): Mono<ResponseEntity<PromoCodeCheckResult>> {
+        return exchange.getPrincipal<Principal>().flatMap { _ ->
+            promoCodeService.checkPromoCode(promoCode).flatMap { promoCodeCheckResult ->
+                val codeCheckResult = PromoCodeCheckResult().apply {
+                    code = when (promoCodeCheckResult.checkCode) {
+                        PromoCodeCheckCode.INVALID_USE_LIMIT -> PromoCodeCheckResult.CodeEnum.INVALIDPROMOCODEUSELIMIT
+                        PromoCodeCheckCode.INVALID_DATE_LIMIT -> PromoCodeCheckResult.CodeEnum.INVALIDPROMOCODEDATE
+                        PromoCodeCheckCode.NOT_FOUND -> PromoCodeCheckResult.CodeEnum.NOTFOUNDPROMOCODE
+                        PromoCodeCheckCode.VALID -> PromoCodeCheckResult.CodeEnum.VALIDPROMOCODE
+                    }
+                    message = promoCodeCheckResult.description
+                }
+                ResponseEntity.ok(codeCheckResult).toMono()
+            }
+        }
     }
 
     private fun checkRequestDaysPermission(

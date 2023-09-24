@@ -7,6 +7,7 @@ data class PaymentCreate(
     val multiply: Short? = null,
     val referralCode: String? = null,
     val provider: PaymentProvider? = null,
+    val promoCode: String? = null,
 )
 
 enum class PaymentProvider {

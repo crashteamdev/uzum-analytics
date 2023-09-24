@@ -7,13 +7,15 @@ import dev.crashteam.uzumanalytics.client.qiwi.QiwiClient
 import dev.crashteam.uzumanalytics.client.qiwi.model.QiwiPaymentRequestParams
 import dev.crashteam.uzumanalytics.domain.mongo.*
 import dev.crashteam.uzumanalytics.extensions.mapToSubscription
-import dev.crashteam.uzumanalytics.repository.mongo.PaymentRepository
-import dev.crashteam.uzumanalytics.repository.mongo.PaymentSequenceDao
-import dev.crashteam.uzumanalytics.repository.mongo.ReferralCodeRepository
-import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
+import dev.crashteam.uzumanalytics.repository.mongo.*
+import dev.crashteam.uzumanalytics.service.model.CallbackPaymentAdditionalInfo
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import mu.KotlinLogging
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate
+import org.springframework.data.mongodb.core.query.Criteria
+import org.springframework.data.mongodb.core.query.Query
+import org.springframework.data.mongodb.core.query.Update
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
@@ -32,6 +34,8 @@ class PaymentService(
     private val freeKassaClient: FreeKassaClient,
     private val qiwiClient: QiwiClient,
     private val currencyApiClient: CurrencyApiClient,
+    private val promoCodeRepository: PromoCodeRepository,
+    private val reactiveMongoTemplate: ReactiveMongoTemplate,
 ) {
 
     suspend fun createFreekassaPayment(
@@ -41,6 +45,8 @@ class PaymentService(
         email: String,
         currencySymbolCode: String,
         referralCode: String? = null,
+        promoCode: String? = null,
+        promoCodeType: PromoCodeType? = null,
         multiply: Short? = null
     ): String {
         val paymentId = UUID.randomUUID().toString()
@@ -74,6 +80,8 @@ class PaymentService(
                 currency = currencySymbolCode,
                 subscriptionId = userSubscription.num,
                 referralCode = referralCode,
+                promoCode = promoCode,
+                promoCodeType = promoCodeType,
                 multiply = multiply ?: 1
             )
         )
@@ -170,6 +178,7 @@ class PaymentService(
         paymentId: String,
         userId: String,
         currencyId: String,
+        paymentAdditionalInfo: CallbackPaymentAdditionalInfo? = null,
     ) {
         val payment = findPayment(paymentId)!!
         val user = userRepository.findByUserId(userId).awaitSingleOrNull()
@@ -179,9 +188,14 @@ class PaymentService(
                 user!!, userSubscription, paymentId, true, "success"
             )
         } else {
-            val subDays = if (payment.multiply != null && payment.multiply > 1) {
+            var subDays = if (payment.multiply != null && payment.multiply > 1) {
                 30 * payment.multiply
             } else 30
+            if (paymentAdditionalInfo != null) {
+                val additionalSubDays =
+                    callbackPromoCode(paymentAdditionalInfo.promoCode, paymentAdditionalInfo.promoCodeType)
+                subDays += additionalSubDays
+            }
             if (userSubscription.price().toBigDecimal() != payment.amount && payment.multiply == null) {
                 throw IllegalStateException(
                     "Wrong payment amount. subscriptionPrice=${userSubscription.price()};" +
@@ -272,43 +286,22 @@ class PaymentService(
         paymentRepository.save(updatedPayment).awaitSingleOrNull()
     }
 
-//    suspend fun createUpgradeUserSubscriptionPayment(
-//        userDocument: UserDocument,
-//        upgradeTarget: UserSubscription,
-//        paymentRedirectUrl: String
-//    ): PaymentResponse {
-//        val currentUserSubscription = userDocument.subscription!!
-//        val daysLeft = ChronoUnit.DAYS.between(LocalDateTime.now(), currentUserSubscription.endAt)
-//        val currentUserSub = currentUserSubscription.subType?.mapToSubscription()!!
-//        val alreadyPayed = currentUserSub.price() - (currentUserSub.price() / 30) * (30 - daysLeft)
-//        val newSubPrice = (upgradeTarget.price() / 30) * daysLeft
-//        val upgradePrice = newSubPrice - alreadyPayed
-//
-//        val paymentRequest = PaymentRequest(
-//            amount = PaymentAmount(
-//                upgradePrice.toString(),
-//                "RUB"
-//            ),
-//            capture = true,
-//            confirmation = PaymentConfirmation("redirect", paymentRedirectUrl),
-//            createdAt = LocalDateTime.now(),
-//            description = "Upgrade subscription from ${currentUserSub.name} to ${upgradeTarget.name}",
-//            metadata = mapOf("sub_type" to upgradeTarget.name)
-//        )
-//        val paymentResponse = youKassaClient.createPayment(UUID.randomUUID().toString(), paymentRequest)
-//        val paymentDocument = PaymentDocument(
-//            paymentResponse.id,
-//            userDocument.userId,
-//            paymentResponse.status,
-//            paymentResponse.paid,
-//            BigDecimal(upgradePrice).setScale(2),
-//            upgradeTarget.num,
-//            daysLeft.toInt()
-//        )
-//        paymentRepository.save(paymentDocument).awaitSingleOrNull()
-//
-//        return paymentResponse
-//    }
+    private suspend fun callbackPromoCode(promoCode: String, promoCodeType: PromoCodeType): Int {
+        return try {
+            val additionalSubDays = if (promoCodeType == PromoCodeType.ADDITIONAL_DAYS) {
+                val promoCodeDocument = promoCodeRepository.findByCode(promoCode).awaitSingleOrNull()
+                promoCodeDocument?.additionalDays ?: 0
+            } else 0
+            val query = Query().apply { addCriteria(Criteria.where("promoCode").`is`(promoCode)) }
+            val update = Update().inc("numberOfUses", 1)
+            reactiveMongoTemplate.findAndModify(query, update, PromoCodeDocument::class.java).awaitSingle()
+
+            additionalSubDays
+        } catch (e: Exception) {
+            log.error(e) { "Failed to callback promoCode" }
+            0
+        }
+    }
 
     companion object {
         const val PAYMENT_SEQ_KEY = "payment"

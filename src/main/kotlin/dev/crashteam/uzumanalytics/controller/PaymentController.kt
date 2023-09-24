@@ -3,9 +3,13 @@ package dev.crashteam.uzumanalytics.controller
 import dev.crashteam.uzumanalytics.config.properties.FreeKassaProperties
 import dev.crashteam.uzumanalytics.config.properties.QiwiProperties
 import dev.crashteam.uzumanalytics.controller.model.*
+import dev.crashteam.uzumanalytics.domain.mongo.PromoCodeType
 import dev.crashteam.uzumanalytics.extensions.mapToSubscription
+import dev.crashteam.uzumanalytics.repository.mongo.PromoCodeRepository
 import dev.crashteam.uzumanalytics.service.PaymentService
+import dev.crashteam.uzumanalytics.service.model.CallbackPaymentAdditionalInfo
 import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import mu.KotlinLogging
 import org.apache.commons.codec.binary.Hex
 import org.apache.commons.codec.digest.DigestUtils
@@ -26,6 +30,7 @@ class PaymentController(
     private val freeKassaProperties: FreeKassaProperties,
     private val qiwiProperties: QiwiProperties,
     private val paymentService: PaymentService,
+    private val promoCodeRepository: PromoCodeRepository,
 ) {
 
     @PostMapping("/payment")
@@ -35,6 +40,9 @@ class PaymentController(
         principal: Principal,
         exchange: ServerWebExchange,
     ): ResponseEntity<PaymentCreateResponse> {
+        val promoCodeDocument = if (body.promoCode != null) {
+            promoCodeRepository.findByCode(body.promoCode).awaitSingleOrNull()
+        } else null
         val paymentUrl = when (body.provider) {
             null, PaymentProvider.FREEKASSA -> {
                 paymentService.createFreekassaPayment(
@@ -44,7 +52,9 @@ class PaymentController(
                     email = body.email,
                     referralCode = body.referralCode,
                     multiply = body.multiply,
-                    currencySymbolCode = "RUB"
+                    currencySymbolCode = "RUB",
+                    promoCode = body.promoCode,
+                    promoCodeType = promoCodeDocument?.type
                 )
             }
 
@@ -86,6 +96,8 @@ class PaymentController(
         val curId = formData["CUR_ID"]?.singleOrNull()
         val userId = formData["us_userid"]?.singleOrNull()
         val subscriptionId = formData["us_subscriptionid"]?.singleOrNull()
+        val promoCode = formData["us_promocode"]?.singleOrNull()
+        val promoCodeType = formData["us_promocodeType"]?.singleOrNull()
         log.info { "Callback freekassa payment. Body=$formData" }
         if (merchantId == null || amount == null || orderId == null || curId == null
             || userId == null || subscriptionId == null || paymentId == null
@@ -99,10 +111,17 @@ class PaymentController(
             log.warn { "Callback payment sign is not valid. expected=$md5Hash; actual=${formData["SIGN"]?.single()}" }
             return ResponseEntity.badRequest().build()
         }
+        val paymentAdditionalInfo = if (promoCode != null && promoCodeType != null) {
+            CallbackPaymentAdditionalInfo(promoCode, PromoCodeType.valueOf(promoCodeType))
+        } else {
+            null
+        }
+        log.debug { "Callback payment additional info: $paymentAdditionalInfo" }
         paymentService.callbackPayment(
             paymentId,
             userId,
             curId,
+            paymentAdditionalInfo = paymentAdditionalInfo,
         )
 
         return ResponseEntity.ok("YES")
