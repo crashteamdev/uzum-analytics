@@ -93,6 +93,17 @@ qiwi:
   publicKey: public_key
   callbackSecret: callback_secret_key
 
+uzumbank:
+  baseUrl: https://www.inplat-tech.ru
+  terminalId: fake-terminal-id
+  fingerprint: fake-fingerprint
+  ssl:
+    key-store: classpath:cert/client-nonprod.jks
+    alias: uzum-bank
+    cert-password: changeme
+    key-store-password: changeme
+    key-password: changeme
+
 currency:
   apiKey: gPdT9h5w4KUAnbckIQw4ciZXm38KZvsu2qrdWHeH
 

@@ -11,6 +11,8 @@ interface PaymentRepository : ReactiveCrudRepository<PaymentDocument, String> {
 
     fun findByStatus(status: String): Flux<PaymentDocument>
 
+    fun findByStatusAndPaymentSystem(status: String, paymentSystem: String): Flux<PaymentDocument>
+
     fun findByPaymentId(paymentId: String): Mono<PaymentDocument>
 
     fun removeByPaymentId(paymentId: String): Mono<PaymentDocument>

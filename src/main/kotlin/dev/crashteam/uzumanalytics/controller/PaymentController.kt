@@ -57,7 +57,14 @@ class PaymentController(
                     promoCodeType = promoCodeDocument?.type
                 )
             }
-
+            PaymentProvider.UZUM_BANK -> {
+                paymentService.createUzumBankPayment(
+                    userId = principal.name,
+                    userSubscription = body.subscriptionType.mapToSubscription()!!,
+                    referralCode = body.referralCode,
+                    multiply = body.multiply,
+                )
+            }
             PaymentProvider.QIWI -> {
                 paymentService.createQiwiPayment(
                     userId = principal.name,
@@ -156,6 +163,17 @@ class PaymentController(
             return ResponseEntity.ok().build()
         }
 
+        return ResponseEntity.unprocessableEntity().build()
+    }
+
+    @PostMapping("/payment/uzum/callback")
+    suspend fun callbackUzumPayment(@RequestBody uzumPaymentCallback: UzumPaymentCallback) : ResponseEntity<String> {
+        log.info { "Callback uzum payment. Body=$uzumPaymentCallback" }
+        if (uzumPaymentCallback.operationState == "SUCCESS" && uzumPaymentCallback.operationType != "REFUND") {
+            val paymentId = uzumPaymentCallback.orderNumber
+            paymentService.uzumCallbackPayment(paymentId)
+            return ResponseEntity.ok().build()
+        }
         return ResponseEntity.unprocessableEntity().build()
     }
 }

@@ -42,25 +42,29 @@ class JobConfiguration(
         if (!schedulerFactoryBean.checkExists(TriggerKey(PENDING_MESSAGE_JOB, PENDING_MESSAGE_GROUP))) {
             schedulerFactoryBean.scheduleJob(triggerPendingMessageJob())
         }
+//        schedulerFactoryBean.addJob(paymentJob(), true, true)
+//        if (!schedulerFactoryBean.checkExists(TriggerKey(PAYMENT_JOB, PAYMENT_JOB_GROUP))) {
+//            schedulerFactoryBean.scheduleJob(triggerPaymentJob())
+//        }
     }
 
-//
-//    private fun paymentJob(): JobDetailImpl {
-//        val jobDetail = JobDetailImpl()
-//        jobDetail.key = JobKey(PAYMENT_JOB, PAYMENT_JOB_GROUP)
-//        jobDetail.jobClass = PaymentMasterJob::class.java
-//
-//        return jobDetail
-//    }
-//
-//    private fun triggerPaymentJob(): CronTrigger {
-//        return TriggerBuilder.newTrigger()
-//            .forJob(paymentJob())
-//            .withIdentity(PAYMENT_JOB, PAYMENT_JOB_GROUP)
-//            .withSchedule(CronScheduleBuilder.cronSchedule(uzumProperties.paymentCron))
-//            .withPriority(Int.MAX_VALUE)
-//            .build()
-//    }
+
+    private fun paymentJob(): JobDetailImpl {
+        val jobDetail = JobDetailImpl()
+        jobDetail.key = JobKey(PAYMENT_JOB, PAYMENT_JOB_GROUP)
+        jobDetail.jobClass = PaymentMasterJob::class.java
+
+        return jobDetail
+    }
+
+    private fun triggerPaymentJob(): CronTrigger {
+        return TriggerBuilder.newTrigger()
+            .forJob(paymentJob())
+            .withIdentity(PAYMENT_JOB, PAYMENT_JOB_GROUP)
+            .withSchedule(CronScheduleBuilder.cronSchedule(uzumProperties.paymentCron))
+            .withPriority(Int.MAX_VALUE)
+            .build()
+    }
 
     private fun reportCleanupJob(): JobDetailImpl {
         val jobDetail = JobDetailImpl()

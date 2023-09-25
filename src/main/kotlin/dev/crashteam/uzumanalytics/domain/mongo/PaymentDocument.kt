@@ -23,6 +23,7 @@ data class PaymentDocument(
     val createdAt: LocalDateTime? = null,
     val currencyId: String? = null,
     val paymentSystem: String? = null,
+    val externalId: String? = null,
 
     @MongoId
     val id: ObjectId = ObjectId(),

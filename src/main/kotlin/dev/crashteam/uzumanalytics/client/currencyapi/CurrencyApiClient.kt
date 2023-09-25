@@ -18,8 +18,8 @@ class CurrencyApiClient(
     private lateinit var apiKey: String
 
     @Cacheable(value = [RedisConfig.CURRENCY_API_CACHE_NAME], unless = "#result == null")
-    fun getCurrency(): CurrencyApiResponse {
-        val url = "https://api.currencyapi.com/v3/latest?apikey=$apiKey&currencies=RUB"
+    fun getCurrency(currencySymbolicCode: String = "RUB"): CurrencyApiResponse {
+        val url = "https://api.currencyapi.com/v3/latest?apikey=$apiKey&currencies=$currencySymbolicCode"
         return restTemplate.exchange<CurrencyApiResponse>(url, HttpMethod.GET).body!!
     }
 }

@@ -5,6 +5,12 @@ import dev.crashteam.uzumanalytics.client.freekassa.FreeKassaClient
 import dev.crashteam.uzumanalytics.client.freekassa.model.PaymentFormRequestParams
 import dev.crashteam.uzumanalytics.client.qiwi.QiwiClient
 import dev.crashteam.uzumanalytics.client.qiwi.model.QiwiPaymentRequestParams
+import dev.crashteam.uzumanalytics.client.uzumbank.UzumBankClient
+import dev.crashteam.uzumanalytics.client.uzumbank.model.UzumBankCreatePaymentRequest
+import dev.crashteam.uzumanalytics.client.uzumbank.model.UzumBankPayType
+import dev.crashteam.uzumanalytics.client.uzumbank.model.UzumBankPaymentParams
+import dev.crashteam.uzumanalytics.client.uzumbank.model.UzumBankViewType
+import dev.crashteam.uzumanalytics.controller.model.PaymentProvider
 import dev.crashteam.uzumanalytics.domain.mongo.*
 import dev.crashteam.uzumanalytics.extensions.mapToSubscription
 import dev.crashteam.uzumanalytics.repository.mongo.*
@@ -33,6 +39,7 @@ class PaymentService(
     private val paymentSequenceDao: PaymentSequenceDao,
     private val freeKassaClient: FreeKassaClient,
     private val qiwiClient: QiwiClient,
+    private val uzumBankClient: UzumBankClient,
     private val currencyApiClient: CurrencyApiClient,
     private val promoCodeRepository: PromoCodeRepository,
     private val reactiveMongoTemplate: ReactiveMongoTemplate,
@@ -138,6 +145,51 @@ class PaymentService(
         return payUrl
     }
 
+    suspend fun createUzumBankPayment(
+        userId: String,
+        userSubscription: UserSubscription,
+        referralCode: String? = null,
+        multiply: Short? = null,
+    ): String {
+        val paymentId = UUID.randomUUID().toString()
+        val isUserCanUseReferral = if (referralCode != null) isUserReferralCodeAccess(userId, referralCode) else false
+        val amount = calculatePriceAmount(userSubscription, isUserCanUseReferral, multiply)
+        val currencyApiData = currencyApiClient.getCurrency("UZS").data["UZS"]!!
+        val finalAmount = (amount * (currencyApiData.value.setScale(2, RoundingMode.HALF_UP)))
+        val paymentResponse = uzumBankClient.createPayment(
+            UzumBankCreatePaymentRequest(
+                amount = finalAmount.toLong(),
+                clientId = userId,
+                currency = 860,
+                orderNumber = paymentId,
+                viewType = UzumBankViewType.REDIRECT,
+                paymentParams = UzumBankPaymentParams(UzumBankPayType.ONE_STEP),
+                sessionTimeoutSecs = 600,
+                successUrl = "https://lk.marketdb.org/#/payment/success",
+                failureUrl = "https://lk.marketdb.org/#/payment/error"
+            )
+        )
+        val orderId = paymentSequenceDao.getNextSequenceId(PAYMENT_SEQ_KEY)
+        val paymentDocument = PaymentDocument(
+            paymentId = paymentId,
+            orderId = orderId,
+            externalId = paymentResponse.result?.orderId,
+            userId = userId,
+            status = "pending",
+            paid = false,
+            amount = finalAmount,
+            subscriptionType = userSubscription.num,
+            multiply = multiply,
+            referralCode = referralCode,
+            createdAt = LocalDateTime.now(),
+            currencyId = "UZS",
+            paymentSystem = PaymentProvider.UZUM_BANK.name,
+        )
+        paymentRepository.save(paymentDocument).awaitSingleOrNull()
+
+        return paymentResponse.result!!.paymentRedirectUrl
+    }
+
     private suspend fun isUserReferralCodeAccess(userId: String, referralCode: String): Boolean {
         return if (referralCode.isNotBlank()) {
             val userDocument = userRepository.findByUserId(userId).awaitSingleOrNull()
@@ -171,6 +223,15 @@ class PaymentService(
 
     suspend fun findPayment(paymentId: String): PaymentDocument? {
         return paymentRepository.findByPaymentId(paymentId).awaitSingleOrNull()
+    }
+
+    @Transactional
+    suspend fun uzumCallbackPayment(
+        paymentId: String,
+    ) {
+        val payment = findPayment(paymentId)!!
+        val userId = payment.userId
+        return callbackPayment(paymentId, userId, "UZS")
     }
 
     @Transactional
