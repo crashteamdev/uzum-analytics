@@ -1,63 +1,60 @@
 package dev.crashteam.uzumanalytics.converter.clickhouse
 
+import dev.crashteam.uzum.scrapper.data.v1.UzumProductChange
 import dev.crashteam.uzumanalytics.converter.DataConverter
+import dev.crashteam.uzumanalytics.extension.toLocalDateTime
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChKazanExpressCharacteristic
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChUzumProduct
+import dev.crashteam.uzumanalytics.stream.handler.model.UzumProductWrapper
 import dev.crashteam.uzumanalytics.stream.model.UzumProductCategoryStreamRecord
-import dev.crashteam.uzumanalytics.stream.model.UzumProductItemStreamRecord
 import org.springframework.stereotype.Component
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
 import java.util.stream.Collectors
 
 @Component
 class UzumProductItemToChProductConverter :
-    DataConverter<UzumProductItemStreamRecord, ChUzumProductConverterResultWrapper> {
+    DataConverter<UzumProductWrapper, ChUzumProductConverterResultWrapper> {
 
-    override fun convert(source: UzumProductItemStreamRecord): ChUzumProductConverterResultWrapper {
-        return ChUzumProductConverterResultWrapper(source.skuList.map { sku ->
-            val fetchTime =
-                LocalDateTime.ofInstant(Instant.ofEpochMilli(source.time), ZoneId.of("UTC"))
+    override fun convert(source: UzumProductWrapper): ChUzumProductConverterResultWrapper {
+        val uzumProductChange = source.product
+        return ChUzumProductConverterResultWrapper(uzumProductChange.skusList.map { sku ->
             ChUzumProduct(
-                fetchTime = fetchTime,
-                productId = source.productId,
-                skuId = sku.skuId,
-                title = source.title,
-                categoryPaths = categoryToPath(source.category),
-                rating = source.rating.toBigDecimal(),
-                reviewsAmount = source.reviewsAmount.toInt(),
-                totalOrdersAmount = source.orders,
-                totalAvailableAmount = source.totalAvailableAmount,
+                fetchTime = source.eventTime.toLocalDateTime(),
+                productId = uzumProductChange.productId.toLong(),
+                skuId = sku.skuId.toLong(),
+                title = uzumProductChange.title,
+                categoryPaths = categoryToPath(uzumProductChange.category),
+                rating = uzumProductChange.rating.toBigDecimal(),
+                reviewsAmount = uzumProductChange.reviewsAmount.toInt(),
+                totalOrdersAmount = uzumProductChange.orders,
+                totalAvailableAmount = uzumProductChange.totalAvailableAmount,
                 availableAmount = sku.availableAmount,
                 fullPrice = sku.fullPrice?.toBigDecimal()?.movePointRight(2)?.toLong(),
                 purchasePrice = sku.purchasePrice.toBigDecimal().movePointRight(2).toLong(),
-                attributes = source.attributes,
-                tags = source.tags,
+                attributes = uzumProductChange.attributesList,
+                tags = uzumProductChange.tagsList,
                 photoKey = sku.photoKey,
-                characteristics = sku.characteristics.map {
+                characteristics = sku.characteristicsList.map {
                     ChKazanExpressCharacteristic(it.type, it.title)
                 },
-                sellerId = source.seller.id,
-                sellerAccountId = source.seller.accountId,
-                sellerTitle = source.seller.sellerTitle,
-                sellerLink = source.seller.sellerLink,
-                sellerRegistrationDate = source.seller.registrationDate,
-                sellerRating = source.seller.rating.toBigDecimal(),
-                sellerReviewsCount = source.seller.reviews.toInt(),
-                sellerOrders = source.seller.orders,
-                sellerContacts = source.seller.contacts.stream()
+                sellerId = uzumProductChange.seller.id,
+                sellerAccountId = uzumProductChange.seller.accountId,
+                sellerTitle = uzumProductChange.seller.sellerTitle,
+                sellerLink = uzumProductChange.seller.sellerLink,
+                sellerRegistrationDate = uzumProductChange.seller.registrationDate.seconds,
+                sellerRating = uzumProductChange.seller.rating.toBigDecimal(),
+                sellerReviewsCount = uzumProductChange.seller.reviews.toInt(),
+                sellerOrders = uzumProductChange.seller.orders,
+                sellerContacts = uzumProductChange.seller.contactsList.stream()
                     .collect(Collectors.toMap({ it.type }, { it.value })),
-                isEco = source.isEco,
-                adultCategory = source.isAdult,
+                isEco = uzumProductChange.isEco,
+                adultCategory = uzumProductChange.isAdult,
             )
         })
-
     }
 
-    private fun categoryToPath(category: UzumProductCategoryStreamRecord): List<Long> {
+    private fun categoryToPath(category: UzumProductChange.UzumProductCategory): List<Long> {
         val paths = mutableListOf<Long>()
-        var nextCategory: UzumProductCategoryStreamRecord? = category
+        var nextCategory: UzumProductChange.UzumProductCategory? = category
         while (nextCategory != null) {
             paths.add(category.id)
             nextCategory = nextCategory.parent

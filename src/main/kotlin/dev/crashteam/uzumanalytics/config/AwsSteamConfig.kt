@@ -3,20 +3,19 @@ package dev.crashteam.uzumanalytics.config
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.AWSStaticCredentialsProvider
 import com.amazonaws.auth.BasicAWSCredentials
-import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessor
-import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessorFactory
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration.*
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker
 import dev.crashteam.uzumanalytics.config.properties.AwsStreamProperties
-import dev.crashteam.uzumanalytics.stream.listener.aws.UzumEventStreamListener
+import dev.crashteam.uzumanalytics.stream.listener.aws.UzumEventStreamProcessorFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Configuration
 import java.util.concurrent.CompletableFuture
 
 @Configuration
 class AwsSteamConfig(
-    private val awsStreamProperties: AwsStreamProperties
+    private val awsStreamProperties: AwsStreamProperties,
+    private val uzumEventStreamProcessor: UzumEventStreamProcessorFactory,
 ) {
 
     @Value("\${spring.application.name}")
@@ -57,15 +56,9 @@ class AwsSteamConfig(
             0
         )
         val worker: Worker = Worker.Builder()
-            .recordProcessorFactory(UzumEventStreamProcessorFactory())
+            .recordProcessorFactory(uzumEventStreamProcessor)
             .config(consumerConfig)
             .build()
         CompletableFuture.runAsync(worker.run())
-    }
-
-    class UzumEventStreamProcessorFactory : IRecordProcessorFactory {
-        override fun createProcessor(): IRecordProcessor {
-            return UzumEventStreamListener()
-        }
     }
 }

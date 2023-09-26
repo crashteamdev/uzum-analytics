@@ -167,8 +167,11 @@ class ProductService(
 
         // Save product history
         val documentOps = productDocumentWithTimeMark.flatMap {
-            val productDateTime =
+            val productDateTime = if (it.time != null) {
                 LocalDateTime.ofInstant(Instant.ofEpochMilli(it.time), ZoneId.of("UTC"))
+            } else {
+                it.scrapTime
+            }
             buildProductDocumentOps(it.productDocument, productDateTime.toLocalDate())!!
         }
         val collectionName =
