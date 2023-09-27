@@ -14,10 +14,15 @@ data class UserDocument(
     val subscription: SubscriptionDocument? = null,
     val apiKey: ApiKey? = null,
     val email: String? = null,
+    val role: UserRole? = null,
 
     @MongoId
     val id: ObjectId = ObjectId(),
 )
+
+enum class UserRole {
+    ADMIN
+}
 
 data class ApiKey(
     val prefix: String,
