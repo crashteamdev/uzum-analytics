@@ -11,6 +11,7 @@ import dev.crashteam.uzumanalytics.repository.mongo.*
 import dev.crashteam.uzumanalytics.service.model.CallbackPaymentAdditionalInfo
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.query.Criteria
@@ -51,7 +52,12 @@ class PaymentService(
     ): String {
         val paymentId = UUID.randomUUID().toString()
         val isUserCanUseReferral = if (referralCode != null) isUserReferralCodeAccess(userId, referralCode) else false
-        val amount = calculatePriceAmount(userSubscription, isUserCanUseReferral, multiply)
+        val amount = calculatePriceAmount(
+            userSubscription,
+            isUserCanUseReferral,
+            promoCode,
+            multiply
+        )
         val currencyApiData = currencyApiClient.getCurrency().data["RUB"]!!
         val finalAmount = (amount * (currencyApiData.value.setScale(2, RoundingMode.HALF_UP)))
         val orderId = paymentSequenceDao.getNextSequenceId(PAYMENT_SEQ_KEY)
@@ -98,7 +104,7 @@ class PaymentService(
         val paymentId = UUID.randomUUID().toString()
         val isUserCanUseReferral = if (referralCode != null) isUserReferralCodeAccess(userId, referralCode) else false
         val orderId = paymentSequenceDao.getNextSequenceId(PAYMENT_SEQ_KEY)
-        val amount = calculatePriceAmount(userSubscription, isUserCanUseReferral, multiply)
+        val amount = calculatePriceAmount(userSubscription, isUserCanUseReferral, null, multiply)
         val subscriptionName = when (userSubscription) {
             DefaultSubscription -> "базовый"
             AdvancedSubscription -> "расширенный"
@@ -152,9 +158,12 @@ class PaymentService(
     private fun calculatePriceAmount(
         userSubscription: UserSubscription,
         referralCode: Boolean = false,
+        promoCode: String? = null,
         multiply: Short? = null
     ): BigDecimal {
-        return if (multiply != null && multiply > 1) {
+        return if (promoCode != null) {
+            calculatePromoCodePriceAmount(userSubscription, promoCode, multiply ?: 1)
+        } else if (multiply != null && multiply > 1) {
             val multipliedAmount = BigDecimal(userSubscription.price()) * BigDecimal.valueOf(multiply.toLong())
             val discount = if (multiply <= 3) {
                 BigDecimal(0.10)
@@ -166,6 +175,36 @@ class PaymentService(
             (BigDecimal(userSubscription.price()) - (BigDecimal(userSubscription.price()) * BigDecimal(0.15)))
         } else {
             userSubscription.price().toBigDecimal()
+        }
+    }
+
+
+    private fun calculatePromoCodePriceAmount(
+        userSubscription: UserSubscription,
+        promoCode: String,
+        multiply: Short = 1,
+    ): BigDecimal {
+        return runBlocking {
+            val promoCodeDocument = promoCodeRepository.findByCode(promoCode).awaitSingleOrNull()
+                ?: return@runBlocking userSubscription.price().toBigDecimal()
+            val defaultPrice = userSubscription.price().toBigDecimal() * multiply.toLong().toBigDecimal()
+            if (promoCodeDocument.validUntil < LocalDateTime.now()) {
+                return@runBlocking defaultPrice
+            }
+            return@runBlocking when (promoCodeDocument.type) {
+                PromoCodeType.ADDITIONAL_DAYS -> {
+                    defaultPrice
+                }
+
+                PromoCodeType.DISCOUNT -> {
+                    if (promoCodeDocument.numberOfUses >= promoCodeDocument.useLimit) {
+                        defaultPrice
+                    } else {
+                        val price = userSubscription.price().toBigDecimal() * multiply.toLong().toBigDecimal()
+                        ((price * promoCodeDocument.discount!!.toLong().toBigDecimal()) / BigDecimal.valueOf(100))
+                    }
+                }
+            }
         }
     }
 
