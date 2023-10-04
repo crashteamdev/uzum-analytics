@@ -160,7 +160,7 @@ class PaymentService(
         } else false
     }
 
-    private fun calculatePriceAmount(
+    private suspend fun calculatePriceAmount(
         userSubscription: UserSubscription,
         referralCode: Boolean = false,
         promoCode: String? = null,
@@ -184,30 +184,28 @@ class PaymentService(
     }
 
 
-    private fun calculatePromoCodePriceAmount(
+    private suspend fun calculatePromoCodePriceAmount(
         userSubscription: UserSubscription,
         promoCode: String,
         multiply: Short = 1,
     ): BigDecimal {
-        return runBlocking {
-            val promoCodeDocument = promoCodeRepository.findByCode(promoCode).awaitSingleOrNull()
-                ?: return@runBlocking userSubscription.price().toBigDecimal()
-            val defaultPrice = userSubscription.price().toBigDecimal() * multiply.toLong().toBigDecimal()
-            if (promoCodeDocument.validUntil < LocalDateTime.now()) {
-                return@runBlocking defaultPrice
+        val promoCodeDocument = promoCodeRepository.findByCode(promoCode).awaitSingleOrNull()
+            ?: return userSubscription.price().toBigDecimal()
+        val defaultPrice = userSubscription.price().toBigDecimal() * multiply.toLong().toBigDecimal()
+        if (promoCodeDocument.validUntil < LocalDateTime.now()) {
+            return defaultPrice
+        }
+        return when (promoCodeDocument.type) {
+            PromoCodeType.ADDITIONAL_DAYS -> {
+                defaultPrice
             }
-            return@runBlocking when (promoCodeDocument.type) {
-                PromoCodeType.ADDITIONAL_DAYS -> {
-                    defaultPrice
-                }
 
-                PromoCodeType.DISCOUNT -> {
-                    if (promoCodeDocument.numberOfUses >= promoCodeDocument.useLimit) {
-                        defaultPrice
-                    } else {
-                        val price = userSubscription.price().toBigDecimal() * multiply.toLong().toBigDecimal()
-                        ((price * promoCodeDocument.discount!!.toLong().toBigDecimal()) / BigDecimal.valueOf(100))
-                    }
+            PromoCodeType.DISCOUNT -> {
+                if (promoCodeDocument.numberOfUses >= promoCodeDocument.useLimit) {
+                    defaultPrice
+                } else {
+                    val price = userSubscription.price().toBigDecimal() * multiply.toLong().toBigDecimal()
+                    ((price * promoCodeDocument.discount!!.toLong().toBigDecimal()) / BigDecimal.valueOf(100))
                 }
             }
         }
