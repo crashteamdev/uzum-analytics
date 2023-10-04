@@ -47,9 +47,12 @@ class PaymentService(
         currencySymbolCode: String,
         referralCode: String? = null,
         promoCode: String? = null,
-        promoCodeType: PromoCodeType? = null,
         multiply: Short? = null
     ): String {
+        val promoCodeDocument = if (promoCode != null) {
+            log.debug { "Find promoCode by: $promoCode" }
+            promoCodeRepository.findByCode(promoCode).awaitSingleOrNull()
+        } else null
         val paymentId = UUID.randomUUID().toString()
         val isUserCanUseReferral = if (referralCode != null) isUserReferralCodeAccess(userId, referralCode) else false
         val amount = calculatePriceAmount(
@@ -58,8 +61,10 @@ class PaymentService(
             promoCode,
             multiply
         )
+        log.debug { "Initiate freekassa payment. paymentId=$paymentId. amount=$amount" }
         val currencyApiData = currencyApiClient.getCurrency().data["RUB"]!!
         val finalAmount = (amount * (currencyApiData.value.setScale(2, RoundingMode.HALF_UP)))
+        log.debug { "Final payment amount. paymentId=$paymentId. amount=$amount" }
         val orderId = paymentSequenceDao.getNextSequenceId(PAYMENT_SEQ_KEY)
         val paymentDocument = PaymentDocument(
             paymentId = paymentId,
@@ -87,7 +92,7 @@ class PaymentService(
                 subscriptionId = userSubscription.num,
                 referralCode = referralCode,
                 promoCode = promoCode,
-                promoCodeType = promoCodeType,
+                promoCodeType = promoCodeDocument?.type,
                 multiply = multiply ?: 1
             )
         )
