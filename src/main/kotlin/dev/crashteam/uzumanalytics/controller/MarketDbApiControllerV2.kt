@@ -1,10 +1,10 @@
 package dev.crashteam.uzumanalytics.controller
 
-import dev.crashteam.openapi.keanalytics.api.CategoryApi
-import dev.crashteam.openapi.keanalytics.api.ProductApi
-import dev.crashteam.openapi.keanalytics.api.PromoCodeApi
-import dev.crashteam.openapi.keanalytics.api.SellerApi
-import dev.crashteam.openapi.keanalytics.model.*
+import dev.crashteam.openapi.uzumanalytics.api.CategoryApi
+import dev.crashteam.openapi.uzumanalytics.api.ProductApi
+import dev.crashteam.openapi.uzumanalytics.api.PromoCodeApi
+import dev.crashteam.openapi.uzumanalytics.api.SellerApi
+import dev.crashteam.openapi.uzumanalytics.model.*
 import dev.crashteam.uzumanalytics.domain.mongo.PromoCodeType
 import dev.crashteam.uzumanalytics.domain.mongo.UserRole
 import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
@@ -34,6 +34,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
+import java.util.*
 
 private val log = KotlinLogging.logger {}
 
@@ -49,7 +50,7 @@ class MarketDbApiControllerV2(
 ) : CategoryApi, ProductApi, SellerApi, PromoCodeApi {
 
     override fun categoryOverallInfo(
-        xRequestID: String,
+        xRequestID: UUID,
         X_API_KEY: String,
         categoryId: Long,
         fromTime: OffsetDateTime?,
@@ -68,10 +69,12 @@ class MarketDbApiControllerV2(
                     toTimeLocalDateTime
                 ) ?: return@flatMap ResponseEntity.notFound().build<CategoryOverallInfo200Response>().toMono()
                 return@flatMap ResponseEntity.ok(CategoryOverallInfo200Response().apply {
-                    this.averagePrice = categoryOverallAnalytics.averagePrice.setScale(2, RoundingMode.HALF_UP).toDouble()
+                    this.averagePrice =
+                        categoryOverallAnalytics.averagePrice.setScale(2, RoundingMode.HALF_UP).toDouble()
                     this.orderCount = categoryOverallAnalytics.orderCount
                     this.sellerCount = categoryOverallAnalytics.sellerCount
-                    this.salesPerSeller = categoryOverallAnalytics.salesPerSeller.setScale(2, RoundingMode.HALF_UP).toDouble()
+                    this.salesPerSeller =
+                        categoryOverallAnalytics.salesPerSeller.setScale(2, RoundingMode.HALF_UP).toDouble()
                     this.productCount = categoryOverallAnalytics.productCount
                     this.productZeroSalesCount = categoryOverallAnalytics.productZeroSalesCount
                     this.sellersZeroSalesCount = categoryOverallAnalytics.sellersZeroSalesCount
@@ -83,7 +86,7 @@ class MarketDbApiControllerV2(
 
     @ExperimentalCoroutinesApi
     override fun sellerOverallInfo(
-        xRequestID: String,
+        xRequestID: UUID,
         X_API_KEY: String,
         sellerLink: String,
         fromTime: OffsetDateTime,
@@ -96,10 +99,12 @@ class MarketDbApiControllerV2(
             if (access == false) {
                 ResponseEntity.status(HttpStatus.FORBIDDEN).build<SellerOverallInfo200Response>().toMono()
             } else {
-                val categoryOverallAnalytics = productServiceAnalytics.getSellerAnalytics(sellerLink, fromTimeLocalDateTime, toTimeLocalDateTime)
-                    ?: return@flatMap ResponseEntity.notFound().build<SellerOverallInfo200Response>().toMono()
+                val categoryOverallAnalytics =
+                    productServiceAnalytics.getSellerAnalytics(sellerLink, fromTimeLocalDateTime, toTimeLocalDateTime)
+                        ?: return@flatMap ResponseEntity.notFound().build<SellerOverallInfo200Response>().toMono()
                 return@flatMap ResponseEntity.ok(SellerOverallInfo200Response().apply {
-                    this.averagePrice = categoryOverallAnalytics.averagePrice.setScale(2, RoundingMode.HALF_UP).toDouble()
+                    this.averagePrice =
+                        categoryOverallAnalytics.averagePrice.setScale(2, RoundingMode.HALF_UP).toDouble()
                     this.orderCount = categoryOverallAnalytics.orderCount
                     this.productCount = categoryOverallAnalytics.productCount
                     this.revenue = categoryOverallAnalytics.revenue.setScale(2, RoundingMode.HALF_UP).toDouble()
@@ -117,7 +122,7 @@ class MarketDbApiControllerV2(
     }
 
     override fun productSkuHistory(
-        xRequestID: String,
+        xRequestID: UUID,
         X_API_KEY: String,
         productId: Long,
         skuId: Long,
@@ -169,7 +174,7 @@ class MarketDbApiControllerV2(
     }
 
     override fun getProductSales(
-        xRequestID: String,
+        xRequestID: UUID,
         X_API_KEY: String,
         productIds: MutableList<Long>,
         fromTime: OffsetDateTime,
@@ -198,7 +203,7 @@ class MarketDbApiControllerV2(
     }
 
     override fun createPromoCode(
-        xRequestID: String,
+        xRequestID: UUID,
         promoCode: Mono<PromoCode>,
         exchange: ServerWebExchange
     ): Mono<ResponseEntity<PromoCode>> {
@@ -235,7 +240,7 @@ class MarketDbApiControllerV2(
     }
 
     override fun checkPromoCode(
-        xRequestID: String,
+        xRequestID: UUID,
         promoCode: String,
         exchange: ServerWebExchange
     ): Mono<ResponseEntity<PromoCodeCheckResult>> {

@@ -11,6 +11,7 @@ import dev.crashteam.uzumanalytics.repository.mongo.*
 import dev.crashteam.uzumanalytics.service.model.CallbackPaymentAdditionalInfo
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.query.Criteria
@@ -46,14 +47,24 @@ class PaymentService(
         currencySymbolCode: String,
         referralCode: String? = null,
         promoCode: String? = null,
-        promoCodeType: PromoCodeType? = null,
         multiply: Short? = null
     ): String {
+        val promoCodeDocument = if (promoCode != null) {
+            log.debug { "Find promoCode by: $promoCode" }
+            promoCodeRepository.findByCode(promoCode).awaitSingleOrNull()
+        } else null
         val paymentId = UUID.randomUUID().toString()
         val isUserCanUseReferral = if (referralCode != null) isUserReferralCodeAccess(userId, referralCode) else false
-        val amount = calculatePriceAmount(userSubscription, isUserCanUseReferral, multiply)
+        val amount = calculatePriceAmount(
+            userSubscription,
+            isUserCanUseReferral,
+            promoCode,
+            multiply
+        )
+        log.debug { "Initiate freekassa payment. paymentId=$paymentId. amount=$amount" }
         val currencyApiData = currencyApiClient.getCurrency().data["RUB"]!!
         val finalAmount = (amount * (currencyApiData.value.setScale(2, RoundingMode.HALF_UP)))
+        log.debug { "Final payment amount. paymentId=$paymentId. amount=$amount" }
         val orderId = paymentSequenceDao.getNextSequenceId(PAYMENT_SEQ_KEY)
         val paymentDocument = PaymentDocument(
             paymentId = paymentId,
@@ -81,7 +92,7 @@ class PaymentService(
                 subscriptionId = userSubscription.num,
                 referralCode = referralCode,
                 promoCode = promoCode,
-                promoCodeType = promoCodeType,
+                promoCodeType = promoCodeDocument?.type,
                 multiply = multiply ?: 1
             )
         )
@@ -98,7 +109,7 @@ class PaymentService(
         val paymentId = UUID.randomUUID().toString()
         val isUserCanUseReferral = if (referralCode != null) isUserReferralCodeAccess(userId, referralCode) else false
         val orderId = paymentSequenceDao.getNextSequenceId(PAYMENT_SEQ_KEY)
-        val amount = calculatePriceAmount(userSubscription, isUserCanUseReferral, multiply)
+        val amount = calculatePriceAmount(userSubscription, isUserCanUseReferral, null, multiply)
         val subscriptionName = when (userSubscription) {
             DefaultSubscription -> "базовый"
             AdvancedSubscription -> "расширенный"
@@ -149,12 +160,15 @@ class PaymentService(
         } else false
     }
 
-    private fun calculatePriceAmount(
+    private suspend fun calculatePriceAmount(
         userSubscription: UserSubscription,
         referralCode: Boolean = false,
+        promoCode: String? = null,
         multiply: Short? = null
     ): BigDecimal {
-        return if (multiply != null && multiply > 1) {
+        return if (promoCode != null) {
+            calculatePromoCodePriceAmount(userSubscription, promoCode, multiply ?: 1)
+        } else if (multiply != null && multiply > 1) {
             val multipliedAmount = BigDecimal(userSubscription.price()) * BigDecimal.valueOf(multiply.toLong())
             val discount = if (multiply <= 3) {
                 BigDecimal(0.10)
@@ -166,6 +180,34 @@ class PaymentService(
             (BigDecimal(userSubscription.price()) - (BigDecimal(userSubscription.price()) * BigDecimal(0.15)))
         } else {
             userSubscription.price().toBigDecimal()
+        }
+    }
+
+
+    private suspend fun calculatePromoCodePriceAmount(
+        userSubscription: UserSubscription,
+        promoCode: String,
+        multiply: Short = 1,
+    ): BigDecimal {
+        val promoCodeDocument = promoCodeRepository.findByCode(promoCode).awaitSingleOrNull()
+            ?: return userSubscription.price().toBigDecimal()
+        val defaultPrice = userSubscription.price().toBigDecimal() * multiply.toLong().toBigDecimal()
+        if (promoCodeDocument.validUntil < LocalDateTime.now()) {
+            return defaultPrice
+        }
+        return when (promoCodeDocument.type) {
+            PromoCodeType.ADDITIONAL_DAYS -> {
+                defaultPrice
+            }
+
+            PromoCodeType.DISCOUNT -> {
+                if (promoCodeDocument.numberOfUses >= promoCodeDocument.useLimit) {
+                    defaultPrice
+                } else {
+                    val price = userSubscription.price().toBigDecimal() * multiply.toLong().toBigDecimal()
+                    ((price * promoCodeDocument.discount!!.toLong().toBigDecimal()) / BigDecimal.valueOf(100))
+                }
+            }
         }
     }
 
