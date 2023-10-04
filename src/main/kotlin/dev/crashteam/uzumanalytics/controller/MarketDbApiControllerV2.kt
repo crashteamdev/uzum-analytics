@@ -50,7 +50,7 @@ class MarketDbApiControllerV2(
 ) : CategoryApi, ProductApi, SellerApi, PromoCodeApi {
 
     override fun categoryOverallInfo(
-        xRequestID: String,
+        xRequestID: UUID,
         X_API_KEY: String,
         categoryId: Long,
         fromTime: OffsetDateTime?,
@@ -86,7 +86,7 @@ class MarketDbApiControllerV2(
 
     @ExperimentalCoroutinesApi
     override fun sellerOverallInfo(
-        xRequestID: String,
+        xRequestID: UUID,
         X_API_KEY: String,
         sellerLink: String,
         fromTime: OffsetDateTime,
@@ -122,7 +122,7 @@ class MarketDbApiControllerV2(
     }
 
     override fun productSkuHistory(
-        xRequestID: String,
+        xRequestID: UUID,
         X_API_KEY: String,
         productId: Long,
         skuId: Long,
@@ -174,7 +174,7 @@ class MarketDbApiControllerV2(
     }
 
     override fun getProductSales(
-        xRequestID: String,
+        xRequestID: UUID,
         X_API_KEY: String,
         productIds: MutableList<Long>,
         fromTime: OffsetDateTime,
@@ -203,7 +203,7 @@ class MarketDbApiControllerV2(
     }
 
     override fun createPromoCode(
-        xRequestID: String,
+        xRequestID: UUID,
         promoCode: Mono<PromoCode>,
         exchange: ServerWebExchange
     ): Mono<ResponseEntity<PromoCode>> {
@@ -240,7 +240,7 @@ class MarketDbApiControllerV2(
     }
 
     override fun checkPromoCode(
-        xRequestID: String,
+        xRequestID: UUID,
         promoCode: String,
         exchange: ServerWebExchange
     ): Mono<ResponseEntity<PromoCodeCheckResult>> {
