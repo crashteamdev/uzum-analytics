@@ -14,17 +14,12 @@ import org.springframework.boot.autoconfigure.cache.RedisCacheManagerBuilderCust
 import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.data.redis.RedisSystemException
 import org.springframework.data.redis.cache.RedisCacheConfiguration
 import org.springframework.data.redis.cache.RedisCacheManager
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration.LettuceClientConfigurationBuilder
-import org.springframework.data.redis.connection.stream.ObjectRecord
-import org.springframework.data.redis.connection.stream.ReadOffset
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.data.redis.serializer.*
-import org.springframework.data.redis.stream.StreamReceiver
-import java.nio.ByteBuffer
 import java.time.Duration
 
 private val log = KotlinLogging.logger {}
