@@ -6,7 +6,8 @@ import org.springframework.boot.context.properties.ConstructorBinding
 @ConstructorBinding
 @ConfigurationProperties(prefix = "aws-stream")
 data class AwsStreamProperties(
-    val endpoint: String,
+    val kinesisEndpoint: String,
+    val dinamoDbEndpoint: String,
     val accessKey: String,
     val secretKey: String,
     val region: String,

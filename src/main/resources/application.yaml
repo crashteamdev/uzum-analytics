@@ -125,7 +125,8 @@ clickhouse:
     change-log: "classpath:db/changelog/db.ch.changelog-main.yml"
 
 aws-stream:
-  endpoint: 'yds.serverless.yandexcloud.net'
+  kinesisEndpoint: 'fake-endpoint'
+  dinamoDbEndpoint: 'fake-endpoint'
   accessKey: fake-access-key
   secretKey: fake-secret-key
   region: ru-central-1

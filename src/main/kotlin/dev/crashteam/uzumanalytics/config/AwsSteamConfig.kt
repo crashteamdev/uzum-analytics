@@ -32,8 +32,8 @@ class AwsSteamConfig(
         val consumerConfig = KinesisClientLibConfiguration(
             appName,
             awsStreamProperties.uzumStream.name,
-            "yds.serverless.yandexcloud.net/ru-central1/b1gtojcphtuae1n9siie/etnvck8jo3kuh0vilc57",
-            "docapi.serverless.yandexcloud.net/ru-central1/b1gtojcphtuae1n9siie/etnvck8jo3kuh0vilc57",
+            awsStreamProperties.kinesisEndpoint,
+            awsStreamProperties.dinamoDbEndpoint,
             InitialPositionInStream.LATEST,
             AWSStaticCredentialsProvider(awsCredentials),
             AWSStaticCredentialsProvider(awsCredentials),
