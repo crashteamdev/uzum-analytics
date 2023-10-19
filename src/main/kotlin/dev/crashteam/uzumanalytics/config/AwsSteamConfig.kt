@@ -40,7 +40,7 @@ class AwsSteamConfig(
             AWSStaticCredentialsProvider(awsCredentials),
             DEFAULT_FAILOVER_TIME_MILLIS,
             "$appName-consumer",
-            100,
+            awsStreamProperties.maxRecords,
             DEFAULT_IDLETIME_BETWEEN_READS_MILLIS,
             DEFAULT_DONT_CALL_PROCESS_RECORDS_FOR_EMPTY_RECORD_LIST,
             DEFAULT_PARENT_SHARD_POLL_INTERVAL_MILLIS,

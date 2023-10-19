@@ -130,5 +130,6 @@ aws-stream:
   accessKey: fake-access-key
   secretKey: fake-secret-key
   region: ru-central-1
+  maxRecords: 50
   uzum-stream:
     name: '/ru-central1/b1gtojcphtuae1n9siie/etnvck8jo3kuh0vilc57/uzum-stream'

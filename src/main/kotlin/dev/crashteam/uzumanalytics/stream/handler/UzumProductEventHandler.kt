@@ -113,7 +113,7 @@ class UzumProductEventHandler(
         return ProductSplitDocument(
             id = productSku.skuId.toLong(),
             availableAmount = productSku.availableAmount,
-            fullPrice = productSku.fullPrice?.toBigDecimal(),
+            fullPrice = if (productSku.fullPrice.isNotEmpty()) productSku.fullPrice.toBigDecimal() else null,
             purchasePrice = productSku.purchasePrice.toBigDecimal(),
             characteristics = productSku.characteristicsList.map {
                 ProductSplitCharacteristicDocument(it.title, it.title, it.value)
@@ -130,6 +130,7 @@ class UzumProductEventHandler(
         var currentCategory: UzumProductChange.UzumProductCategory? = productCategory
         while (currentCategory != null) {
             ancestorCategories.add(currentCategory.title.trim())
+            if (!currentCategory.hasParent()) break
             currentCategory = currentCategory.parent
         }
 

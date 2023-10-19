@@ -11,7 +11,8 @@ data class AwsStreamProperties(
     val accessKey: String,
     val secretKey: String,
     val region: String,
-    val uzumStream: UzumStreamProperties
+    val uzumStream: UzumStreamProperties,
+    val maxRecords: Int,
 )
 
 data class UzumStreamProperties(
