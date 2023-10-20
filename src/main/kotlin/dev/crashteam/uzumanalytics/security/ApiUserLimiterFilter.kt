@@ -1,10 +1,10 @@
 package dev.crashteam.uzumanalytics.security
 
+import dev.crashteam.uzumanalytics.repository.redis.ApiKeyAccessFrom
+import dev.crashteam.uzumanalytics.repository.redis.ApiKeyUserSessionInfo
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import dev.crashteam.uzumanalytics.repository.redis.ApiKeyAccessFrom
-import dev.crashteam.uzumanalytics.repository.redis.ApiKeyUserSessionInfo
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.http.HttpHeaders
@@ -28,6 +28,9 @@ class ApiUserLimiterFilter(
     @Value("\${uzum.apiLimit.maxBrowser}")
     private lateinit var maxBrowser: String
 
+    @Value("\${uzum.apiLimit.blockRemoveHour}")
+    private lateinit var blockRemoveHour: String
+
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         val ip =
             exchange.request.headers["CF-Connecting-IP"]?.single()
@@ -48,7 +51,8 @@ class ApiUserLimiterFilter(
                 reactiveRedisTemplate.opsForValue().set(apiKey, sessionInfo).awaitSingleOrNull()?.let {
                     val expire = reactiveRedisTemplate.getExpire(apiKey).awaitSingleOrNull()
                     if (expire?.isZero == true) {
-                        reactiveRedisTemplate.expire(apiKey, Duration.of(3, ChronoUnit.HOURS)).awaitSingleOrNull()
+                        reactiveRedisTemplate.expire(apiKey, Duration.of(blockRemoveHour.toLong(), ChronoUnit.HOURS))
+                            .awaitSingleOrNull()
                     }
                 }
                 return@runBlocking sessionInfo

@@ -78,6 +78,7 @@ uzum:
   apiLimit:
     maxIp: 4
     maxBrowser: 3
+    blockRemoveHour: 2
 
 service:
   proxy:
