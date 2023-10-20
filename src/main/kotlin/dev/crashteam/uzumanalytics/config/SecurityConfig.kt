@@ -1,5 +1,6 @@
 package dev.crashteam.uzumanalytics.config
 
+import dev.crashteam.uzumanalytics.config.properties.UzumProperties
 import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
 import dev.crashteam.uzumanalytics.repository.redis.ApiKeyUserSessionInfo
 import dev.crashteam.uzumanalytics.security.ApiKeyAuthHandlerFilter
@@ -32,6 +33,7 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource
 class SecurityConfig(
     val userRepository: UserRepository,
     val apiKeySessionRedisTemplate: ReactiveRedisTemplate<String, ApiKeyUserSessionInfo>,
+    val uzumProperties: UzumProperties,
 ) {
 
     @Value("\${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
@@ -86,7 +88,7 @@ class SecurityConfig(
                 )
             )
             .addFilterAt(ApiKeyAuthHandlerFilter(userRepository), SecurityWebFiltersOrder.AUTHORIZATION)
-            .addFilterAt(ApiUserLimiterFilter(apiKeySessionRedisTemplate), SecurityWebFiltersOrder.LAST)
+            .addFilterAt(ApiUserLimiterFilter(apiKeySessionRedisTemplate, uzumProperties), SecurityWebFiltersOrder.LAST)
             .build()
     }
 
