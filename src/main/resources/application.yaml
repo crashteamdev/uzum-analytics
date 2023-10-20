@@ -75,6 +75,9 @@ uzum:
   productPositionCron: '0 0 3 ? * * *'
   pendingMessageCron: '0 0/5 0 ? * * *'
   throttlingMs: 1000
+  apiLimit:
+    maxIp: 4
+    maxBrowser: 3
 
 service:
   proxy:

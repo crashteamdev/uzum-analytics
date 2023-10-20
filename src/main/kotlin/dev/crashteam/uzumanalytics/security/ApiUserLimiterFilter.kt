@@ -5,6 +5,7 @@ import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import dev.crashteam.uzumanalytics.repository.redis.ApiKeyAccessFrom
 import dev.crashteam.uzumanalytics.repository.redis.ApiKeyUserSessionInfo
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -20,6 +21,12 @@ private val log = KotlinLogging.logger {}
 class ApiUserLimiterFilter(
     private val reactiveRedisTemplate: ReactiveRedisTemplate<String, ApiKeyUserSessionInfo>
 ) : WebFilter {
+
+    @Value("\${uzum.apiLimit.maxIp}")
+    private lateinit var maxIp: String
+
+    @Value("\${uzum.apiLimit.maxBrowser}")
+    private lateinit var maxBrowser: String
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         val ip =
@@ -62,7 +69,7 @@ class ApiUserLimiterFilter(
                     reactiveRedisTemplate.opsForValue().set(apiKey, newApiKeyUserSessionInfo).awaitSingleOrNull()?.let {
                         val expire = reactiveRedisTemplate.getExpire(apiKey).awaitSingleOrNull()
                         if (expire?.isZero == true) {
-                            reactiveRedisTemplate.expire(apiKey, Duration.of(3, ChronoUnit.HOURS))
+                            reactiveRedisTemplate.expire(apiKey, Duration.of(2, ChronoUnit.HOURS))
                                 .awaitSingleOrNull()
                         }
                     }
@@ -74,14 +81,14 @@ class ApiUserLimiterFilter(
         }
         if (sessionInfo.accessFrom!!.size > 2) {
             val groupByIpMap: Map<String, List<ApiKeyAccessFrom>> = sessionInfo.accessFrom!!.groupBy { it.ip!! }
-            if (groupByIpMap.size > 3) {
+            if (groupByIpMap.size > maxIp.toInt()) {
                 log.info { "User have too match sessions from different ip address. ips=${groupByIpMap.keys}" }
                 exchange.response.rawStatusCode = HttpStatus.TOO_MANY_REQUESTS.value()
                 return exchange.response.setComplete()
             }
             var tooMatchBrowserFromOneIp = false
             for (entry in groupByIpMap) {
-                if (entry.value.size > 3) {
+                if (entry.value.size > maxBrowser.toInt()) {
                     tooMatchBrowserFromOneIp = true
                 }
             }
