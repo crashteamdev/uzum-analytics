@@ -1,11 +1,11 @@
 package dev.crashteam.uzumanalytics.security
 
+import dev.crashteam.uzumanalytics.config.properties.UzumProperties
 import dev.crashteam.uzumanalytics.repository.redis.ApiKeyAccessFrom
 import dev.crashteam.uzumanalytics.repository.redis.ApiKeyUserSessionInfo
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -19,17 +19,9 @@ import java.time.temporal.ChronoUnit
 private val log = KotlinLogging.logger {}
 
 class ApiUserLimiterFilter(
-    private val reactiveRedisTemplate: ReactiveRedisTemplate<String, ApiKeyUserSessionInfo>
+    private val reactiveRedisTemplate: ReactiveRedisTemplate<String, ApiKeyUserSessionInfo>,
+    private val uzumProperties: UzumProperties,
 ) : WebFilter {
-
-    @Value("\${uzum.apiLimit.maxIp}")
-    private lateinit var maxIp: String
-
-    @Value("\${uzum.apiLimit.maxBrowser}")
-    private lateinit var maxBrowser: String
-
-    @Value("\${uzum.apiLimit.blockRemoveHour}")
-    private lateinit var blockRemoveHour: String
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         val ip =
@@ -51,8 +43,10 @@ class ApiUserLimiterFilter(
                 reactiveRedisTemplate.opsForValue().set(apiKey, sessionInfo).awaitSingleOrNull()?.let {
                     val expire = reactiveRedisTemplate.getExpire(apiKey).awaitSingleOrNull()
                     if (expire?.isZero == true) {
-                        reactiveRedisTemplate.expire(apiKey, Duration.of(blockRemoveHour.toLong(), ChronoUnit.HOURS))
-                            .awaitSingleOrNull()
+                        reactiveRedisTemplate.expire(
+                            apiKey,
+                            Duration.of(uzumProperties.apiLimit.blockRemoveHour.toLong(), ChronoUnit.HOURS)
+                        ).awaitSingleOrNull()
                     }
                 }
                 return@runBlocking sessionInfo
@@ -85,14 +79,14 @@ class ApiUserLimiterFilter(
         }
         if (sessionInfo.accessFrom!!.size > 2) {
             val groupByIpMap: Map<String, List<ApiKeyAccessFrom>> = sessionInfo.accessFrom!!.groupBy { it.ip!! }
-            if (groupByIpMap.size > maxIp.toInt()) {
+            if (groupByIpMap.size > uzumProperties.apiLimit.maxIp) {
                 log.info { "User have too match sessions from different ip address. ips=${groupByIpMap.keys}" }
                 exchange.response.rawStatusCode = HttpStatus.TOO_MANY_REQUESTS.value()
                 return exchange.response.setComplete()
             }
             var tooMatchBrowserFromOneIp = false
             for (entry in groupByIpMap) {
-                if (entry.value.size > maxBrowser.toInt()) {
+                if (entry.value.size > uzumProperties.apiLimit.maxBrowser) {
                     tooMatchBrowserFromOneIp = true
                 }
             }
