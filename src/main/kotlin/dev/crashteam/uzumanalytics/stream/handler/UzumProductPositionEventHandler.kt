@@ -8,10 +8,12 @@ import dev.crashteam.uzumanalytics.domain.mongo.ProductPositionMetadata
 import dev.crashteam.uzumanalytics.domain.mongo.ProductPositionTSDocument
 import dev.crashteam.uzumanalytics.repository.mongo.ProductPositionRepository
 import mu.KotlinLogging
+import org.springframework.stereotype.Component
 import java.time.Instant
 
 private val log = KotlinLogging.logger {}
 
+@Component
 class UzumProductPositionEventHandler(
     private val productPositionRepository: ProductPositionRepository,
 ) : UzumScrapEventHandler {

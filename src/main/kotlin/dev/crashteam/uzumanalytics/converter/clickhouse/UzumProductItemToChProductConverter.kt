@@ -57,6 +57,7 @@ class UzumProductItemToChProductConverter :
         var nextCategory: UzumProductChange.UzumProductCategory? = category
         while (nextCategory != null) {
             paths.add(category.id)
+            if (!nextCategory.hasParent()) break
             nextCategory = nextCategory.parent
         }
         return paths.toList()
