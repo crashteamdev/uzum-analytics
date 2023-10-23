@@ -6,13 +6,11 @@ import dev.crashteam.uzumanalytics.extension.toLocalDateTime
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChKazanExpressCharacteristic
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChUzumProduct
 import dev.crashteam.uzumanalytics.stream.handler.model.UzumProductWrapper
-import dev.crashteam.uzumanalytics.stream.model.UzumProductCategoryStreamRecord
 import org.springframework.stereotype.Component
 import java.util.stream.Collectors
 
 @Component
-class UzumProductItemToChProductConverter :
-    DataConverter<UzumProductWrapper, ChUzumProductConverterResultWrapper> {
+class UzumProductItemToChProductConverter : DataConverter<UzumProductWrapper, ChUzumProductConverterResultWrapper> {
 
     override fun convert(source: UzumProductWrapper): ChUzumProductConverterResultWrapper {
         val uzumProductChange = source.product
@@ -28,11 +26,13 @@ class UzumProductItemToChProductConverter :
                 totalOrdersAmount = uzumProductChange.orders,
                 totalAvailableAmount = uzumProductChange.totalAvailableAmount,
                 availableAmount = sku.availableAmount,
-                fullPrice = sku.fullPrice?.toBigDecimal()?.movePointRight(2)?.toLong(),
+                fullPrice = if (sku.fullPrice.isNotEmpty()) {
+                    sku.fullPrice?.toBigDecimal()?.movePointRight(2)?.toLong()
+                } else null,
                 purchasePrice = sku.purchasePrice.toBigDecimal().movePointRight(2).toLong(),
                 attributes = uzumProductChange.attributesList,
                 tags = uzumProductChange.tagsList,
-                photoKey = sku.photoKey,
+                photoKey = sku.photoKey.ifEmpty { null },
                 characteristics = sku.characteristicsList.map {
                     ChKazanExpressCharacteristic(it.type, it.title)
                 },

@@ -89,7 +89,7 @@ class UzumProductEventHandler(
             reviewsAmount = productChange.reviewsAmount,
             orderAmount = productChange.orders,
             rOrdersAmount = null,
-            rating = productChange.rating.toBigDecimal(),
+            rating = if (productChange.rating > 0) productChange.rating.toBigDecimal() else null,
             totalAvailableAmount = productChange.totalAvailableAmount,
             description = productChange.description,
             attributes = productChange.attributesList,
@@ -101,7 +101,7 @@ class UzumProductEventHandler(
                 id = productChange.seller.id,
                 title = productChange.seller.sellerTitle,
                 link = productChange.seller.sellerLink,
-                description = productChange.seller.description,
+                description = productChange.seller.description.ifEmpty { null },
                 rating = productChange.seller.rating.toBigDecimal(),
                 sellerAccountId = productChange.seller.accountId,
                 contacts = productChange.seller.contactsList.map { ProductContactDocument(it.type, it.value) }
