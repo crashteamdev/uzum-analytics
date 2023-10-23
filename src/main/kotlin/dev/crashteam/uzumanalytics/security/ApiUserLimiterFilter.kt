@@ -80,9 +80,12 @@ class ApiUserLimiterFilter(
         if (sessionInfo.accessFrom!!.size > 2) {
             val groupByIpMap: Map<String, List<ApiKeyAccessFrom>> = sessionInfo.accessFrom!!.groupBy { it.ip!! }
             if (groupByIpMap.size > uzumProperties.apiLimit.maxIp) {
-                log.info { "User have too match sessions from different ip address. ips=${groupByIpMap.keys}" }
-                exchange.response.rawStatusCode = HttpStatus.TOO_MANY_REQUESTS.value()
-                return exchange.response.setComplete()
+                val browserCount = groupByIpMap.values.flatten().distinctBy { it.browser }.size
+                if (browserCount > 2) {
+                    log.info { "User have too match sessions from different ip address. ips=${groupByIpMap.keys}; browserCount=$browserCount" }
+                    exchange.response.rawStatusCode = HttpStatus.TOO_MANY_REQUESTS.value()
+                    return exchange.response.setComplete()
+                }
             }
             var tooMatchBrowserFromOneIp = false
             for (entry in groupByIpMap) {
