@@ -26,4 +26,11 @@ data class UzumProperties(
     @field:NotEmpty
     val pendingMessageCron: String? = null,
     val throttlingMs: Long? = null,
+    val apiLimit: UzumApiLimitProperties
+)
+
+data class UzumApiLimitProperties(
+    val maxIp: Int,
+    val maxBrowser: Int,
+    val blockRemoveHour: Int,
 )
