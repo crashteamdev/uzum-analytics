@@ -61,6 +61,7 @@ class AwsSteamConfig(
             Duration.ofMinutes(5).toMillis(),
             Duration.ofMinutes(30).toMillis(),
         )
+        consumerConfig.withTimeoutInSeconds(awsStreamProperties.timeoutInSec)
 
         return Worker.Builder()
             .recordProcessorFactory(uzumEventStreamProcessor)
