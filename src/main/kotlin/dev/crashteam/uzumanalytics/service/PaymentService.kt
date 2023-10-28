@@ -205,7 +205,7 @@ class PaymentService(
                     defaultPrice
                 } else {
                     val price = userSubscription.price().toBigDecimal() * multiply.toLong().toBigDecimal()
-                    ((price * promoCodeDocument.discount!!.toLong().toBigDecimal()) / BigDecimal.valueOf(100))
+                    price - ((price * promoCodeDocument.discount!!.toLong().toBigDecimal()) / BigDecimal.valueOf(100))
                 }
             }
         }
