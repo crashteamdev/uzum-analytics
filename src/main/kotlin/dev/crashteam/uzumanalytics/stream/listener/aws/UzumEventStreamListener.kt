@@ -27,11 +27,25 @@ class UzumEventStreamListener(
             UzumScrapperEvent.parseFrom(records[i].data)
         }.groupBy { entry -> uzumScrapEventHandlers.find { it.isHandle(entry) } }
             .forEach { (handler, entries) ->
-                handler?.handle(entries)
+                try {
+                    handler?.handle(entries)
+                } catch (e: Exception) {
+                    log.error(e) { "Failed to handle event" }
+                }
             }
-        log.info { "Consume uzum events records count: ${uzumScrapperEvents.size}" }
-
+        try {
+            log.info { "Consume uzum events records count: ${uzumScrapperEvents.size}" }
+            processRecordsInput.checkpointer.checkpoint()
+        } catch (e: Exception) {
+            log.error(e) { "Failed to checkpoint consumed records" }
+        }
     }
 
-    override fun shutdown(shutdownInput: ShutdownInput) {}
+    override fun shutdown(shutdownInput: ShutdownInput) {
+        try {
+            shutdownInput.checkpointer.checkpoint();
+        } catch (e: Exception) {
+            log.error(e) { "Failed to checkpoint on shutdown" }
+        }
+    }
 }
