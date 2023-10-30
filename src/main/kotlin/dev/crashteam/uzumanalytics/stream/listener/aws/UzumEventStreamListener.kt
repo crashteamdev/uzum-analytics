@@ -43,7 +43,8 @@ class UzumEventStreamListener(
 
     override fun shutdown(shutdownInput: ShutdownInput) {
         try {
-            shutdownInput.checkpointer.checkpoint();
+            log.info { "Shutdown stream listener. Checkpoint stream" }
+            shutdownInput.checkpointer.checkpoint()
         } catch (e: Exception) {
             log.error(e) { "Failed to checkpoint on shutdown" }
         }
