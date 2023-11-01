@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.time.Duration
+import java.util.*
 
 @Configuration
 class AwsSteamConfig(
@@ -38,8 +39,8 @@ class AwsSteamConfig(
             AWSStaticCredentialsProvider(awsCredentials),
             AWSStaticCredentialsProvider(awsCredentials),
             AWSStaticCredentialsProvider(awsCredentials),
-            DEFAULT_FAILOVER_TIME_MILLIS,
-            "$appName-consumer",
+            awsStreamProperties.failOverTimeMillis,
+            "${awsStreamProperties.consumerName}-${UUID.randomUUID()}",
             awsStreamProperties.maxRecords,
             DEFAULT_IDLETIME_BETWEEN_READS_MILLIS,
             DEFAULT_DONT_CALL_PROCESS_RECORDS_FOR_EMPTY_RECORD_LIST,

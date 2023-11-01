@@ -14,6 +14,8 @@ data class AwsStreamProperties(
     val uzumStream: UzumStreamProperties,
     val timeoutInSec: Int,
     val maxRecords: Int,
+    val failOverTimeMillis: Long,
+    val consumerName: String,
 )
 
 data class UzumStreamProperties(

@@ -136,5 +136,7 @@ aws-stream:
   region: ru-central-1
   maxRecords: 50
   timeoutInSec: 120
+  failOverTimeMillis: 60000
+  consumerName: uzum-analytics-consumer
   uzum-stream:
     name: '/ru-central1/b1gtojcphtuae1n9siie/etnvck8jo3kuh0vilc57/uzum-stream'
