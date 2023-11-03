@@ -76,16 +76,16 @@ class AwsSteamConfig(
         val awsCredentials = BasicAWSCredentials(awsStreamProperties.accessKey, awsStreamProperties.secretKey)
         val consumerConfig = KinesisClientLibConfiguration(
             appName,
-            awsStreamProperties.paymentSteam.name,
+            awsStreamProperties.paymentStream.name,
             awsStreamProperties.kinesisEndpoint,
             awsStreamProperties.dinamoDbEndpoint,
             InitialPositionInStream.LATEST,
             AWSStaticCredentialsProvider(awsCredentials),
             AWSStaticCredentialsProvider(awsCredentials),
             AWSStaticCredentialsProvider(awsCredentials),
-            awsStreamProperties.paymentSteam.failOverTimeMillis,
-            "${awsStreamProperties.paymentSteam.consumerName}-${UUID.randomUUID()}",
-            awsStreamProperties.paymentSteam.maxRecords,
+            awsStreamProperties.paymentStream.failOverTimeMillis,
+            "${awsStreamProperties.paymentStream.consumerName}-${UUID.randomUUID()}",
+            awsStreamProperties.paymentStream.maxRecords,
             DEFAULT_IDLETIME_BETWEEN_READS_MILLIS,
             DEFAULT_DONT_CALL_PROCESS_RECORDS_FOR_EMPTY_RECORD_LIST,
             DEFAULT_PARENT_SHARD_POLL_INTERVAL_MILLIS,
@@ -106,7 +106,7 @@ class AwsSteamConfig(
             Duration.ofMinutes(5).toMillis(),
             Duration.ofMinutes(30).toMillis(),
         )
-        consumerConfig.withTimeoutInSeconds(awsStreamProperties.paymentSteam.timeoutInSec)
+        consumerConfig.withTimeoutInSeconds(awsStreamProperties.paymentStream.timeoutInSec)
 
         return Worker.Builder()
             .recordProcessorFactory(uzumEventStreamProcessor)
