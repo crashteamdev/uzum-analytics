@@ -12,7 +12,7 @@ data class AwsStreamProperties(
     val secretKey: String,
     val region: String,
     val uzumStream: StreamProperties,
-    val paymentSteam: StreamProperties
+    val paymentStream: StreamProperties,
 )
 
 data class StreamProperties(
