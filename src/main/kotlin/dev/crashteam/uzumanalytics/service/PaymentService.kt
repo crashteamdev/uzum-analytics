@@ -219,7 +219,7 @@ class PaymentService(
     suspend fun callbackPayment(
         paymentId: String,
         userId: String,
-        currencyId: String,
+        currencyId: String? = null,
         paymentAdditionalInfo: CallbackPaymentAdditionalInfo? = null,
     ) {
         val payment = findPayment(paymentId)!!
@@ -267,7 +267,7 @@ class PaymentService(
         paymentPaid: Boolean,
         paymentStatus: String,
         referralCode: String?,
-        currencyId: String,
+        currencyId: String?,
     ) {
         val saveUser = if (user == null) {
             UserDocument(

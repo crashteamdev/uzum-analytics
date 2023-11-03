@@ -11,13 +11,14 @@ data class AwsStreamProperties(
     val accessKey: String,
     val secretKey: String,
     val region: String,
-    val uzumStream: UzumStreamProperties,
+    val uzumStream: StreamProperties,
+    val paymentSteam: StreamProperties
+)
+
+data class StreamProperties(
+    val name: String,
     val timeoutInSec: Int,
     val maxRecords: Int,
     val failOverTimeMillis: Long,
     val consumerName: String,
-)
-
-data class UzumStreamProperties(
-    val name: String
 )

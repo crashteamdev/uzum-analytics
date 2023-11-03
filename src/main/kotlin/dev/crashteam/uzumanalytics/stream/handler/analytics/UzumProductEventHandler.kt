@@ -1,4 +1,4 @@
-package dev.crashteam.uzumanalytics.stream.handler
+package dev.crashteam.uzumanalytics.stream.handler.analytics
 
 import dev.crashteam.uzum.scrapper.data.v1.UzumProductChange
 import dev.crashteam.uzum.scrapper.data.v1.UzumScrapperEvent

@@ -1,40 +1,36 @@
-package dev.crashteam.uzumanalytics.stream.listener.aws
+package dev.crashteam.uzumanalytics.stream.listener.aws.payment
 
 import com.amazonaws.services.kinesis.clientlibrary.types.InitializationInput
 import com.amazonaws.services.kinesis.clientlibrary.types.ProcessRecordsInput
 import com.amazonaws.services.kinesis.clientlibrary.types.ShutdownInput
-import dev.crashteam.uzum.scrapper.data.v1.UzumScrapperEvent
-import dev.crashteam.uzumanalytics.stream.handler.UzumScrapEventHandler
+import dev.crashteam.payment.PaymentEvent
+import dev.crashteam.uzumanalytics.stream.handler.payment.PaymentEventHandler
+import dev.crashteam.uzumanalytics.stream.listener.aws.AwsStreamListener
 import mu.KotlinLogging
 
 private val log = KotlinLogging.logger {}
 
-class UzumEventStreamListener(
-    private val uzumScrapEventHandlers: List<UzumScrapEventHandler>
+class UzumPaymentEventStreamListener(
+    private val paymentEventHandler: List<PaymentEventHandler>
 ) : AwsStreamListener {
 
-    override fun initialize(initializationInput: InitializationInput) {}
+    override fun initialize(initializationInput: InitializationInput) {
+    }
 
     override fun processRecords(processRecordsInput: ProcessRecordsInput) {
         val records = processRecordsInput.records
-        log.debug {
-            "Received uzum scrap events. size=${processRecordsInput.records.size}"
-        }
-        val uzumScrapperEvents = records.map {
-            UzumScrapperEvent.parseFrom(it.data)
-        }
         List(records.size) { i: Int ->
-            UzumScrapperEvent.parseFrom(records[i].data)
-        }.groupBy { entry -> uzumScrapEventHandlers.find { it.isHandle(entry) } }
+            PaymentEvent.parseFrom(records[i].data)
+        }.groupBy { entry -> paymentEventHandler.find { it.isHandle(entry) } }
             .forEach { (handler, entries) ->
                 try {
                     handler?.handle(entries)
                 } catch (e: Exception) {
-                    log.error(e) { "Failed to handle event" }
+                   log.error(e) { "Failed to handle event" }
                 }
             }
         try {
-            log.info { "Consume uzum events records count: ${uzumScrapperEvents.size}" }
+            log.info { "Consume uzum events records count: ${records.size}" }
             processRecordsInput.checkpointer.checkpoint()
         } catch (e: Exception) {
             log.error(e) { "Failed to checkpoint consumed records" }
@@ -42,5 +38,6 @@ class UzumEventStreamListener(
     }
 
     override fun shutdown(shutdownInput: ShutdownInput) {
+        shutdownInput.checkpointer.checkpoint()
     }
 }

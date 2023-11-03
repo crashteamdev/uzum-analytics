@@ -1,5 +1,6 @@
 package dev.crashteam.uzumanalytics.stream.listener.aws
 
+import dev.crashteam.uzumanalytics.stream.listener.aws.analytics.UzumEventStreamAsyncLoop
 import org.springframework.stereotype.Component
 import javax.annotation.PostConstruct
 
@@ -9,6 +10,7 @@ class UzumEventStreamInitializer(
 ) {
     @PostConstruct
     fun initialize() {
-        uzumEventStreamAsyncLoop.startLoop()
+        uzumEventStreamAsyncLoop.startUzumDataStreamLoop()
+        uzumEventStreamAsyncLoop.startPaymentStreamLoop()
     }
 }

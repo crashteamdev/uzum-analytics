@@ -1,8 +1,8 @@
-package dev.crashteam.uzumanalytics.stream.listener.aws
+package dev.crashteam.uzumanalytics.stream.listener.aws.analytics
 
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessor
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessorFactory
-import dev.crashteam.uzumanalytics.stream.handler.UzumScrapEventHandler
+import dev.crashteam.uzumanalytics.stream.handler.analytics.UzumScrapEventHandler
 import org.springframework.stereotype.Component
 
 @Component
