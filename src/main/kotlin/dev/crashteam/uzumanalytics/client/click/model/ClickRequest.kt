@@ -16,6 +16,4 @@ data class ClickRequest(
     val rawSignTime: String,
     val signString: String,
     val referralCode: String?,
-    val promoCode: String?,
-    val promoCodeType: String?
-) 
+    val promoCode: String?)

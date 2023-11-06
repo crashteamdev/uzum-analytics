@@ -87,7 +87,6 @@ class PaymentController(
                     multiply = body.multiply,
                     currencySymbolCode = "UZS",
                     promoCode = body.promoCode,
-                    promoCodeType = promoCodeDocument?.type
                 )
             }
         }
@@ -216,7 +215,6 @@ class PaymentController(
 
         val referralCode = formData["communal_param"]?.singleOrNull()
         val promoCode = formData["additional_param3"]?.singleOrNull()
-        val promoCodeType = formData["additional_param4"]?.singleOrNull()
 
         log.info { "Callback click payment. Body=$formData" }
         val callbackClickPayment = paymentService.callbackClickPayment(
@@ -234,9 +232,7 @@ class PaymentController(
                 signTime!!,
                 signString!!,
                 referralCode,
-                promoCode,
-                promoCodeType
-            )
+                promoCode)
         )
         return ResponseEntity.ok(callbackClickPayment)
     }

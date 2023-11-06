@@ -19,9 +19,8 @@ class ClickClient(
             if (paymentFormRequest.referralCode != null) {
                 append("&communal_param=${paymentFormRequest.referralCode}")
             }
-            if (paymentFormRequest.promoCode != null && paymentFormRequest.promoCodeType != null) {
+            if (paymentFormRequest.promoCode != null ) {
                 append("&additional_param3=${paymentFormRequest.promoCode}")
-                append("&additional_param4=${paymentFormRequest.promoCodeType.name}")
             }
         }
     }

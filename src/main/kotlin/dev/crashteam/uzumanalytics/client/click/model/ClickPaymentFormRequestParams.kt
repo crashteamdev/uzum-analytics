@@ -12,6 +12,5 @@ data class ClickPaymentFormRequestParams(
     val subscriptionId: Int,
     val referralCode: String? = null,
     val promoCode: String? = null,
-    val promoCodeType: PromoCodeType? = null,
     val multiply: Short = 1
 )
