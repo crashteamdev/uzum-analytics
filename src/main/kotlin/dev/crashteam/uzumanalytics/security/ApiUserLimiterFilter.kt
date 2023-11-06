@@ -1,10 +1,11 @@
 package dev.crashteam.uzumanalytics.security
 
+import dev.crashteam.uzumanalytics.config.properties.UzumProperties
+import dev.crashteam.uzumanalytics.repository.redis.ApiKeyAccessFrom
+import dev.crashteam.uzumanalytics.repository.redis.ApiKeyUserSessionInfo
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import dev.crashteam.uzumanalytics.repository.redis.ApiKeyAccessFrom
-import dev.crashteam.uzumanalytics.repository.redis.ApiKeyUserSessionInfo
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -18,7 +19,8 @@ import java.time.temporal.ChronoUnit
 private val log = KotlinLogging.logger {}
 
 class ApiUserLimiterFilter(
-    private val reactiveRedisTemplate: ReactiveRedisTemplate<String, ApiKeyUserSessionInfo>
+    private val reactiveRedisTemplate: ReactiveRedisTemplate<String, ApiKeyUserSessionInfo>,
+    private val uzumProperties: UzumProperties,
 ) : WebFilter {
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
@@ -41,7 +43,10 @@ class ApiUserLimiterFilter(
                 reactiveRedisTemplate.opsForValue().set(apiKey, sessionInfo).awaitSingleOrNull()?.let {
                     val expire = reactiveRedisTemplate.getExpire(apiKey).awaitSingleOrNull()
                     if (expire?.isZero == true) {
-                        reactiveRedisTemplate.expire(apiKey, Duration.of(3, ChronoUnit.HOURS)).awaitSingleOrNull()
+                        reactiveRedisTemplate.expire(
+                            apiKey,
+                            Duration.of(uzumProperties.apiLimit.blockRemoveHour.toLong(), ChronoUnit.HOURS)
+                        ).awaitSingleOrNull()
                     }
                 }
                 return@runBlocking sessionInfo
@@ -62,7 +67,7 @@ class ApiUserLimiterFilter(
                     reactiveRedisTemplate.opsForValue().set(apiKey, newApiKeyUserSessionInfo).awaitSingleOrNull()?.let {
                         val expire = reactiveRedisTemplate.getExpire(apiKey).awaitSingleOrNull()
                         if (expire?.isZero == true) {
-                            reactiveRedisTemplate.expire(apiKey, Duration.of(3, ChronoUnit.HOURS))
+                            reactiveRedisTemplate.expire(apiKey, Duration.of(2, ChronoUnit.HOURS))
                                 .awaitSingleOrNull()
                         }
                     }
@@ -74,14 +79,17 @@ class ApiUserLimiterFilter(
         }
         if (sessionInfo.accessFrom!!.size > 2) {
             val groupByIpMap: Map<String, List<ApiKeyAccessFrom>> = sessionInfo.accessFrom!!.groupBy { it.ip!! }
-            if (groupByIpMap.size > 3) {
-                log.info { "User have too match sessions from different ip address. ips=${groupByIpMap.keys}" }
-                exchange.response.rawStatusCode = HttpStatus.TOO_MANY_REQUESTS.value()
-                return exchange.response.setComplete()
+            if (groupByIpMap.size > uzumProperties.apiLimit.maxIp) {
+                val browserCount = groupByIpMap.values.flatten().distinctBy { it.browser }.size
+                if (browserCount > 2) {
+                    log.info { "User have too match sessions from different ip address. ips=${groupByIpMap.keys}; browserCount=$browserCount" }
+                    exchange.response.rawStatusCode = HttpStatus.TOO_MANY_REQUESTS.value()
+                    return exchange.response.setComplete()
+                }
             }
             var tooMatchBrowserFromOneIp = false
             for (entry in groupByIpMap) {
-                if (entry.value.size > 3) {
+                if (entry.value.size > uzumProperties.apiLimit.maxBrowser) {
                     tooMatchBrowserFromOneIp = true
                 }
             }

@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:17-jre
 RUN apt update && \
     apt -y --no-install-recommends --no-install-suggests install libjemalloc2 curl && \
     apt clean && rm -rf /var/lib/apt/lists/*
@@ -10,12 +10,8 @@ ARG CERT_DIR=classes/cert
 COPY ${JAR_FILE} /opt/uzum-analytics/uzum-analytics.jar
 COPY ${CERT_DIR} /opt/uzum-analytics/cert
 
-ENTRYPOINT ["java", "-server", "-Xms256M", "-Xss256k",\
-            "-XX:+UnlockDiagnosticVMOptions", "-XX:+UseContainerSupport",\
-            "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=dump.hprof", "-Djava.security.egd=/dev/zrandom",\
-            "-XX:+UseParallelGC", "-XX:MinHeapFreeRatio=5", "-XX:MaxHeapFreeRatio=10", "-XX:GCTimeRatio=4", "-XX:AdaptiveSizePolicyWeight=90",\
-            "-XX:MaxRAMFraction=2",\
-            "-Djavax.net.ssl.trustStore=/opt/uzum-analytics/cert/marketdb.jks", "-Djavax.net.ssl.trustStorePassword=StrongPasswd",\
+ENTRYPOINT ["java", "-server",\
+            "-Djavax.net.ssl.trustStore=/opt/uzum-analytics/cert/marketdb.jks", "-Djavax.net.ssl.trustStorePassword=StrongPasswd", "-Dcom.amazonaws.sdk.disableCertChecking",\
             "-jar", "/opt/uzum-analytics/uzum-analytics.jar"]
 
 WORKDIR /opt/uzum-analytics

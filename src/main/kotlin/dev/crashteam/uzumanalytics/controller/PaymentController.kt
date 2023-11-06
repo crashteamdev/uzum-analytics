@@ -44,9 +44,6 @@ class PaymentController(
         principal: Principal,
         exchange: ServerWebExchange,
     ): ResponseEntity<PaymentCreateResponse> {
-        val promoCodeDocument = if (body.promoCode != null) {
-            promoCodeRepository.findByCode(body.promoCode).awaitSingleOrNull()
-        } else null
         val paymentUrl = when (body.provider) {
             null, PaymentProvider.FREEKASSA -> {
                 paymentService.createFreekassaPayment(
@@ -58,7 +55,6 @@ class PaymentController(
                     multiply = body.multiply,
                     currencySymbolCode = "RUB",
                     promoCode = body.promoCode,
-                    promoCodeType = promoCodeDocument?.type
                 )
             }
 

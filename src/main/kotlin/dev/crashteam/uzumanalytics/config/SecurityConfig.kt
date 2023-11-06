@@ -1,10 +1,15 @@
 package dev.crashteam.uzumanalytics.config
 
+import dev.crashteam.uzumanalytics.config.properties.UzumProperties
 import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
+import dev.crashteam.uzumanalytics.repository.redis.ApiKeyUserSessionInfo
 import dev.crashteam.uzumanalytics.security.ApiKeyAuthHandlerFilter
+import dev.crashteam.uzumanalytics.security.ApiUserLimiterFilter
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.core.annotation.Order
+import org.springframework.data.redis.core.ReactiveRedisTemplate
+import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.http.HttpMethod
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
@@ -27,6 +32,8 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource
 @EnableReactiveMethodSecurity
 class SecurityConfig(
     val userRepository: UserRepository,
+    val apiKeySessionRedisTemplate: ReactiveRedisTemplate<String, ApiKeyUserSessionInfo>,
+    val uzumProperties: UzumProperties,
 ) {
 
     @Value("\${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
@@ -81,7 +88,7 @@ class SecurityConfig(
                 )
             )
             .addFilterAt(ApiKeyAuthHandlerFilter(userRepository), SecurityWebFiltersOrder.AUTHORIZATION)
-            //.addFilterAt(ApiUserLimiterFilter(apiKeySessionRedisTemplate), SecurityWebFiltersOrder.LAST)
+            .addFilterAt(ApiUserLimiterFilter(apiKeySessionRedisTemplate, uzumProperties), SecurityWebFiltersOrder.LAST)
             .build()
     }
 
