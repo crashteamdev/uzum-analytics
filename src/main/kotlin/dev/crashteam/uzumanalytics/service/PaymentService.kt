@@ -62,12 +62,15 @@ class PaymentService(
         currencySymbolCode: String,
         referralCode: String? = null,
         promoCode: String? = null,
-        promoCodeType: PromoCodeType? = null,
         multiply: Short? = null
     ): String {
         val paymentId = UUID.randomUUID().toString()
+        val promoCodeDocument = if (promoCode != null) {
+            log.debug { "Find promoCode by: $promoCode" }
+            promoCodeRepository.findByCode(promoCode).awaitSingleOrNull()
+        } else null
         val isUserCanUseReferral = if (referralCode != null) isUserReferralCodeAccess(userId, referralCode) else false
-        val amount = calculatePriceAmount(userSubscription, isUserCanUseReferral, multiply)
+        val amount = calculatePriceAmount(userSubscription, isUserCanUseReferral, promoCode, multiply)
         val currencyApiData = currencyApiClient.getCurrency("UZS").data["UZS"]!!
         val finalAmount = (amount * (currencyApiData.value.setScale(2, RoundingMode.HALF_UP)))
         val orderId = paymentSequenceDao.getNextSequenceId(PAYMENT_SEQ_KEY)
@@ -97,7 +100,7 @@ class PaymentService(
                 subscriptionId = userSubscription.num,
                 referralCode = referralCode,
                 promoCode = promoCode,
-                promoCodeType = promoCodeType,
+                promoCodeType = promoCodeDocument?.type,
                 multiply = multiply ?: 1
             )
         )
@@ -221,7 +224,7 @@ class PaymentService(
     ): String {
         val paymentId = UUID.randomUUID().toString()
         val isUserCanUseReferral = if (referralCode != null) isUserReferralCodeAccess(userId, referralCode) else false
-        val amount = calculatePriceAmount(userSubscription, isUserCanUseReferral, multiply)
+        val amount = calculatePriceAmount(userSubscription, isUserCanUseReferral, null, multiply)
         val currencyApiData = currencyApiClient.getCurrency("UZS").data["UZS"]!!
         val finalAmount = (amount * (currencyApiData.value.setScale(2, RoundingMode.HALF_UP)))
         val paymentResponse = uzumBankClient.createPayment(

@@ -86,9 +86,7 @@ class PaymentController(
                     referralCode = body.referralCode,
                     multiply = body.multiply,
                     currencySymbolCode = "UZS",
-                    promoCode = body.promoCode,
-                    promoCodeType = promoCodeDocument?.type
-                )
+                    promoCode = body.promoCode)
             }
         }
         return ResponseEntity.ok(PaymentCreateResponse(paymentUrl = paymentUrl))
