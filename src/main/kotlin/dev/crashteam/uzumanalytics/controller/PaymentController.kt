@@ -1,5 +1,7 @@
 package dev.crashteam.uzumanalytics.controller
 
+import dev.crashteam.uzumanalytics.client.click.model.ClickRequest
+import dev.crashteam.uzumanalytics.client.click.model.ClickResponse
 import dev.crashteam.uzumanalytics.config.properties.FreeKassaProperties
 import dev.crashteam.uzumanalytics.config.properties.QiwiProperties
 import dev.crashteam.uzumanalytics.controller.model.*
@@ -19,6 +21,8 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ServerWebExchange
 import java.security.Principal
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
@@ -57,6 +61,7 @@ class PaymentController(
                     promoCodeType = promoCodeDocument?.type
                 )
             }
+
             PaymentProvider.UZUM_BANK -> {
                 paymentService.createUzumBankPayment(
                     userId = principal.name,
@@ -65,6 +70,7 @@ class PaymentController(
                     multiply = body.multiply,
                 )
             }
+
             PaymentProvider.QIWI -> {
                 paymentService.createQiwiPayment(
                     userId = principal.name,
@@ -73,6 +79,19 @@ class PaymentController(
                     referralCode = body.referralCode,
                     multiply = body.multiply,
                     currencySymbolCode = "RUB"
+                )
+            }
+
+            PaymentProvider.CLICK -> {
+                paymentService.createClickPayment(
+                    userId = principal.name,
+                    userSubscription = body.subscriptionType.mapToSubscription()!!,
+                    email = body.email,
+                    referralCode = body.referralCode,
+                    multiply = body.multiply,
+                    currencySymbolCode = "UZS",
+                    promoCode = body.promoCode,
+                    promoCodeType = promoCodeDocument?.type
                 )
             }
         }
@@ -167,7 +186,7 @@ class PaymentController(
     }
 
     @PostMapping("/payment/uzum/callback")
-    suspend fun callbackUzumPayment(@RequestBody uzumPaymentCallback: UzumPaymentCallback) : ResponseEntity<String> {
+    suspend fun callbackUzumPayment(@RequestBody uzumPaymentCallback: UzumPaymentCallback): ResponseEntity<String> {
         log.info { "Callback uzum payment. Body=$uzumPaymentCallback" }
         if (uzumPaymentCallback.operationState == "SUCCESS" && uzumPaymentCallback.operationType != "REFUND") {
             val paymentId = uzumPaymentCallback.orderNumber
@@ -175,5 +194,54 @@ class PaymentController(
             return ResponseEntity.ok().build()
         }
         return ResponseEntity.unprocessableEntity().build()
+    }
+
+    @PostMapping(
+        "/payment/click/callback",
+        consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE],
+        produces = [MediaType.APPLICATION_JSON_VALUE]
+    )
+    suspend fun callbackClickPayment(exchange: ServerWebExchange): ResponseEntity<ClickResponse> {
+        val formData = exchange.formData.awaitSingle()
+        val clickTransId = formData["click_trans_id"]?.singleOrNull()
+        val serviceId = formData["service_id"]?.singleOrNull()
+        val clickPaydocId = formData["click_paydoc_id"]?.singleOrNull()
+        val merchantTransId = formData["merchant_trans_id"]?.singleOrNull()
+        val merchantPrepareId = formData["merchant_prepare_id"]?.singleOrNull()
+        val amount = formData["amount"]?.singleOrNull()
+        val action = formData["action"]?.singleOrNull()
+        val error = formData["error"]?.singleOrNull()
+        val errorNote = formData["error_note"]?.singleOrNull()
+        val signTime = formData["sign_time"]?.singleOrNull()
+        val signString = formData["sign_string"]?.singleOrNull()
+
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        val signTimeFormatted = LocalDateTime.parse(signTime, formatter)
+
+        val referralCode = formData["communal_param"]?.singleOrNull()
+        val promoCode = formData["additional_param3"]?.singleOrNull()
+        val promoCodeType = formData["additional_param4"]?.singleOrNull()
+
+        log.info { "Callback click payment. Body=$formData" }
+        val callbackClickPayment = paymentService.callbackClickPayment(
+            ClickRequest(
+                clickTransId!!,
+                serviceId!!,
+                clickPaydocId!!,
+                merchantTransId!!,
+                merchantPrepareId!!,
+                amount!!,
+                action!!,
+                error!!,
+                errorNote!!,
+                signTimeFormatted,
+                signTime!!,
+                signString!!,
+                referralCode,
+                promoCode,
+                promoCodeType
+            )
+        )
+        return ResponseEntity.ok(callbackClickPayment)
     }
 }
