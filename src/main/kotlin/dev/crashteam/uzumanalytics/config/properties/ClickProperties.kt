@@ -18,4 +18,6 @@ data class ClickProperties(
     val serviceId: Long? = null,
     @field:NotEmpty
     val secretKey: String? = null,
+    @field:NotEmpty
+    val merchantUserId: String? = null
 )

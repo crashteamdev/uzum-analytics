@@ -16,6 +16,7 @@ class ClickClient(
             append("&merchant_id=").append(clickProperties.merchantId)
             append("&amount=").append(paymentFormRequest.amount)
             append("&transaction_param=").append(paymentFormRequest.paymentId)
+            append("&merchant_user_id=").append(clickProperties.merchantUserId)
             if (paymentFormRequest.referralCode != null) {
                 append("&communal_param=${paymentFormRequest.referralCode}")
             }

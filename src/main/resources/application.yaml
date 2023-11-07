@@ -102,6 +102,7 @@ click:
   merchantId: someId
   serviceId: someId
   secretKey: someKey
+  merchantUserId: someId
 
 uzumbank:
   baseUrl: https://www.inplat-tech.ru
