@@ -29,10 +29,7 @@ import reactor.core.publisher.toMono
 import reactor.kotlin.core.publisher.toFlux
 import java.math.RoundingMode
 import java.security.Principal
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.OffsetDateTime
+import java.time.*
 import java.time.temporal.ChronoUnit
 import java.util.*
 
@@ -48,6 +45,29 @@ class MarketDbApiControllerV2(
     private val promoCodeService: PromoCodeService,
     private val conversionService: ConversionService,
 ) : CategoryApi, ProductApi, SellerApi, PromoCodeApi {
+
+    override fun productOverallInfo(
+        xRequestID: UUID,
+        X_API_KEY: String,
+        productId: Long,
+        skuId: Long,
+        fromTime: OffsetDateTime,
+        toTime: OffsetDateTime,
+        exchange: ServerWebExchange
+    ): Mono<ResponseEntity<ProductOverallInfo200Response>> {
+        val fromTimeLocalDateTime = fromTime.toLocalDateTime()
+        val toTimeLocalDateTime = toTime.toLocalDateTime()
+        val productAdditionalInfo = productServiceAnalytics.getProductAdditionalInfo(
+            productId.toString(),
+            skuId.toString(),
+            fromTimeLocalDateTime,
+            toTimeLocalDateTime
+        ) ?: return ResponseEntity.notFound().build<ProductOverallInfo200Response>().toMono()
+
+        return ResponseEntity.ok(ProductOverallInfo200Response().apply {
+            firstDiscovered = productAdditionalInfo.firstDiscovered.atOffset(ZoneOffset.UTC)
+        }).toMono()
+    }
 
     override fun categoryOverallInfo(
         xRequestID: UUID,
