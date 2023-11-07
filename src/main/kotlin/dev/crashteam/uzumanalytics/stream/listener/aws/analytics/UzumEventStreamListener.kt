@@ -1,5 +1,6 @@
 package dev.crashteam.uzumanalytics.stream.listener.aws.analytics
 
+import com.amazonaws.services.kinesis.clientlibrary.lib.worker.ShutdownReason
 import com.amazonaws.services.kinesis.clientlibrary.types.InitializationInput
 import com.amazonaws.services.kinesis.clientlibrary.types.ProcessRecordsInput
 import com.amazonaws.services.kinesis.clientlibrary.types.ShutdownInput
@@ -14,7 +15,12 @@ class UzumEventStreamListener(
     private val uzumScrapEventHandlers: List<UzumScrapEventHandler>
 ) : AwsStreamListener {
 
-    override fun initialize(initializationInput: InitializationInput) {}
+    private var partitionId: String? = null
+
+    override fun initialize(initializationInput: InitializationInput) {
+        this.partitionId = initializationInput.shardId
+        log.info { "[Uzum-Data-Stream] Initialized partition $partitionId for streaming." }
+    }
 
     override fun processRecords(processRecordsInput: ProcessRecordsInput) {
         val records = processRecordsInput.records
@@ -41,9 +47,12 @@ class UzumEventStreamListener(
 
     override fun shutdown(shutdownInput: ShutdownInput) {
         try {
-            shutdownInput.checkpointer.checkpoint()
+            log.debug { "[Uzum-Data-Stream] Shutting down event processor for $partitionId" }
+            if (shutdownInput.shutdownReason == ShutdownReason.TERMINATE) {
+                shutdownInput.checkpointer.checkpoint()
+            }
         } catch (e: Exception) {
-            log.error(e) { "Failed to checkpoint on shutdown" }
+            log.error(e) { "[Uzum-Data-Stream] Failed to checkpoint on shutdown" }
         }
     }
 }

@@ -1,5 +1,6 @@
 package dev.crashteam.uzumanalytics.stream.listener.aws.payment
 
+import com.amazonaws.services.kinesis.clientlibrary.lib.worker.ShutdownReason
 import com.amazonaws.services.kinesis.clientlibrary.types.InitializationInput
 import com.amazonaws.services.kinesis.clientlibrary.types.ProcessRecordsInput
 import com.amazonaws.services.kinesis.clientlibrary.types.ShutdownInput
@@ -14,11 +15,19 @@ class UzumPaymentEventStreamListener(
     private val paymentEventHandler: List<PaymentEventHandler>
 ) : AwsStreamListener {
 
+    private var partitionId: String? = null
+
     override fun initialize(initializationInput: InitializationInput) {
+        this.partitionId = initializationInput.shardId
+        log.info { "[Uzum-Payment-Stream] Initialized partition $partitionId for streaming." }
     }
 
     override fun processRecords(processRecordsInput: ProcessRecordsInput) {
         val records = processRecordsInput.records
+        log.debug {
+            "Received uzum payment events. size=${processRecordsInput.records.size}"
+        }
+
         List(records.size) { i: Int ->
             PaymentEvent.parseFrom(records[i].data)
         }.groupBy { entry -> paymentEventHandler.find { it.isHandle(entry) } }
@@ -39,9 +48,12 @@ class UzumPaymentEventStreamListener(
 
     override fun shutdown(shutdownInput: ShutdownInput) {
         try {
-            shutdownInput.checkpointer.checkpoint()
+            log.info { "[Uzum-Payment-Stream] Shutting down event processor for $partitionId" }
+            if (shutdownInput.shutdownReason == ShutdownReason.TERMINATE) {
+                shutdownInput.checkpointer.checkpoint()
+            }
         } catch (e: Exception) {
-            log.error(e) { "Failed to checkpoint on shutdown" }
+            log.error(e) { "[Uzum-Payment-Stream] Failed to checkpoint on shutdown" }
         }
     }
 }
