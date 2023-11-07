@@ -31,7 +31,7 @@ class AwsSteamConfig(
     fun uzumStreamWorker(): Worker {
         val awsCredentials = BasicAWSCredentials(awsStreamProperties.accessKey, awsStreamProperties.secretKey)
         val consumerConfig = KinesisClientLibConfiguration(
-            appName,
+            "$appName-time-data",
             awsStreamProperties.uzumStream.name,
             awsStreamProperties.kinesisEndpoint,
             awsStreamProperties.dinamoDbEndpoint,
@@ -75,7 +75,7 @@ class AwsSteamConfig(
     fun paymentStreamWorker(): Worker {
         val awsCredentials = BasicAWSCredentials(awsStreamProperties.accessKey, awsStreamProperties.secretKey)
         val consumerConfig = KinesisClientLibConfiguration(
-            appName,
+            "$appName-payment",
             awsStreamProperties.paymentStream.name,
             awsStreamProperties.kinesisEndpoint,
             awsStreamProperties.dinamoDbEndpoint,
