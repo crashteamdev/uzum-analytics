@@ -3,9 +3,9 @@ package dev.crashteam.uzumanalytics.service
 import dev.crashteam.uzumanalytics.config.RedisConfig
 import dev.crashteam.uzumanalytics.repository.clickhouse.CHProductRepository
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChCategoryOverallInfo
+import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductAdditionalInfo
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductSalesHistory
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductsSales
-import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChSellerOverallInfo
 import dev.crashteam.uzumanalytics.service.model.SellerOverallInfo
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -19,6 +19,15 @@ import java.time.LocalDateTime
 class ProductServiceAnalytics(
     private val chProductRepository: CHProductRepository
 ) {
+
+    fun getProductAdditionalInfo(
+        productId: String,
+        skuId: String,
+        fromTime: LocalDateTime,
+        toTime: LocalDateTime
+    ): ChProductAdditionalInfo? {
+        return chProductRepository.getProductAdditionalInfo(productId, skuId, fromTime, toTime)
+    }
 
     @Cacheable(value = [RedisConfig.CATEGORY_OVERALL_INFO_CACHE], unless = "#result == null")
     fun getCategoryOverallAnalytics(
