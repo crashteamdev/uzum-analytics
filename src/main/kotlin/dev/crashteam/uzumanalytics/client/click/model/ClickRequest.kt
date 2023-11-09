@@ -7,7 +7,7 @@ data class ClickRequest(
     val serviceId: String,
     val clickPaydocId: String,
     val merchantTransId: String,
-    val merchantPrepareId: String,
+    val merchantPrepareId: String?,
     val amount: String,
     val action: String,
     val error: String,

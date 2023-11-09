@@ -22,7 +22,6 @@ import dev.crashteam.uzumanalytics.repository.mongo.*
 import dev.crashteam.uzumanalytics.service.model.CallbackPaymentAdditionalInfo
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
-import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.apache.commons.codec.digest.DigestUtils
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
@@ -382,80 +381,60 @@ class PaymentService(
     @Transactional
     suspend fun callbackClickPayment(
         request: ClickRequest
-    ) : ClickResponse {
-        val payment = findPayment(request.merchantTransId)!!
-        val user = userRepository.findByUserId(payment.userId).awaitSingleOrNull()
-        val userSubscription = payment.subscriptionType.mapToSubscription()!!
-
+    ): ClickResponse {
         val clickTransId: Long = request.clickTransId.toLong()
-        val serviceId: Long = request.serviceId.toLong()
         val merchantTransId: String = request.merchantTransId
-        val merchantPrepareId: Long = request.merchantPrepareId.toLong()
-        val amount: BigDecimal = BigDecimal.valueOf(request.amount.toDouble())
         val action: Long = request.action.toLong()
-        val signTime: String = request.rawSignTime
 
         if (action == 0L) {
-            log.info{"Got PREPARE action from CLICK"}
-            val md5Hex = DigestUtils.md5Hex(
-                "${clickTransId}${serviceId}${clickProperties.secretKey}" +
-                        "${merchantTransId}${amount}${action}${signTime}"
-            )
-            if (checkClickRequestOnError(request, payment, md5Hex)) {
-                return getClickErrorResponse(request, payment, md5Hex)
-            }
-            return ClickResponse(
-                clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
-                null, 0, "Success"
-            )
+            val payment = findPayment(request.merchantTransId)
+            return getPrepareClickAction(request, payment)
         } else if (action == 1L) {
-            log.info{"Got COMPLETE action from CLICK"}
-            val md5Hex = DigestUtils.md5Hex(
-                "${clickTransId}${serviceId}${clickProperties.secretKey}" +
-                        "${merchantTransId}${merchantPrepareId}${amount}${action}${signTime}"
-            )
-            if (checkClickRequestOnError(request, payment, md5Hex)) {
-                return getClickErrorResponse(request, payment, md5Hex)
+            val payment = findPayment(request.merchantTransId)
+            val clickResponse = getCompleteClickAction(request, payment)
+            if (clickResponse.error == -5017L && payment != null) {
+                val updatedPayment = payment.copy(status = "canceled")
+                paymentRepository.save(updatedPayment).awaitSingleOrNull()
             }
-            if (payment.daysPaid != null) {
-                upgradeUserSubscription(
-                    user!!, userSubscription, payment.paymentId, true, "success"
-                )
-            } else {
-                var subDays = if (payment.multiply != null && payment.multiply > 1) {
-                    30 * payment.multiply
-                } else 30
-                if (StringUtils.hasText(request.promoCode) && StringUtils.hasText(request.promoCodeType)) {
-                    val additionalSubDays =
-                        callbackPromoCode(request.promoCode!!, PromoCodeType.valueOf(request.promoCodeType!!))
-                    subDays += additionalSubDays
-                }
-                if (userSubscription.price().toBigDecimal() != payment.amount && payment.multiply == null) {
-                    throw IllegalStateException(
-                        "Wrong payment amount. subscriptionPrice=${userSubscription.price()};" +
-                                " paymentAmount=${payment.amount}"
+            if (clickResponse.error == 0L && payment != null) {
+                val user = userRepository.findByUserId(payment.userId).awaitSingleOrNull()
+                val userSubscription = payment.subscriptionType.mapToSubscription()!!
+                if (payment.daysPaid != null) {
+                    upgradeUserSubscription(
+                        user!!, userSubscription, payment.paymentId, true, "success"
+                    )
+                } else {
+                    var subDays = if (payment.multiply != null && payment.multiply > 1) {
+                        30 * payment.multiply
+                    } else 30
+                    if (StringUtils.hasText(request.promoCode) && StringUtils.hasText(request.promoCodeType)) {
+                        val additionalSubDays =
+                            callbackPromoCode(request.promoCode!!, PromoCodeType.valueOf(request.promoCodeType!!))
+                        subDays += additionalSubDays
+                    }
+                    if (userSubscription.price().toBigDecimal() != payment.amount && payment.multiply == null) {
+                        throw IllegalStateException(
+                            "Wrong payment amount. subscriptionPrice=${userSubscription.price()};" +
+                                    " paymentAmount=${payment.amount}"
+                        )
+                    }
+                    saveUserWithSubscription(
+                        payment.paymentId,
+                        payment.userId,
+                        user,
+                        userSubscription,
+                        subDays.toLong(),
+                        true,
+                        "success",
+                        referralCode = payment.referralCode,
+                        currencyId = "UZS"
                     )
                 }
-                saveUserWithSubscription(
-                    payment.paymentId,
-                    payment.userId,
-                    user,
-                    userSubscription,
-                    subDays.toLong(),
-                    true,
-                    "success",
-                    referralCode = payment.referralCode,
-                    currencyId = "UZS"
-                )
             }
-            return ClickResponse(
-                clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
-                null, 0, "Success"
-            )
+            return clickResponse
         }
         return ClickResponse(
-            clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
-            null, -3L, "Action not found"
+            clickTransId = clickTransId, merchantTransId = merchantTransId, error = -3L, errorNote = "Action not found"
         )
     }
 
@@ -560,7 +539,7 @@ class PaymentService(
         val merchantTransId: String = request.merchantTransId
 
         val amount: BigDecimal = BigDecimal.valueOf(request.amount.toDouble())
-        log.warn{"Error while trying to process click request"}
+        log.warn { "Error while trying to process click request" }
         if (amount != payment.amount) {
             return ClickResponse(
                 clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
@@ -574,6 +553,105 @@ class PaymentService(
             )
         }
         return ClickResponse()
+    }
+
+    fun getCompleteClickAction(request: ClickRequest, payment: PaymentDocument?): ClickResponse {
+        log.info { "Got COMPLETE action from CLICK" }
+        val clickTransId: Long = request.clickTransId.toLong()
+        val serviceId: Long = request.serviceId.toLong()
+        val merchantTransId: String = request.merchantTransId
+        val merchantPrepareId: Long? = request.merchantPrepareId?.toLong()
+        val amount: BigDecimal = BigDecimal.valueOf(request.amount.toDouble())
+        val action: Long = request.action.toLong()
+        val signTime: String = request.rawSignTime
+        val error: Long = request.error.toLong()
+        val hex = DigestUtils.md5Hex(
+            "${clickTransId}${serviceId}${clickProperties.secretKey}" +
+                    "${merchantTransId}${merchantPrepareId}${amount}${action}${signTime}"
+        )
+
+        if (payment == null) {
+            return ClickResponse(
+                clickTransId = clickTransId, merchantTransId = merchantTransId,
+                merchantPrepareId = merchantPrepareId, error = -6, errorNote = "Transaction does not exist"
+            )
+        }
+
+        if (amount.movePointRight(2) != payment.amount) {
+            return ClickResponse(
+                clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
+                null, -2, "Incorrect parameter amount"
+            )
+        }
+
+        if (request.signString != hex) {
+            return ClickResponse(
+                clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
+                null, -1, "SIGN CHECK FAILED!"
+            )
+        }
+
+        if (payment.status == "success") {
+            return ClickResponse(
+                clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
+                null, -4, "Already paid"
+            )
+        }
+
+        if (payment.status == "canceled") {
+            return ClickResponse(
+                clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
+                null, -9, "Transaction cancelled"
+            )
+        }
+
+        if (error == -5017L) {
+            return ClickResponse(
+                clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
+                null, -9, "Transaction cancelled"
+            )
+        }
+        return ClickResponse(
+            clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
+            null, 0, "Success"
+        )
+    }
+
+    fun getPrepareClickAction(request: ClickRequest, payment: PaymentDocument?): ClickResponse {
+        log.info { "Got PREPARE action from CLICK" }
+        val clickTransId: Long = request.clickTransId.toLong()
+        val serviceId: Long = request.serviceId.toLong()
+        val merchantTransId: String = request.merchantTransId
+        val amount: BigDecimal = request.amount.toBigDecimal()
+        val action: Long = request.action.toLong()
+        val signTime: String = request.rawSignTime
+        val md5Hex = DigestUtils.md5Hex(
+            "${clickTransId}${serviceId}${clickProperties.secretKey}" +
+                    "${merchantTransId}${amount}${action}${signTime}"
+        )
+        val merchantPrepareId = payment?.orderId
+        if (payment == null) {
+            return ClickResponse(
+                clickTransId = clickTransId, merchantTransId = merchantTransId,
+                error = -5, errorNote = "User does not exist"
+            )
+        }
+        if (amount.movePointRight(2) != payment.amount) {
+            return ClickResponse(
+                clickTransId = clickTransId, merchantTransId = merchantTransId,
+                error = -2, errorNote = "Incorrect parameter amount"
+            )
+        }
+        if (request.signString != md5Hex) {
+            return ClickResponse(
+                clickTransId = clickTransId, merchantTransId = merchantTransId,
+                error = -1, errorNote = "SIGN CHECK FAILED!"
+            )
+        }
+        return ClickResponse(
+            clickTransId = clickTransId, merchantTransId = merchantTransId,
+            error = 0, errorNote = "Success", merchantPrepareId = merchantPrepareId
+        )
     }
 
     companion object {

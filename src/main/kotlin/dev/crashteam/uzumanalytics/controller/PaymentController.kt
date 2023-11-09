@@ -223,7 +223,7 @@ class PaymentController(
                 serviceId!!,
                 clickPaydocId!!,
                 merchantTransId!!,
-                merchantPrepareId!!,
+                merchantPrepareId,
                 amount!!,
                 action!!,
                 error!!,
