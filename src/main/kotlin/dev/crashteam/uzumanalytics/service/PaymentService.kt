@@ -1,24 +1,36 @@
 package dev.crashteam.uzumanalytics.service
 
+import dev.crashteam.uzumanalytics.client.click.ClickClient
+import dev.crashteam.uzumanalytics.client.click.model.ClickPaymentFormRequestParams
+import dev.crashteam.uzumanalytics.client.click.model.ClickRequest
+import dev.crashteam.uzumanalytics.client.click.model.ClickResponse
 import dev.crashteam.uzumanalytics.client.currencyapi.CurrencyApiClient
 import dev.crashteam.uzumanalytics.client.freekassa.FreeKassaClient
 import dev.crashteam.uzumanalytics.client.freekassa.model.PaymentFormRequestParams
 import dev.crashteam.uzumanalytics.client.qiwi.QiwiClient
 import dev.crashteam.uzumanalytics.client.qiwi.model.QiwiPaymentRequestParams
+import dev.crashteam.uzumanalytics.client.uzumbank.UzumBankClient
+import dev.crashteam.uzumanalytics.client.uzumbank.model.UzumBankCreatePaymentRequest
+import dev.crashteam.uzumanalytics.client.uzumbank.model.UzumBankPayType
+import dev.crashteam.uzumanalytics.client.uzumbank.model.UzumBankPaymentParams
+import dev.crashteam.uzumanalytics.client.uzumbank.model.UzumBankViewType
+import dev.crashteam.uzumanalytics.config.properties.ClickProperties
+import dev.crashteam.uzumanalytics.controller.model.PaymentProvider
 import dev.crashteam.uzumanalytics.domain.mongo.*
 import dev.crashteam.uzumanalytics.extensions.mapToSubscription
 import dev.crashteam.uzumanalytics.repository.mongo.*
 import dev.crashteam.uzumanalytics.service.model.CallbackPaymentAdditionalInfo
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
-import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
+import org.apache.commons.codec.digest.DigestUtils
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.data.mongodb.core.query.Update
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.util.StringUtils
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDateTime
@@ -33,11 +45,65 @@ class PaymentService(
     private val referralCodeRepository: ReferralCodeRepository,
     private val paymentSequenceDao: PaymentSequenceDao,
     private val freeKassaClient: FreeKassaClient,
+    private val clickProperties: ClickProperties,
+    private val clickClient: ClickClient,
     private val qiwiClient: QiwiClient,
+    private val uzumBankClient: UzumBankClient,
     private val currencyApiClient: CurrencyApiClient,
     private val promoCodeRepository: PromoCodeRepository,
     private val reactiveMongoTemplate: ReactiveMongoTemplate,
 ) {
+
+    suspend fun createClickPayment(
+        userId: String,
+        userSubscription: UserSubscription,
+        email: String,
+        currencySymbolCode: String,
+        referralCode: String? = null,
+        promoCode: String? = null,
+        multiply: Short? = null
+    ): String {
+        val paymentId = UUID.randomUUID().toString()
+        val promoCodeDocument = if (promoCode != null) {
+            log.debug { "Find promoCode by: $promoCode" }
+            promoCodeRepository.findByCode(promoCode).awaitSingleOrNull()
+        } else null
+        val isUserCanUseReferral = if (referralCode != null) isUserReferralCodeAccess(userId, referralCode) else false
+        val amount = calculatePriceAmount(userSubscription, isUserCanUseReferral, promoCode, multiply)
+        val currencyApiData = currencyApiClient.getCurrency("UZS").data["UZS"]!!
+        val finalAmount = (amount * (currencyApiData.value.setScale(2, RoundingMode.HALF_UP)))
+        val orderId = paymentSequenceDao.getNextSequenceId(PAYMENT_SEQ_KEY)
+        val paymentDocument = PaymentDocument(
+            paymentId = paymentId,
+            orderId = orderId,
+            userId = userId,
+            status = "pending",
+            paid = false,
+            amount = finalAmount,
+            subscriptionType = userSubscription.num,
+            multiply = multiply,
+            referralCode = referralCode,
+            createdAt = LocalDateTime.now(),
+            currencyId = currencySymbolCode,
+            paymentSystem = "Click"
+        )
+        paymentRepository.save(paymentDocument).awaitSingleOrNull()
+
+        return clickClient.createClickUrl(
+            ClickPaymentFormRequestParams(
+                userId = userId,
+                paymentId = paymentId,
+                email = email,
+                amount = finalAmount,
+                currency = currencySymbolCode,
+                subscriptionId = userSubscription.num,
+                referralCode = referralCode,
+                promoCode = promoCode,
+                promoCodeType = promoCodeDocument?.type,
+                multiply = multiply ?: 1
+            )
+        )
+    }
 
     suspend fun createFreekassaPayment(
         userId: String,
@@ -149,6 +215,51 @@ class PaymentService(
         return payUrl
     }
 
+    suspend fun createUzumBankPayment(
+        userId: String,
+        userSubscription: UserSubscription,
+        referralCode: String? = null,
+        multiply: Short? = null,
+    ): String {
+        val paymentId = UUID.randomUUID().toString()
+        val isUserCanUseReferral = if (referralCode != null) isUserReferralCodeAccess(userId, referralCode) else false
+        val amount = calculatePriceAmount(userSubscription, isUserCanUseReferral, null, multiply)
+        val currencyApiData = currencyApiClient.getCurrency("UZS").data["UZS"]!!
+        val finalAmount = (amount * (currencyApiData.value.setScale(2, RoundingMode.HALF_UP)))
+        val paymentResponse = uzumBankClient.createPayment(
+            UzumBankCreatePaymentRequest(
+                amount = finalAmount.toLong(),
+                clientId = userId,
+                currency = 860,
+                orderNumber = paymentId,
+                viewType = UzumBankViewType.REDIRECT,
+                paymentParams = UzumBankPaymentParams(UzumBankPayType.ONE_STEP),
+                sessionTimeoutSecs = 600,
+                successUrl = "https://lk.marketdb.org/#/payment/success",
+                failureUrl = "https://lk.marketdb.org/#/payment/error"
+            )
+        )
+        val orderId = paymentSequenceDao.getNextSequenceId(PAYMENT_SEQ_KEY)
+        val paymentDocument = PaymentDocument(
+            paymentId = paymentId,
+            orderId = orderId,
+            externalId = paymentResponse.result?.orderId,
+            userId = userId,
+            status = "pending",
+            paid = false,
+            amount = finalAmount,
+            subscriptionType = userSubscription.num,
+            multiply = multiply,
+            referralCode = referralCode,
+            createdAt = LocalDateTime.now(),
+            currencyId = "UZS",
+            paymentSystem = PaymentProvider.UZUM_BANK.name,
+        )
+        paymentRepository.save(paymentDocument).awaitSingleOrNull()
+
+        return paymentResponse.result!!.paymentRedirectUrl
+    }
+
     private suspend fun isUserReferralCodeAccess(userId: String, referralCode: String): Boolean {
         return if (referralCode.isNotBlank()) {
             val userDocument = userRepository.findByUserId(userId).awaitSingleOrNull()
@@ -216,6 +327,15 @@ class PaymentService(
     }
 
     @Transactional
+    suspend fun uzumCallbackPayment(
+        paymentId: String,
+    ) {
+        val payment = findPayment(paymentId)!!
+        val userId = payment.userId
+        return callbackPayment(paymentId, userId, "UZS")
+    }
+
+    @Transactional
     suspend fun callbackPayment(
         paymentId: String,
         userId: String,
@@ -256,6 +376,66 @@ class PaymentService(
                 currencyId = currencyId
             )
         }
+    }
+
+    @Transactional
+    suspend fun callbackClickPayment(
+        request: ClickRequest
+    ): ClickResponse {
+        val clickTransId: Long = request.clickTransId.toLong()
+        val merchantTransId: String = request.merchantTransId
+        val action: Long = request.action.toLong()
+
+        if (action == 0L) {
+            val payment = findPayment(request.merchantTransId)
+            return getPrepareClickAction(request, payment)
+        } else if (action == 1L) {
+            val payment = findPayment(request.merchantTransId)
+            val clickResponse = getCompleteClickAction(request, payment)
+            if (clickResponse.error == -5017L && payment != null) {
+                val updatedPayment = payment.copy(status = "canceled")
+                paymentRepository.save(updatedPayment).awaitSingleOrNull()
+            }
+            if (clickResponse.error == 0L && payment != null) {
+                val user = userRepository.findByUserId(payment.userId).awaitSingleOrNull()
+                val userSubscription = payment.subscriptionType.mapToSubscription()!!
+                if (payment.daysPaid != null) {
+                    upgradeUserSubscription(
+                        user!!, userSubscription, payment.paymentId, true, "success"
+                    )
+                } else {
+                    var subDays = if (payment.multiply != null && payment.multiply > 1) {
+                        30 * payment.multiply
+                    } else 30
+                    if (StringUtils.hasText(request.promoCode) && StringUtils.hasText(request.promoCodeType)) {
+                        val additionalSubDays =
+                            callbackPromoCode(request.promoCode!!, PromoCodeType.valueOf(request.promoCodeType!!))
+                        subDays += additionalSubDays
+                    }
+                    if (userSubscription.price().toBigDecimal() != payment.amount && payment.multiply == null) {
+                        throw IllegalStateException(
+                            "Wrong payment amount. subscriptionPrice=${userSubscription.price()};" +
+                                    " paymentAmount=${payment.amount}"
+                        )
+                    }
+                    saveUserWithSubscription(
+                        payment.paymentId,
+                        payment.userId,
+                        user,
+                        userSubscription,
+                        subDays.toLong(),
+                        true,
+                        "success",
+                        referralCode = payment.referralCode,
+                        currencyId = "UZS"
+                    )
+                }
+            }
+            return clickResponse
+        }
+        return ClickResponse(
+            clickTransId = clickTransId, merchantTransId = merchantTransId, error = -3L, errorNote = "Action not found"
+        )
     }
 
     suspend fun saveUserWithSubscription(
@@ -343,6 +523,135 @@ class PaymentService(
             log.error(e) { "Failed to callback promoCode" }
             0
         }
+    }
+
+    private fun checkClickRequestOnError(request: ClickRequest, payment: PaymentDocument, hex: String): Boolean {
+        val amount: BigDecimal = BigDecimal.valueOf(request.amount.toDouble())
+        return amount != payment.amount || request.signString != hex
+    }
+
+    fun getClickErrorResponse(
+        request: ClickRequest,
+        payment: PaymentDocument,
+        hex: String
+    ): ClickResponse {
+        val clickTransId: Long = request.clickTransId.toLong()
+        val merchantTransId: String = request.merchantTransId
+
+        val amount: BigDecimal = BigDecimal.valueOf(request.amount.toDouble())
+        log.warn { "Error while trying to process click request" }
+        if (amount != payment.amount) {
+            return ClickResponse(
+                clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
+                null, -2, "Incorrect parameter amount"
+            )
+        }
+        if (request.signString != hex) {
+            return ClickResponse(
+                clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
+                null, -1, "SIGN CHECK FAILED!"
+            )
+        }
+        return ClickResponse()
+    }
+
+    fun getCompleteClickAction(request: ClickRequest, payment: PaymentDocument?): ClickResponse {
+        log.info { "Got COMPLETE action from CLICK" }
+        val clickTransId: Long = request.clickTransId.toLong()
+        val serviceId: Long = request.serviceId.toLong()
+        val merchantTransId: String = request.merchantTransId
+        val merchantPrepareId: Long? = request.merchantPrepareId?.toLong()
+        val amount: BigDecimal = BigDecimal.valueOf(request.amount.toDouble())
+        val action: Long = request.action.toLong()
+        val signTime: String = request.rawSignTime
+        val error: Long = request.error.toLong()
+        val hex = DigestUtils.md5Hex(
+            "${clickTransId}${serviceId}${clickProperties.secretKey}" +
+                    "${merchantTransId}${merchantPrepareId}${amount}${action}${signTime}"
+        )
+
+        if (payment == null) {
+            return ClickResponse(
+                clickTransId = clickTransId, merchantTransId = merchantTransId,
+                merchantPrepareId = merchantPrepareId, error = -6, errorNote = "Transaction does not exist"
+            )
+        }
+
+        if (amount.movePointRight(2) != payment.amount) {
+            return ClickResponse(
+                clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
+                null, -2, "Incorrect parameter amount"
+            )
+        }
+
+        if (request.signString != hex) {
+            return ClickResponse(
+                clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
+                null, -1, "SIGN CHECK FAILED!"
+            )
+        }
+
+        if (payment.status == "success") {
+            return ClickResponse(
+                clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
+                null, -4, "Already paid"
+            )
+        }
+
+        if (payment.status == "canceled") {
+            return ClickResponse(
+                clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
+                null, -9, "Transaction cancelled"
+            )
+        }
+
+        if (error == -5017L) {
+            return ClickResponse(
+                clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
+                null, -9, "Transaction cancelled"
+            )
+        }
+        return ClickResponse(
+            clickTransId, merchantTransId, merchantPrepareId = payment.orderId,
+            null, 0, "Success"
+        )
+    }
+
+    fun getPrepareClickAction(request: ClickRequest, payment: PaymentDocument?): ClickResponse {
+        log.info { "Got PREPARE action from CLICK" }
+        val clickTransId: Long = request.clickTransId.toLong()
+        val serviceId: Long = request.serviceId.toLong()
+        val merchantTransId: String = request.merchantTransId
+        val amount: BigDecimal = request.amount.toBigDecimal()
+        val action: Long = request.action.toLong()
+        val signTime: String = request.rawSignTime
+        val md5Hex = DigestUtils.md5Hex(
+            "${clickTransId}${serviceId}${clickProperties.secretKey}" +
+                    "${merchantTransId}${amount}${action}${signTime}"
+        )
+        val merchantPrepareId = payment?.orderId
+        if (payment == null) {
+            return ClickResponse(
+                clickTransId = clickTransId, merchantTransId = merchantTransId,
+                error = -5, errorNote = "User does not exist"
+            )
+        }
+        if (amount.movePointRight(2) != payment.amount) {
+            return ClickResponse(
+                clickTransId = clickTransId, merchantTransId = merchantTransId,
+                error = -2, errorNote = "Incorrect parameter amount"
+            )
+        }
+        if (request.signString != md5Hex) {
+            return ClickResponse(
+                clickTransId = clickTransId, merchantTransId = merchantTransId,
+                error = -1, errorNote = "SIGN CHECK FAILED!"
+            )
+        }
+        return ClickResponse(
+            clickTransId = clickTransId, merchantTransId = merchantTransId,
+            error = 0, errorNote = "Success", merchantPrepareId = merchantPrepareId
+        )
     }
 
     companion object {
