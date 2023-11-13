@@ -35,14 +35,16 @@ class CHProductRepository(
                    product_id,
                    sku_id,
                    title,
-                   if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                      total_orders_amount_diff, available_amount_diff)                  AS order_amount,
+                   multiIf(restriction > 0, total_orders_amount_diff,
+                         available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, total_orders_amount_diff,
+                         available_amount_diff) AS order_amount,
                    reviews_amount_diff                                                  AS review_amount,
                    full_price / 100 AS full_price,
                    purchase_price / 100 AS purchase_price,
                    photo_key,
-                   if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                      total_orders_amount_diff, available_amount_diff) * purchase_price / 100 AS sales_amount,
+                   multiIf(restriction > 0, total_orders_amount_diff,
+                         available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, total_orders_amount_diff,
+                         available_amount_diff) * purchase_price / 100 AS sales_amount,
                    if(available_amount_diff < 0, 0, available_amount_diff) AS available_amount,
                    total_available_amount
             FROM (
@@ -85,11 +87,13 @@ class CHProductRepository(
             WITH product_sales AS
          (SELECT product_id,
                  title,
-                 if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                    total_orders_amount_diff, available_amount_diff)                  AS order_amount,
+                 multiIf(restriction > 0, total_orders_amount_diff,
+                         available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, total_orders_amount_diff,
+                         available_amount_diff) AS order_amount,
                  purchase_price / 100,
-                 if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                    total_orders_amount_diff, available_amount_diff) * purchase_price / 100 AS sales_amount,
+                 multiIf(restriction > 0, total_orders_amount_diff,
+                         available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, total_orders_amount_diff,
+                         available_amount_diff) * purchase_price / 100 AS sales_amount,
                  seller_title,
                  seller_link,
                  seller_account_id
@@ -203,13 +207,13 @@ class CHProductRepository(
                         product_id,
                         sku_id,
                         title,
-                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                           total_orders_amount_diff, available_amount_diff)                  AS order_amount,
-                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                           total_orders_amount_diff, available_amount_diff) * purchase_price AS revenue,
+                        multiIf(restriction > 0, total_orders_amount_diff,
+                         available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, total_orders_amount_diff,
+                         available_amount_diff) AS order_amount,
+                        multiIf(restriction > 0, total_orders_amount_diff,
+                         available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, total_orders_amount_diff,
+                         available_amount_diff) * purchase_price AS revenue,
                         purchase_price,
-                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                           total_orders_amount_diff, available_amount_diff) * purchase_price AS sales_amount,
                         available_amount
                  FROM (
                           SELECT date,
@@ -258,17 +262,9 @@ class CHProductRepository(
         private val GET_SELLER_ORDER_DYNAMIC = """
             WITH product_sales AS
                 (SELECT date,
-                        product_id,
-                        sku_id,
-                        title,
-                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                           total_orders_amount_diff, available_amount_diff)                  AS order_amount,
-                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                           total_orders_amount_diff, available_amount_diff) * purchase_price AS revenue,
-                        purchase_price,
-                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                           total_orders_amount_diff, available_amount_diff) * purchase_price AS sales_amount,
-                        available_amount
+                        multiIf(restriction > 0, total_orders_amount_diff,
+                         available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, total_orders_amount_diff,
+                         available_amount_diff) AS order_amount
                  FROM (
                           SELECT date,
                                  product_id,
@@ -320,8 +316,8 @@ class CHProductRepository(
                     " total_orders_amount, total_available_amount, available_amount, attributes," +
                     " tags, photo_key, characteristics, seller_id, seller_account_id, seller_title, seller_link," +
                     " seller_registrationDate, seller_rating, seller_reviewsCount, seller_orders, seller_contacts, " +
-                    " is_eco, is_adult, full_price, purchase_price)" +
-                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    " is_eco, is_adult, full_price, purchase_price, restriction)" +
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             ProductBatchPreparedStatementSetter(productFetchList)
         )
     }
@@ -460,6 +456,7 @@ class CHProductRepository(
             ps.setBoolean(l++, product.adultCategory)
             product.fullPrice?.let { ps.setLong(l++, product.fullPrice) } ?: ps.setNull(l++, Types.BIGINT)
             ps.setLong(l++, product.purchasePrice)
+            ps.setShort(l++, product.restriction)
         }
 
         override fun getBatchSize(): Int {

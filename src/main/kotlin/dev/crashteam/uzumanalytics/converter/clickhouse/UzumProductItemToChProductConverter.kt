@@ -48,6 +48,7 @@ class UzumProductItemToChProductConverter : DataConverter<UzumProductWrapper, Ch
                     .collect(Collectors.toMap({ it.type }, { it.value })),
                 isEco = uzumProductChange.isEco,
                 adultCategory = uzumProductChange.isAdult,
+                restriction = sku.restriction?.restrictedAmount?.toShort() ?: 0,
             )
         })
     }
