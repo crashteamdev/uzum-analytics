@@ -58,7 +58,8 @@ class CHProductRepository(
                         reviews_amount_max - reviews_amount_min           AS reviews_amount_diff,
                         purchase_price,
                         full_price,
-                        photo_key
+                        photo_key,
+                        restriction
                  FROM (
                           SELECT date,
                                  product_id,
@@ -73,7 +74,8 @@ class CHProductRepository(
                                  max(reviews_amount)      AS reviews_amount_max,
                                  any(purchase_price)      AS purchase_price,
                                  any(full_price)          AS full_price,
-                                 any(photo_key)           AS photo_key
+                                 any(photo_key)           AS photo_key,
+                                 min(restriction)         AS restriction
                           FROM uzum.product
                           WHERE product_id = ?
                             AND sku_id = ?
@@ -106,7 +108,8 @@ class CHProductRepository(
                           purchase_price,
                           seller_title,
                           seller_link,
-                          seller_account_id
+                          seller_account_id,
+                          restriction
                    FROM (
                             SELECT product_id,
                                    sku_id,
@@ -118,7 +121,8 @@ class CHProductRepository(
                                    any(purchase_price)      AS purchase_price,
                                    max(seller_title)        AS seller_title,
                                    max(seller_link)         AS seller_link,
-                                   max(seller_account_id)   AS seller_account_id
+                                   max(seller_account_id)   AS seller_account_id,
+                                   min(restriction)         AS restriction
                             FROM uzum.product
                             WHERE product_id IN (?)
                               AND timestamp BETWEEN ? AND ?
@@ -214,7 +218,8 @@ class CHProductRepository(
                          available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, total_orders_amount_diff,
                          available_amount_diff) * purchase_price AS revenue,
                         purchase_price,
-                        available_amount
+                        available_amount,
+                        restriction
                  FROM (
                           SELECT date,
                                  product_id,
@@ -223,7 +228,8 @@ class CHProductRepository(
                                  available_amount_max                              AS available_amount,
                                  available_amount_max - available_amount_min       AS available_amount_diff,
                                  total_orders_amount_max - total_orders_amount_min AS total_orders_amount_diff,
-                                 purchase_price
+                                 purchase_price,
+                                 restriction
                           FROM (
                                    SELECT date,
                                           product_id,
@@ -233,7 +239,8 @@ class CHProductRepository(
                                           max(available_amount)    AS available_amount_max,
                                           min(total_orders_amount) AS total_orders_amount_min,
                                           max(total_orders_amount) AS total_orders_amount_max,
-                                          any(purchase_price)      AS purchase_price
+                                          any(purchase_price)      AS purchase_price,
+                                          min(restriction)         AS restriction
                                    FROM uzum.product
                                    WHERE seller_link = ?
                                      AND timestamp BETWEEN ? AND ?
@@ -273,7 +280,8 @@ class CHProductRepository(
                                  available_amount_max                              AS available_amount,
                                  available_amount_max - available_amount_min       AS available_amount_diff,
                                  total_orders_amount_max - total_orders_amount_min AS total_orders_amount_diff,
-                                 purchase_price
+                                 purchase_price,
+                                 restriction
                           FROM (
                                    SELECT date,
                                           product_id,
@@ -283,7 +291,8 @@ class CHProductRepository(
                                           max(available_amount)    AS available_amount_max,
                                           min(total_orders_amount) AS total_orders_amount_min,
                                           max(total_orders_amount) AS total_orders_amount_max,
-                                          any(purchase_price)      AS purchase_price
+                                          any(purchase_price)      AS purchase_price,
+                                          min(restriction)         AS restriction
                                    FROM uzum.product
                                    WHERE seller_link = ?
                                      AND timestamp BETWEEN ? AND ?
