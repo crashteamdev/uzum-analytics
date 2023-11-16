@@ -34,9 +34,7 @@ class UserRestrictionService {
 
     fun checkDaysAccess(user: UserDocument, daysRequestCount: Int): RestrictionResult {
         if (user.subscription == null || user.subscription.endAt.isBefore(LocalDateTime.now())) {
-            return if (daysRequestCount <= DEFAULT_FREE_DAYS) {
-                RestrictionResult.PERMIT
-            } else RestrictionResult.PROHIBIT
+            return RestrictionResult.PROHIBIT
         }
         val userSubscription = user.subscription.mapToUserSubscription()!!
         val days = userSubscription.days()
@@ -48,9 +46,7 @@ class UserRestrictionService {
 
     fun checkDaysHistoryAccess(user: UserDocument, fromTime: LocalDateTime): RestrictionResult {
         if (user.subscription == null || user.subscription.endAt.isBefore(LocalDateTime.now())) {
-            return if (fromTime.toLocalDate() < LocalDate.now().minusDays(DEFAULT_FREE_DAYS.toLong())) {
-                RestrictionResult.PROHIBIT
-            } else RestrictionResult.PERMIT
+            return RestrictionResult.PROHIBIT
         }
         val userSubscription = user.subscription.mapToUserSubscription()!!
         val days = userSubscription.days()
@@ -65,9 +61,5 @@ class UserRestrictionService {
 
     enum class RestrictionResult {
         PERMIT, PROHIBIT
-    }
-
-    companion object {
-        const val DEFAULT_FREE_DAYS = 3
     }
 }
