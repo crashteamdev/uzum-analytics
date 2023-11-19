@@ -137,7 +137,7 @@ class CHProductRepository(
                  any(s.seller_title)      AS seller_title,
                  any(s.seller_link)       AS seller_link,
                  any(s.seller_account_id) AS seller_account_id,
-                 sum(s.order_amount) / date_diff('day', ?, ?) AS daily_order_amount
+                 sum(s.order_amount) / date_diff('day', toDate(?), toDate(?)) AS daily_order_amount
           FROM product_sales s
           GROUP BY product_id
         """.trimIndent()
