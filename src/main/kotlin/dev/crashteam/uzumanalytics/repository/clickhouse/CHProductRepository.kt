@@ -137,7 +137,7 @@ class CHProductRepository(
                  any(s.seller_title)      AS seller_title,
                  any(s.seller_link)       AS seller_link,
                  any(s.seller_account_id) AS seller_account_id,
-                 avg(s.order_amount)      AS daily_order_amount
+                 sum(s.order_amount) / date_diff('day', ?, ?) AS daily_order_amount
           FROM product_sales s
           GROUP BY product_id
         """.trimIndent()
@@ -415,6 +415,8 @@ class CHProductRepository(
         override fun setValues(ps: PreparedStatement) {
             var l = 1
             ps.setArray(l++, ClickHouseArray(ClickHouseDataType.String, productIds.toTypedArray()))
+            ps.setObject(l++, fromTime)
+            ps.setObject(l++, toTime)
             ps.setObject(l++, fromTime)
             ps.setObject(l++, toTime)
         }
