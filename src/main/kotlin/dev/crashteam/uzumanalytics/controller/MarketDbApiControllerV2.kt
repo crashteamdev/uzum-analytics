@@ -209,7 +209,7 @@ class MarketDbApiControllerV2(
         val productSales = productSalesAnalytics.map {
             GetProductSales200ResponseInner().apply {
                 this.productId = it.productId.toLong()
-                this.salesAmount = it.salesAmount.setScale(2, RoundingMode.HALF_UP).toDouble()
+                this.salesAmount = it.salesAmount.toLong()
                 this.orderAmount = it.orderAmount
                 this.dailyOrder = it.dailyOrderAmount.setScale(2, RoundingMode.HALF_UP).toDouble()
                 this.seller = Seller().apply {
