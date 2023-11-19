@@ -417,8 +417,8 @@ class CHProductRepository(
             ps.setArray(l++, ClickHouseArray(ClickHouseDataType.String, productIds.toTypedArray()))
             ps.setObject(l++, fromTime)
             ps.setObject(l++, toTime)
-            ps.setObject(l++, fromTime)
-            ps.setObject(l++, toTime)
+            ps.setObject(l++, fromTime.toLocalDate())
+            ps.setObject(l++, toTime.toLocalDate())
         }
     }
 
