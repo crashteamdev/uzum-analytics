@@ -111,7 +111,6 @@ class PaymentService(
         val orderId = paymentSequenceDao.getNextSequenceId(PAYMENT_SEQ_KEY)
         val amount = calculatePriceAmount(userSubscription, isUserCanUseReferral, null, multiply)
         val subscriptionName = when (userSubscription) {
-            DemoSubscription -> "демо"
             DefaultSubscription -> "базовый"
             AdvancedSubscription -> "расширенный"
             ProSubscription -> "профессиональный"
