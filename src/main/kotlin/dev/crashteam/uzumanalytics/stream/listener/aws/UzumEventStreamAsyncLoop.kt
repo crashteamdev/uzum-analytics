@@ -1,4 +1,4 @@
-package dev.crashteam.uzumanalytics.stream.listener.aws.analytics
+package dev.crashteam.uzumanalytics.stream.listener.aws
 
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker
 import org.springframework.scheduling.annotation.Async
