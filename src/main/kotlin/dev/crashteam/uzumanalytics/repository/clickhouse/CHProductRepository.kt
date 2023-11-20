@@ -163,8 +163,8 @@ class CHProductRepository(
                    any((psc).1)                               AS seller_counts,
                    any((psc).2)                               AS product_counts,
                    round(sum(order_amount) / any((psc).2), 3) AS sales_per_seller,
-                   any(seller_with_zero_sales_count),
-                   any(product_zero_sales_count)
+                   any(seller_with_zero_sales_count)          AS seller_with_zero_sales_count,
+                   any(product_zero_sales_count)              AS product_zero_sales_count
             FROM (WITH order_tbl AS
                            (SELECT product_id,
                                    total_orders_amount_max - total_orders_amount_min AS order_amount,
@@ -194,7 +194,7 @@ class CHProductRepository(
                           WHERE order_amount <= 0)                                                                          AS seller_with_zero_sales_count,
                          (SELECT count() FROM order_tbl WHERE order_amount <= 0)                                            AS product_zero_sales_count
                   FROM order_tbl)
-            WHERE order_amount > 0;
+            WHERE order_amount > 0
         """.trimIndent()
         private val GET_SELLER_OVERALL_INFO = """
             WITH product_sales AS
