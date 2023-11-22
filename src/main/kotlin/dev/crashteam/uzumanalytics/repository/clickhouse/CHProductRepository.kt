@@ -73,7 +73,7 @@ class CHProductRepository(
                                  max(total_available_amount) AS total_available_amount,
                                  min(reviews_amount)      AS reviews_amount_min,
                                  max(reviews_amount)      AS reviews_amount_max,
-                                 any(purchase_price)      AS purchase_price,
+                                 quantile(purchase_price) AS purchase_price,
                                  any(full_price)          AS full_price,
                                  any(photo_key)           AS photo_key,
                                  min(restriction)         AS restriction
@@ -90,13 +90,9 @@ class CHProductRepository(
             WITH product_sales AS
          (SELECT product_id,
                  title,
-                 multiIf(restriction > 0, total_orders_amount_diff,
-                         available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, total_orders_amount_diff,
-                         available_amount_diff) AS order_amount,
+                 total_orders_amount_diff AS order_amount,
                  purchase_price / 100,
-                 multiIf(restriction > 0, total_orders_amount_diff,
-                         available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, total_orders_amount_diff,
-                         available_amount_diff) * purchase_price / 100 AS sales_amount,
+                 total_orders_amount_diff * purchase_price / 100 AS sales_amount,
                  seller_title,
                  seller_link,
                  seller_account_id
@@ -119,7 +115,7 @@ class CHProductRepository(
                                    max(available_amount)    AS available_amount_max,
                                    min(total_orders_amount) AS total_orders_amount_min,
                                    max(total_orders_amount) AS total_orders_amount_max,
-                                   any(purchase_price)      AS purchase_price,
+                                   quantile(purchase_price)      AS purchase_price,
                                    max(seller_title)        AS seller_title,
                                    max(seller_link)         AS seller_link,
                                    max(seller_account_id)   AS seller_account_id,
@@ -203,12 +199,8 @@ class CHProductRepository(
                         product_id,
                         sku_id,
                         title,
-                        multiIf(restriction > 0, total_orders_amount_diff,
-                         available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, total_orders_amount_diff,
-                         available_amount_diff) AS order_amount,
-                        multiIf(restriction > 0, total_orders_amount_diff,
-                         available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, total_orders_amount_diff,
-                         available_amount_diff) * purchase_price AS revenue,
+                        total_orders_amount_diff AS order_amount,
+                        total_orders_amount_diff * purchase_price AS revenue,
                         purchase_price,
                         available_amount,
                         restriction
@@ -231,7 +223,7 @@ class CHProductRepository(
                                           max(available_amount)    AS available_amount_max,
                                           min(total_orders_amount) AS total_orders_amount_min,
                                           max(total_orders_amount) AS total_orders_amount_max,
-                                          any(purchase_price)      AS purchase_price,
+                                          quantile(purchase_price) AS purchase_price,
                                           min(restriction)         AS restriction
                                    FROM uzum.product
                                    WHERE seller_link = ?
@@ -261,9 +253,7 @@ class CHProductRepository(
         private val GET_SELLER_ORDER_DYNAMIC = """
             WITH product_sales AS
                 (SELECT date,
-                        multiIf(restriction > 0, total_orders_amount_diff,
-                         available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, total_orders_amount_diff,
-                         available_amount_diff) AS order_amount
+                        total_orders_amount_diff AS order_amount
                  FROM (
                           SELECT date,
                                  product_id,
