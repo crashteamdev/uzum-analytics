@@ -88,55 +88,48 @@ class CHProductRepository(
         """
         private val GET_PRODUCTS_SALES = """
             WITH product_sales AS
-         (SELECT product_id,
-                 title,
-                 total_orders_amount_diff AS order_amount,
-                 purchase_price / 100,
-                 total_orders_amount_diff * purchase_price / 100 AS sales_amount,
-                 seller_title,
-                 seller_link,
-                 seller_account_id
-          FROM (
-                   SELECT product_id,
-                          sku_id,
-                          title,
-                          available_amount_max - available_amount_min       AS available_amount_diff,
-                          total_orders_amount_max - total_orders_amount_min AS total_orders_amount_diff,
-                          purchase_price,
-                          seller_title,
-                          seller_link,
-                          seller_account_id,
-                          restriction
-                   FROM (
-                            SELECT product_id,
-                                   sku_id,
-                                   any(title)               AS title,
-                                   min(available_amount)    AS available_amount_min,
-                                   max(available_amount)    AS available_amount_max,
-                                   min(total_orders_amount) AS total_orders_amount_min,
-                                   max(total_orders_amount) AS total_orders_amount_max,
-                                   quantile(purchase_price)      AS purchase_price,
-                                   max(seller_title)        AS seller_title,
-                                   max(seller_link)         AS seller_link,
-                                   max(seller_account_id)   AS seller_account_id,
-                                   min(restriction)         AS restriction
-                            FROM uzum.product
-                            WHERE product_id IN (?)
-                              AND timestamp BETWEEN ? AND ?
-                            GROUP BY product_id, sku_id, toDate(timestamp) AS date
-                            ORDER BY date
-                            )
-                   ))
-          SELECT s.product_id,
-                 any(s.title)             AS title,
-                 sum(s.order_amount)      AS order_amount,
-                 sum(s.sales_amount)      AS sales_amount,
-                 any(s.seller_title)      AS seller_title,
-                 any(s.seller_link)       AS seller_link,
-                 any(s.seller_account_id) AS seller_account_id,
-                 sum(s.order_amount) / date_diff('day', toDate(?), toDate(?)) AS daily_order_amount
-          FROM product_sales s
-          GROUP BY product_id
+                     (SELECT product_id,
+                             title,
+                             total_orders_amount_diff                        AS order_amount,
+                             purchase_price / 100,
+                             total_orders_amount_diff * (purchase_price / 100) AS sales_amount,
+                             seller_title,
+                             seller_link,
+                             seller_account_id
+                      FROM (
+                               SELECT product_id,
+                                      title,
+                                      total_orders_amount_max - total_orders_amount_min AS total_orders_amount_diff,
+                                      purchase_price,
+                                      seller_title,
+                                      seller_link,
+                                      seller_account_id
+                               FROM (
+                                        SELECT product_id,
+                                               any(title)               AS title,
+                                               min(total_orders_amount) AS total_orders_amount_min,
+                                               max(total_orders_amount) AS total_orders_amount_max,
+                                               quantile(purchase_price) AS purchase_price,
+                                               max(seller_title)        AS seller_title,
+                                               max(seller_link)         AS seller_link,
+                                               max(seller_account_id)   AS seller_account_id
+                                        FROM kazanex.product
+                                        WHERE product_id IN (?)
+                                          AND timestamp BETWEEN ? AND ?
+                                        GROUP BY product_id, toDate(timestamp) AS date
+                                        ORDER BY date
+                                        )
+                               ))
+            SELECT s.product_id,
+                   any(s.title)                                                                       AS title,
+                   sum(s.order_amount)                                                                AS order_amount,
+                   sum(s.sales_amount)                                                                AS sales_amount,
+                   any(s.seller_title)                                                                AS seller_title,
+                   any(s.seller_link)                                                                 AS seller_link,
+                   any(s.seller_account_id)                                                           AS seller_account_id,
+                   sum(s.order_amount) / date_diff('day', toDate(?), toDate(?)) AS daily_order_amount
+            FROM product_sales s
+            GROUP BY product_id
         """.trimIndent()
         private val GET_CATEGORY_OVERALL_INFO = """
             
