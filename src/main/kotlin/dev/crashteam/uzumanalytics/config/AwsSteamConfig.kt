@@ -12,6 +12,7 @@ import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker
 import com.amazonaws.services.kinesis.metrics.impl.NullMetricsFactory
 import dev.crashteam.uzumanalytics.config.properties.AwsStreamProperties
 import dev.crashteam.uzumanalytics.stream.listener.aws.analytics.UzumEventStreamProcessorFactory
+import dev.crashteam.uzumanalytics.stream.listener.aws.payment.UzumPaymentEventStreamProcessorFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -21,7 +22,8 @@ import java.util.*
 @Configuration
 class AwsSteamConfig(
     private val awsStreamProperties: AwsStreamProperties,
-    private val uzumEventStreamProcessor: UzumEventStreamProcessorFactory
+    private val uzumEventStreamProcessorFactory: UzumEventStreamProcessorFactory,
+    private val uzumPaymentEventStreamProcessorFactory: UzumPaymentEventStreamProcessorFactory
 ) {
 
     @Value("\${spring.application.name}")
@@ -65,7 +67,7 @@ class AwsSteamConfig(
         consumerConfig.withTimeoutInSeconds(awsStreamProperties.uzumStream.timeoutInSec)
 
         return Worker.Builder()
-            .recordProcessorFactory(uzumEventStreamProcessor)
+            .recordProcessorFactory(uzumEventStreamProcessorFactory)
             .config(consumerConfig)
             .metricsFactory(NullMetricsFactory())
             .build()
@@ -109,7 +111,7 @@ class AwsSteamConfig(
         consumerConfig.withTimeoutInSeconds(awsStreamProperties.paymentStream.timeoutInSec)
 
         return Worker.Builder()
-            .recordProcessorFactory(uzumEventStreamProcessor)
+            .recordProcessorFactory(uzumPaymentEventStreamProcessorFactory)
             .config(consumerConfig)
             .metricsFactory(NullMetricsFactory())
             .build()
