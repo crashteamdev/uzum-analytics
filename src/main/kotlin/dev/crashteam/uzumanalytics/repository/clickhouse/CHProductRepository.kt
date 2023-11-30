@@ -201,7 +201,6 @@ class CHProductRepository(
             WITH product_sales AS
                 (SELECT date,
                         product_id,
-                        sku_id,
                         title,
                         total_orders_amount_diff AS order_amount,
                         total_orders_amount_diff * purchase_price AS revenue,
@@ -211,20 +210,16 @@ class CHProductRepository(
                  FROM (
                           SELECT date,
                                  product_id,
-                                 sku_id,
                                  title,
-                                 available_amount_max                              AS available_amount,
-                                 available_amount_max - available_amount_min       AS available_amount_diff,
+                                 available_amount,
                                  total_orders_amount_max - total_orders_amount_min AS total_orders_amount_diff,
                                  purchase_price,
                                  restriction
                           FROM (
                                    SELECT date,
                                           product_id,
-                                          sku_id,
                                           any(title)               AS title,
-                                          min(available_amount)    AS available_amount_min,
-                                          max(available_amount)    AS available_amount_max,
+                                          max(available_amount)    AS available_amount,
                                           min(total_orders_amount) AS total_orders_amount_min,
                                           max(total_orders_amount) AS total_orders_amount_max,
                                           quantile(purchase_price) AS purchase_price,
@@ -232,7 +227,7 @@ class CHProductRepository(
                                    FROM uzum.product
                                    WHERE seller_link = ?
                                      AND timestamp BETWEEN ? AND ?
-                                   GROUP BY product_id, sku_id, toDate(timestamp) AS date
+                                   GROUP BY product_id, toDate(timestamp) AS date
                                    ORDER BY date
                                    )
                           ))
@@ -261,28 +256,18 @@ class CHProductRepository(
                  FROM (
                           SELECT date,
                                  product_id,
-                                 sku_id,
                                  title,
-                                 available_amount_max                              AS available_amount,
-                                 available_amount_max - available_amount_min       AS available_amount_diff,
-                                 total_orders_amount_max - total_orders_amount_min AS total_orders_amount_diff,
-                                 purchase_price,
-                                 restriction
+                                 total_orders_amount_max - total_orders_amount_min AS total_orders_amount_diff
                           FROM (
                                    SELECT date,
                                           product_id,
-                                          sku_id,
                                           any(title)               AS title,
-                                          min(available_amount)    AS available_amount_min,
-                                          max(available_amount)    AS available_amount_max,
                                           min(total_orders_amount) AS total_orders_amount_min,
-                                          max(total_orders_amount) AS total_orders_amount_max,
-                                          any(purchase_price)      AS purchase_price,
-                                          min(restriction)         AS restriction
+                                          max(total_orders_amount) AS total_orders_amount_max
                                    FROM uzum.product
                                    WHERE seller_link = ?
                                      AND timestamp BETWEEN ? AND ?
-                                   GROUP BY product_id, sku_id, toDate(timestamp) AS date
+                                   GROUP BY product_id, toDate(timestamp) AS date
                                    ORDER BY date
                                    )
                           ))
