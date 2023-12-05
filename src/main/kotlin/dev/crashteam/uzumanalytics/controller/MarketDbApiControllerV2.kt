@@ -3,10 +3,14 @@ package dev.crashteam.uzumanalytics.controller
 import dev.crashteam.openapi.uzumanalytics.api.CategoryApi
 import dev.crashteam.openapi.uzumanalytics.api.ProductApi
 import dev.crashteam.openapi.uzumanalytics.api.PromoCodeApi
+import dev.crashteam.openapi.uzumanalytics.api.ReportApi
+import dev.crashteam.openapi.uzumanalytics.api.ReportsApi
 import dev.crashteam.openapi.uzumanalytics.api.SellerApi
 import dev.crashteam.openapi.uzumanalytics.model.*
-import dev.crashteam.uzumanalytics.domain.mongo.PromoCodeType
-import dev.crashteam.uzumanalytics.domain.mongo.UserRole
+import dev.crashteam.uzumanalytics.domain.mongo.*
+import dev.crashteam.uzumanalytics.report.ReportFileService
+import dev.crashteam.uzumanalytics.report.ReportService
+import dev.crashteam.uzumanalytics.repository.mongo.ReportRepository
 import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
 import dev.crashteam.uzumanalytics.service.ProductServiceAnalytics
 import dev.crashteam.uzumanalytics.service.PromoCodeService
@@ -14,9 +18,15 @@ import dev.crashteam.uzumanalytics.service.SellerService
 import dev.crashteam.uzumanalytics.service.UserRestrictionService
 import dev.crashteam.uzumanalytics.service.model.PromoCodeCheckCode
 import dev.crashteam.uzumanalytics.service.model.PromoCodeCreateData
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import mu.KotlinLogging
 import org.springframework.core.convert.ConversionService
+import org.springframework.core.io.InputStreamResource
+import org.springframework.core.io.Resource
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -44,7 +54,10 @@ class MarketDbApiControllerV2(
     private val userRestrictionService: UserRestrictionService,
     private val promoCodeService: PromoCodeService,
     private val conversionService: ConversionService,
-) : CategoryApi, ProductApi, SellerApi, PromoCodeApi {
+    private val reportService: ReportService,
+    private val reportRepository: ReportRepository,
+    private val reportFileService: ReportFileService,
+) : CategoryApi, ProductApi, SellerApi, PromoCodeApi, ReportApi, ReportsApi {
 
     override fun productOverallInfo(
         xRequestID: UUID,
@@ -209,7 +222,7 @@ class MarketDbApiControllerV2(
         val productSales = productSalesAnalytics.map {
             GetProductSales200ResponseInner().apply {
                 this.productId = it.productId.toLong()
-                this.salesAmount = it.salesAmount.toDouble()
+                this.salesAmount = it.salesAmount.toLong()
                 this.orderAmount = it.orderAmount
                 this.dailyOrder = it.dailyOrderAmount.setScale(2, RoundingMode.HALF_UP).toDouble()
                 this.seller = Seller().apply {
@@ -278,6 +291,199 @@ class MarketDbApiControllerV2(
                 ResponseEntity.ok(codeCheckResult).toMono()
             }
         }
+    }
+
+    override fun getReportByReportId(reportId: String, exchange: ServerWebExchange): Mono<ResponseEntity<Resource>> =
+        runBlocking<ResponseEntity<Resource>> {
+            val report =
+                reportFileService.getReport(reportId) ?: return@runBlocking ResponseEntity.notFound().build<Resource>()
+            val reportData = withContext(Dispatchers.IO) {
+                report.stream.readAllBytes()
+            }
+
+            return@runBlocking ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"${report.name}.xlsx\"")
+                .body(InputStreamResource(reportData.inputStream()))
+        }.toMono().doOnError { log.error(it) { "Failed get report by report id" } }
+
+    override fun getReportBySeller(
+        sellerLink: String,
+        period: Int,
+        idempotenceKey: String,
+        exchange: ServerWebExchange
+    ): Mono<ResponseEntity<GetReportBySeller200Response>> {
+        val apiKey = exchange.request.headers["X-API-KEY"]?.first()
+            ?: return ResponseEntity.badRequest().build<GetReportBySeller200Response>().toMono()
+        val idempotenceKey = exchange.request.headers["Idempotence-Key"]?.first()
+            ?: return ResponseEntity.badRequest().build<GetReportBySeller200Response>().toMono()
+        return userRepository.findByApiKey_HashKey(apiKey).flatMap { userDocument ->
+            // Check report period permission
+            val checkDaysAccess = userRestrictionService.checkDaysAccess(userDocument, period)
+            if (checkDaysAccess == UserRestrictionService.RestrictionResult.PROHIBIT) {
+                return@flatMap ResponseEntity.status(HttpStatus.FORBIDDEN).build<GetReportBySeller200Response>()
+                    .toMono()
+            }
+
+            // Check daily report count permission
+            return@flatMap reportService.getUserShopReportDailyReportCountV2(userDocument.userId).defaultIfEmpty(0)
+                .flatMap { reportCount ->
+                    val checkReportAccess =
+                        userRestrictionService.checkShopReportAccess(userDocument, reportCount?.toInt() ?: 0)
+                    if (checkReportAccess == UserRestrictionService.RestrictionResult.PROHIBIT) {
+                        return@flatMap ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                            .build<GetReportBySeller200Response>().toMono()
+                    }
+
+                    // Save report job
+                    return@flatMap reportRepository.findByRequestIdAndSellerLink(idempotenceKey, sellerLink)
+                        .flatMap { report ->
+                            ResponseEntity.ok().body(GetReportBySeller200Response().apply {
+                                this.reportId = report.reportId
+                                this.jobId = UUID.fromString(report.jobId)
+                            }).toMono()
+                        }.switchIfEmpty(Mono.defer {
+                            val jobId = UUID.randomUUID().toString()
+                            reportRepository.save(
+                                ReportDocument(
+                                    reportId = null,
+                                    requestId = idempotenceKey,
+                                    jobId = jobId,
+                                    userId = userDocument.userId,
+                                    period = null,
+                                    interval = period,
+                                    createdAt = LocalDateTime.now(),
+                                    sellerLink = sellerLink,
+                                    categoryPublicId = null,
+                                    reportType = ReportType.SELLER,
+                                    status = ReportStatus.PROCESSING,
+                                    version = ReportVersion.V2
+                                )
+                            ).flatMap {
+                                ResponseEntity.ok().body(GetReportBySeller200Response().apply {
+                                    this.jobId = UUID.fromString(jobId)
+                                }).toMono()
+                            }
+                        })
+                }
+        }.doOnError { log.error(it) { "Failed to generate report by seller" } }
+    }
+
+    override fun getReportByCategory(
+        categoryId: Long,
+        period: Int,
+        idempotenceKey: String,
+        exchange: ServerWebExchange
+    ): Mono<ResponseEntity<GetReportBySeller200Response>> {
+        val apiKey = exchange.request.headers["X-API-KEY"]?.first()
+            ?: return ResponseEntity.badRequest().build<GetReportBySeller200Response>().toMono()
+        val idempotenceKey = exchange.request.headers["Idempotence-Key"]?.first()
+            ?: return ResponseEntity.badRequest().build<GetReportBySeller200Response>().toMono()
+        return userRepository.findByApiKey_HashKey(apiKey).flatMap { userDocument ->
+            // Check report period permission
+            val checkDaysAccess = userRestrictionService.checkDaysAccess(userDocument, period)
+            if (checkDaysAccess == UserRestrictionService.RestrictionResult.PROHIBIT) {
+                return@flatMap ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .build<GetReportBySeller200Response>().toMono()
+            }
+
+            // Check daily report count permission
+            return@flatMap reportService.getUserCategoryReportDailyReportCountV2(userDocument.userId).defaultIfEmpty(0)
+                .flatMap { userReportDailyReportCount ->
+                    val checkReportAccess = userRestrictionService.checkCategoryReportAccess(
+                        userDocument, userReportDailyReportCount?.toInt() ?: 0
+                    )
+                    if (checkReportAccess == UserRestrictionService.RestrictionResult.PROHIBIT) {
+                        return@flatMap ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                            .build<GetReportBySeller200Response>().toMono()
+                    }
+
+                    val jobId = UUID.randomUUID().toString()
+                    reportRepository.findByRequestIdAndCategoryPublicId(idempotenceKey, categoryId)
+                        .flatMap { report ->
+                            return@flatMap ResponseEntity.ok().body(GetReportBySeller200Response().apply {
+                                this.jobId = UUID.fromString(jobId)
+                                this.reportId = report.reportId
+                            }).toMono()
+                        }.switchIfEmpty(Mono.defer {
+                            reportRepository.save(
+                                ReportDocument(
+                                    reportId = null,
+                                    requestId = idempotenceKey,
+                                    jobId = jobId,
+                                    userId = userDocument.userId,
+                                    period = null,
+                                    interval = period,
+                                    createdAt = LocalDateTime.now(),
+                                    sellerLink = null,
+                                    categoryPublicId = categoryId,
+                                    reportType = ReportType.CATEGORY,
+                                    status = ReportStatus.PROCESSING,
+                                    version = ReportVersion.V2
+                                )
+                            ).flatMap {
+                                ResponseEntity.ok().body(GetReportBySeller200Response().apply {
+                                    this.jobId = UUID.fromString(jobId)
+                                }).toMono()
+                            }
+                        })
+                }.switchIfEmpty(Mono.defer {
+                    log.warn { "Failed to generate report by category. Category not found" }
+                    ResponseEntity.badRequest().build<GetReportBySeller200Response>().toMono()
+                })
+        }.doOnError { log.error(it) { "Failed to generate report by category" } }
+    }
+
+    override fun getReportStateByJobId(
+        jobId: UUID,
+        exchange: ServerWebExchange
+    ): Mono<ResponseEntity<GetReportStateByJobId200Response>> {
+        return reportRepository.findByJobId(jobId.toString()).flatMap { reportDocument: ReportDocument ->
+            val responseBody = GetReportStateByJobId200Response().apply {
+                this.reportId = reportDocument.reportId
+                this.jobId = UUID.fromString(reportDocument.jobId)
+                this.status = reportDocument.status.name.lowercase()
+                this.interval = reportDocument.interval ?: -1
+                this.reportType = reportDocument.reportType?.name ?: "unknown"
+                this.createdAt = reportDocument.createdAt.atOffset(ZoneOffset.UTC)
+                this.sellerLink = reportDocument.sellerLink
+                this.categoryId = reportDocument.categoryPublicId
+            }
+
+            return@flatMap ResponseEntity.ok(responseBody).toMono()
+        }.switchIfEmpty(ResponseEntity.notFound().build<GetReportStateByJobId200Response>().toMono())
+            .doOnError { log.error(it) { "Failed get report by jobId. JobId=$jobId" } }
+    }
+
+    override fun getReports(
+        fromTime: OffsetDateTime,
+        exchange: ServerWebExchange
+    ): Mono<ResponseEntity<Flux<Report>>> {
+        val apiKey = exchange.request.headers["X-API-KEY"]?.first()
+            ?: return ResponseEntity.badRequest().build<Flux<Report>>().toMono()
+        return userRepository.findByApiKey_HashKey(apiKey).flatMap { userDocument ->
+            return@flatMap reportRepository.findByUserIdAndCreatedAtFromTime(
+                userDocument.userId,
+                fromTime.toLocalDateTime()
+            )
+                .map { reportDoc ->
+                    Report().apply {
+                        reportId = reportDoc.reportId
+                        jobId = UUID.fromString(reportDoc.jobId)
+                        status = reportDoc.status.name.lowercase()
+                        interval = reportDoc.interval ?: -1
+                        reportType = reportDoc.reportType?.name ?: "unknown"
+                        createdAt = reportDoc.createdAt.atOffset(ZoneOffset.UTC)
+                        sellerLink = reportDoc.sellerLink
+                        categoryId = reportDoc.categoryPublicId
+                    }
+                }.collectList()
+        }.switchIfEmpty(emptyList<Report>().toMono()).flatMap { reportDocuments ->
+            if (reportDocuments.isNullOrEmpty()) {
+                return@flatMap ResponseEntity.notFound().build<Flux<Report>>().toMono()
+            }
+            ResponseEntity.ok(reportDocuments.toFlux()).toMono()
+        }.doOnError { log.error(it) { "Failed get reports" } }
     }
 
     private fun checkRequestDaysPermission(

@@ -1,14 +1,8 @@
 package dev.crashteam.uzumanalytics.config
 
-import dev.crashteam.uzumanalytics.stream.scheduler.PendingMessageScheduler
 import dev.crashteam.uzumanalytics.config.properties.UzumProperties
 import dev.crashteam.uzumanalytics.job.*
-import org.quartz.CronScheduleBuilder
-import org.quartz.CronTrigger
-import org.quartz.JobKey
-import org.quartz.Scheduler
-import org.quartz.TriggerBuilder
-import org.quartz.TriggerKey
+import org.quartz.*
 import org.quartz.impl.JobDetailImpl
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -37,10 +31,6 @@ class JobConfiguration(
         schedulerFactoryBean.addJob(reportGenerateMasterJob(), true, true)
         if (!schedulerFactoryBean.checkExists(TriggerKey(REPORT_GENERATE_MASTER_JOB, REPORT_GENERATE_MASTER_GROUP))) {
             schedulerFactoryBean.scheduleJob(triggerReportGenerateMasterJob())
-        }
-        schedulerFactoryBean.addJob(pendingMessageJob(), true, true)
-        if (!schedulerFactoryBean.checkExists(TriggerKey(PENDING_MESSAGE_JOB, PENDING_MESSAGE_GROUP))) {
-            schedulerFactoryBean.scheduleJob(triggerPendingMessageJob())
         }
     }
 
@@ -95,39 +85,10 @@ class JobConfiguration(
             .build()
     }
 
-    private fun pendingMessageJob(): JobDetailImpl {
-        val jobDetail = JobDetailImpl()
-        jobDetail.key = JobKey(PENDING_MESSAGE_JOB, PENDING_MESSAGE_GROUP)
-        jobDetail.jobClass = PendingMessageScheduler::class.java
-
-        return jobDetail
-    }
-
-    private fun triggerPendingMessageJob(): CronTrigger {
-        return TriggerBuilder.newTrigger()
-            .forJob(pendingMessageJob())
-            .withIdentity(PENDING_MESSAGE_JOB, PENDING_MESSAGE_GROUP)
-            .withSchedule(CronScheduleBuilder.cronSchedule(uzumProperties.pendingMessageCron))
-            .withPriority(Int.MAX_VALUE)
-            .build()
-    }
-
     companion object {
-        const val PAYMENT_JOB = "paymentJob"
-        const val PAYMENT_JOB_GROUP = "paymentJobGroup"
-        const val CATEGORY_COLLECTOR_JOB = "categoryCollectorJob"
-        const val CATEGORY_COLLECTOR_GROUP = "categoryCollectorJobGroup"
-        const val CATEGORY_PRODUCT_MASTER_JOB = "categoryProductMasterJob"
-        const val CATEGORY_PRODUCT_MASTER_GROUP = "categoryProductMasterJobGroup"
-        const val SELLER_COLLECTOR_MASTER_JOB = "sellerCollectorMasterJobV2"
-        const val SELLER_COLLECTOR_MASTER_GROUP = "sellerCollectorMasterJobGroupV2"
         const val REPORT_CLEANUP_JOB = "reportCleanupJob"
         const val REPORT_CLEANUP_GROUP = "reportCleanupGroup"
         const val REPORT_GENERATE_MASTER_JOB = "reportGenerateMasterJob"
         const val REPORT_GENERATE_MASTER_GROUP = "reportGenerateMasterGroup"
-        const val PRODUCT_POSITION_MASTER_JOB = "productPositionMasterJob"
-        const val PRODUCT_POSITION_MASTER_GROUP = "productPositionMasterGroup"
-        const val PENDING_MESSAGE_JOB = "pendingMessageJob"
-        const val PENDING_MESSAGE_GROUP = "pendingMessageGroup"
     }
 }

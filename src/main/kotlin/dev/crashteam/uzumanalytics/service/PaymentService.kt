@@ -206,7 +206,7 @@ class PaymentService(
                     defaultPrice
                 } else {
                     val price = userSubscription.price().toBigDecimal() * multiply.toLong().toBigDecimal()
-                    ((price * promoCodeDocument.discount!!.toLong().toBigDecimal()) / BigDecimal.valueOf(100))
+                    price - ((price * promoCodeDocument.discount!!.toLong().toBigDecimal()) / BigDecimal.valueOf(100))
                 }
             }
         }
@@ -220,7 +220,7 @@ class PaymentService(
     suspend fun callbackPayment(
         paymentId: String,
         userId: String,
-        currencyId: String,
+        currencyId: String? = null,
         paymentAdditionalInfo: CallbackPaymentAdditionalInfo? = null,
     ) {
         val payment = findPayment(paymentId)!!
@@ -268,7 +268,7 @@ class PaymentService(
         paymentPaid: Boolean,
         paymentStatus: String,
         referralCode: String?,
-        currencyId: String,
+        currencyId: String?,
     ) {
         val saveUser = if (user == null) {
             UserDocument(

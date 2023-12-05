@@ -19,7 +19,8 @@ data class ReportDocument(
     val sellerLink: String? = null,
     val categoryPublicId: Long? = null,
     val reportType: ReportType? = null,
-    val status: ReportStatus
+    val status: ReportStatus,
+    val version: ReportVersion? = null
 )
 
 enum class Period {
@@ -32,4 +33,8 @@ enum class ReportType {
 
 enum class ReportStatus {
     PROCESSING, COMPLETED, FAILED, DELETED
+}
+
+enum class ReportVersion {
+    V1, V2
 }

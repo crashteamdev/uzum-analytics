@@ -9,7 +9,7 @@
     </parent>
     <artifactId>uzum-analytics</artifactId>
     <version>0.0.1</version>
-    <name>Uzum analytics</name>
+    <name>uzum-analytics</name>
     <description>Uzum analytics service</description>
     <properties>
         <server.port>8022</server.port>
@@ -18,6 +18,7 @@
         <shedlock-provider-redis-spring.version>4.41.0</shedlock-provider-redis-spring.version>
         <shedlock-spring.version>4.41.0</shedlock-spring.version>
         <apache-poi.version>4.1.2</apache-poi.version>
+        <protobuf.version>3.21.12</protobuf.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -82,7 +83,17 @@
         <dependency>
             <groupId>dev.crashteam</groupId>
             <artifactId>openapi-uzum-analytics</artifactId>
-            <version>1.19-761cb2b-server</version>
+            <version>1.21-2c0d92a-server</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.crashteam</groupId>
+            <artifactId>uzum-scrapper-proto</artifactId>
+            <version>0.0.4</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.crashteam</groupId>
+            <artifactId>payment-proto</artifactId>
+            <version>0.0.37</version>
         </dependency>
 
         <!-- Third party -->
@@ -159,6 +170,21 @@
             <groupId>com.clickhouse</groupId>
             <artifactId>clickhouse-jdbc</artifactId>
             <version>0.4.6</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>amazon-kinesis-client</artifactId>
+            <version>1.15.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java-util</artifactId>
+            <version>${protobuf.version}</version>
         </dependency>
 
         <!-- Kotlin -->

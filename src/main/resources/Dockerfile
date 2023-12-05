@@ -3,6 +3,7 @@ RUN apt update && \
     apt -y --no-install-recommends --no-install-suggests install libjemalloc2 curl && \
     apt clean && rm -rf /var/lib/apt/lists/*
 ENV LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libjemalloc.so.2
+ENV AWS_CBOR_DISABLE=1
 EXPOSE 8080
 
 ARG JAR_FILE=uzum-analytics-0.0.1.jar

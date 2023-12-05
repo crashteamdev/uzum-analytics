@@ -11,7 +11,7 @@ import java.time.LocalDateTime
 data class PaymentDocument(
     @Indexed(unique = true)
     val paymentId: String,
-    val orderId: Long,
+    val orderId: Long? = null,
     val userId: String,
     val status: String,
     val paid: Boolean,

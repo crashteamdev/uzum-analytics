@@ -31,6 +31,7 @@ data class ChUzumProduct(
     val sellerContacts: Map<String, String>,
     val isEco: Boolean,
     val adultCategory: Boolean,
+    val restriction: Short,
 )
 
 data class ChKazanExpressCharacteristic(

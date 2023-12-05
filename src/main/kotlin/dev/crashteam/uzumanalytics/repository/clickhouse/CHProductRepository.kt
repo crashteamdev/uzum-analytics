@@ -35,15 +35,17 @@ class CHProductRepository(
                    product_id,
                    sku_id,
                    title,
-                   if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                      total_orders_amount_diff, available_amount_diff)                  AS order_amount,
+                   multiIf(restriction > 0, total_orders_amount_diff,
+                         available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, total_orders_amount_diff,
+                         available_amount_diff) AS order_amount,
                    reviews_amount_diff                                                  AS review_amount,
                    full_price / 100 AS full_price,
                    purchase_price / 100 AS purchase_price,
                    photo_key,
-                   if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                      total_orders_amount_diff, available_amount_diff) * purchase_price / 100 AS sales_amount,
-                   if(available_amount_diff < 0, 0, available_amount_diff) AS available_amount,
+                   multiIf(restriction > 0, total_orders_amount_diff,
+                         available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, total_orders_amount_diff,
+                         available_amount_diff) * purchase_price / 100 AS sales_amount,
+                   available_amount AS available_amount,
                    total_available_amount
             FROM (
                  SELECT date,
@@ -51,12 +53,14 @@ class CHProductRepository(
                         sku_id,
                         title,
                         available_amount_max - available_amount_min       AS available_amount_diff,
+                        available_amount_min                              AS available_amount,
                         total_orders_amount_max - total_orders_amount_min AS total_orders_amount_diff,
                         total_available_amount,
                         reviews_amount_max - reviews_amount_min           AS reviews_amount_diff,
                         purchase_price,
                         full_price,
-                        photo_key
+                        photo_key,
+                        restriction
                  FROM (
                           SELECT date,
                                  product_id,
@@ -69,9 +73,10 @@ class CHProductRepository(
                                  max(total_available_amount) AS total_available_amount,
                                  min(reviews_amount)      AS reviews_amount_min,
                                  max(reviews_amount)      AS reviews_amount_max,
-                                 any(purchase_price)      AS purchase_price,
+                                 quantile(purchase_price) AS purchase_price,
                                  any(full_price)          AS full_price,
-                                 any(photo_key)           AS photo_key
+                                 any(photo_key)           AS photo_key,
+                                 min(restriction)         AS restriction
                           FROM uzum.product
                           WHERE product_id = ?
                             AND sku_id = ?
@@ -83,83 +88,77 @@ class CHProductRepository(
         """
         private val GET_PRODUCTS_SALES = """
             WITH product_sales AS
-         (SELECT product_id,
-                 title,
-                 if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                    total_orders_amount_diff, available_amount_diff)                  AS order_amount,
-                 purchase_price / 100,
-                 if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                    total_orders_amount_diff, available_amount_diff) * purchase_price / 100 AS sales_amount,
-                 seller_title,
-                 seller_link,
-                 seller_account_id
-          FROM (
-                   SELECT product_id,
-                          sku_id,
-                          title,
-                          available_amount_max - available_amount_min       AS available_amount_diff,
-                          total_orders_amount_max - total_orders_amount_min AS total_orders_amount_diff,
-                          purchase_price,
-                          seller_title,
-                          seller_link,
-                          seller_account_id
-                   FROM (
-                            SELECT product_id,
-                                   sku_id,
-                                   any(title)               AS title,
-                                   min(available_amount)    AS available_amount_min,
-                                   max(available_amount)    AS available_amount_max,
-                                   min(total_orders_amount) AS total_orders_amount_min,
-                                   max(total_orders_amount) AS total_orders_amount_max,
-                                   any(purchase_price)      AS purchase_price,
-                                   max(seller_title)        AS seller_title,
-                                   max(seller_link)         AS seller_link,
-                                   max(seller_account_id)   AS seller_account_id
-                            FROM uzum.product
-                            WHERE product_id IN (?)
-                              AND timestamp BETWEEN ? AND ?
-                            GROUP BY product_id, sku_id, toDate(timestamp) AS date
-                            ORDER BY date
-                            )
-                   ))
-          SELECT s.product_id,
-                 any(s.title)             AS title,
-                 sum(s.order_amount)      AS order_amount,
-                 sum(s.sales_amount)      AS sales_amount,
-                 any(s.seller_title)      AS seller_title,
-                 any(s.seller_link)       AS seller_link,
-                 any(s.seller_account_id) AS seller_account_id,
-                 avg(s.order_amount)      AS daily_order_amount
-          FROM product_sales s
-          GROUP BY product_id
+                     (SELECT product_id,
+                             title,
+                             total_orders_amount_diff                        AS order_amount,
+                             purchase_price / 100,
+                             total_orders_amount_diff * (purchase_price / 100) AS sales_amount,
+                             seller_title,
+                             seller_link,
+                             seller_account_id
+                      FROM (
+                               SELECT product_id,
+                                      title,
+                                      total_orders_amount_max - total_orders_amount_min AS total_orders_amount_diff,
+                                      purchase_price,
+                                      seller_title,
+                                      seller_link,
+                                      seller_account_id
+                               FROM (
+                                        SELECT product_id,
+                                               any(title)               AS title,
+                                               min(total_orders_amount) AS total_orders_amount_min,
+                                               max(total_orders_amount) AS total_orders_amount_max,
+                                               quantile(purchase_price) AS purchase_price,
+                                               max(seller_title)        AS seller_title,
+                                               max(seller_link)         AS seller_link,
+                                               max(seller_account_id)   AS seller_account_id
+                                        FROM uzum.product
+                                        WHERE product_id IN (?)
+                                          AND timestamp BETWEEN ? AND ?
+                                        GROUP BY product_id, toDate(timestamp) AS date
+                                        ORDER BY date
+                                        )
+                               ))
+            SELECT s.product_id,
+                   any(s.title)                                                                       AS title,
+                   sum(s.order_amount)                                                                AS order_amount,
+                   sum(s.sales_amount)                                                                AS sales_amount,
+                   any(s.seller_title)                                                                AS seller_title,
+                   any(s.seller_link)                                                                 AS seller_link,
+                   any(s.seller_account_id)                                                           AS seller_account_id,
+                   sum(s.order_amount) / date_diff('day', toDate(?), toDate(?)) AS daily_order_amount
+            FROM product_sales s
+            GROUP BY product_id
         """.trimIndent()
         private val GET_CATEGORY_OVERALL_INFO = """
+            
             WITH category_products AS (SELECT p.timestamp,
-                                              p.product_id,
-                                              p.sku_id,
-                                              p.latest_category_id,
-                                              p.total_orders_amount,
-                                              p.purchase_price,
-                                              p.seller_id
-                                       FROM uzum.product p
-                                       WHERE timestamp BETWEEN ? AND ?
-                                         AND latest_category_id IN
-                                             if(length(dictGetDescendants('categories_hierarchical_dictionary', ?, 0)) >
-                                                0,
-                                                dictGetDescendants('categories_hierarchical_dictionary', ?, 0),
-                                                array(?)))
+                p.product_id,
+                p.sku_id,
+                p.latest_category_id,
+                p.total_orders_amount,
+                p.purchase_price,
+                p.seller_id
+                FROM uzum.product p
+                WHERE timestamp BETWEEN ? AND ?
+                AND latest_category_id IN
+                if(length(dictGetDescendants('categories_hierarchical_dictionary', ?, 0)) >
+                0,
+                dictGetDescendants('categories_hierarchical_dictionary', ?, 0),
+                array(?)))
 
             SELECT round((sum(price) / 100) / count(), 2)          AS avg_price,
                    sum(revenue) / 100                              AS revenue,
                    sum(order_amount)                               AS order_count,
-                      any(seller_count)                               AS seller_counts,
+                   any(seller_count)                               AS seller_counts,
                    any(product_count)                              AS product_counts,
                    round(sum(order_amount) / any(seller_count), 3) AS sales_per_seller,
                    (SELECT count()
                     FROM (
                              SELECT sum(order_amount) AS order_amount
                              FROM (
-                                         SELECT total_orders_amount_max - total_orders_amount_min AS order_amount,
+                                      SELECT total_orders_amount_max - total_orders_amount_min AS order_amount,
                                              seller_identifier                                 AS seller_id
                                       FROM (SELECT min(total_orders_amount) AS total_orders_amount_min,
                                                    max(total_orders_amount) AS total_orders_amount_max,
@@ -191,49 +190,44 @@ class CHProductRepository(
                   FROM (SELECT product_id,
                                min(total_orders_amount) AS total_orders_amount_min,
                                max(total_orders_amount) AS total_orders_amount_max,
-                               max(purchase_price)      AS purchase_price,
+                               quantile(purchase_price) AS purchase_price,
                                max(seller_id)           AS seller_identifier
                         FROM category_products
                         GROUP BY product_id))
             WHERE order_amount > 0
+        
         """.trimIndent()
         private val GET_SELLER_OVERALL_INFO = """
             WITH product_sales AS
                 (SELECT date,
                         product_id,
-                        sku_id,
                         title,
-                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                           total_orders_amount_diff, available_amount_diff)                  AS order_amount,
-                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                           total_orders_amount_diff, available_amount_diff) * purchase_price AS revenue,
+                        total_orders_amount_diff AS order_amount,
+                        total_orders_amount_diff * purchase_price AS revenue,
                         purchase_price,
-                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                           total_orders_amount_diff, available_amount_diff) * purchase_price AS sales_amount,
-                        available_amount
+                        available_amount,
+                        restriction
                  FROM (
                           SELECT date,
                                  product_id,
-                                 sku_id,
                                  title,
-                                 available_amount_max                              AS available_amount,
-                                 available_amount_max - available_amount_min       AS available_amount_diff,
+                                 available_amount,
                                  total_orders_amount_max - total_orders_amount_min AS total_orders_amount_diff,
-                                 purchase_price
+                                 purchase_price,
+                                 restriction
                           FROM (
                                    SELECT date,
                                           product_id,
-                                          sku_id,
                                           any(title)               AS title,
-                                          min(available_amount)    AS available_amount_min,
-                                          max(available_amount)    AS available_amount_max,
+                                          max(available_amount)    AS available_amount,
                                           min(total_orders_amount) AS total_orders_amount_min,
                                           max(total_orders_amount) AS total_orders_amount_max,
-                                          any(purchase_price)      AS purchase_price
+                                          quantile(purchase_price) AS purchase_price,
+                                          min(restriction)         AS restriction
                                    FROM uzum.product
                                    WHERE seller_link = ?
                                      AND timestamp BETWEEN ? AND ?
-                                   GROUP BY product_id, sku_id, toDate(timestamp) AS date
+                                   GROUP BY product_id, toDate(timestamp) AS date
                                    ORDER BY date
                                    )
                           ))
@@ -258,47 +252,111 @@ class CHProductRepository(
         private val GET_SELLER_ORDER_DYNAMIC = """
             WITH product_sales AS
                 (SELECT date,
-                        product_id,
-                        sku_id,
-                        title,
-                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                           total_orders_amount_diff, available_amount_diff)                  AS order_amount,
-                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                           total_orders_amount_diff, available_amount_diff) * purchase_price AS revenue,
-                        purchase_price,
-                        if(available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0,
-                           total_orders_amount_diff, available_amount_diff) * purchase_price AS sales_amount,
-                        available_amount
+                        total_orders_amount_diff AS order_amount
                  FROM (
                           SELECT date,
                                  product_id,
-                                 sku_id,
                                  title,
-                                 available_amount_max                              AS available_amount,
-                                 available_amount_max - available_amount_min       AS available_amount_diff,
-                                 total_orders_amount_max - total_orders_amount_min AS total_orders_amount_diff,
-                                 purchase_price
+                                 total_orders_amount_max - total_orders_amount_min AS total_orders_amount_diff
                           FROM (
                                    SELECT date,
                                           product_id,
-                                          sku_id,
                                           any(title)               AS title,
-                                          min(available_amount)    AS available_amount_min,
-                                          max(available_amount)    AS available_amount_max,
                                           min(total_orders_amount) AS total_orders_amount_min,
-                                          max(total_orders_amount) AS total_orders_amount_max,
-                                          any(purchase_price)      AS purchase_price
+                                          max(total_orders_amount) AS total_orders_amount_max
                                    FROM uzum.product
                                    WHERE seller_link = ?
                                      AND timestamp BETWEEN ? AND ?
-                                   GROUP BY product_id, sku_id, toDate(timestamp) AS date
+                                   GROUP BY product_id, toDate(timestamp) AS date
                                    ORDER BY date
                                    )
                           ))
 
             SELECT date, sum(order_amount) AS order_amount FROM product_sales GROUP BY date
         """.trimIndent()
+        private val GET_SELLER_SALES_REPORT = """
+            SELECT product_id,
+                   anyLast(seller_title)        AS seller_title,
+                   anyLast(seller_id)           AS seller_id,
+                   anyLast(latest_category_id)  AS latest_category_id,
+                   groupArray(order_amount)     AS order_graph,
+                   groupArray(available_amount) AS available_amount_graph,
+                   groupArray(price)            AS price_graph,
+                   anyLast(available_amount)    AS available_amounts,
+                   anyLast(price)               AS purchase_price,
+                   sum(sales)                   AS sales,
+                   (dictGet('uzum.categories_hierarchical_dictionary', 'title', latest_category_id)) AS category_name,
+                   anyLast(name)                                                                        AS name,
+                   count() OVER () AS total
+            FROM (
+                     SELECT product_id,
+                            max(total_orders_amount) - min(total_orders_amount)                                      AS order_amount,
+                            min(total_available_amount)                                                              AS available_amount,
+                            quantile(purchase_price)                                                                 AS price,
+                            (max(total_orders_amount) - min(total_orders_amount)) * (quantile(purchase_price) / 100) AS sales,
+                            anyLast(seller_title)                                                                    AS seller_title,
+                            anyLast(seller_id)                                                                       AS seller_id,
+                            anyLast(latest_category_id)                                                              AS latest_category_id,
+                            anyLast(title)                                                                           AS name
+                     FROM uzum.product
+                     WHERE seller_link = ?
+                       AND timestamp BETWEEN ? AND ?
+                     GROUP BY product_id, toDate(timestamp) AS date
+                     ORDER BY date
+                     )
+            GROUP BY product_id
+            LIMIT ? OFFSET ?
+        """.trimIndent()
     }
+    private val GET_CATEGORY_SALES_REPORT = """
+        SELECT product_id,
+               anyLast(seller_title)                                                                AS seller_title,
+               anyLast(seller_id)                                                                   AS seller_id,
+               anyLast(latest_category_id)                                                          AS latest_category_id,
+               groupArray(order_amount)                                                             AS order_graph,
+               groupArray(available_amount)                                                         AS available_amount_graph,
+               groupArray(price)                                                                    AS price_graph,
+               anyLast(available_amount)                                                            AS available_amounts,
+               anyLast(price)                                                                       AS purchase_price,
+               sum(sales)                                                                           AS sales,
+               (dictGet('uzum.categories_hierarchical_dictionary', 'title', latest_category_id)) AS category_name,
+               anyLast(name)                                                                        AS name,
+               count() OVER ()                                                                      AS total
+        FROM (
+                 SELECT product_id,
+                        max(total_orders_amount) - min(total_orders_amount)                                      AS order_amount,
+                        min(total_available_amount)                                                              AS available_amount,
+                        quantile(purchase_price)                                                                 AS price,
+                        (max(total_orders_amount) - min(total_orders_amount)) * (quantile(purchase_price) / 100) AS sales,
+                        anyLast(seller_title)                                                                    AS seller_title,
+                        anyLast(seller_id)                                                                       AS seller_id,
+                        anyLast(latest_category_id)                                                              AS latest_category_id,
+                        anyLast(title)                                                                           AS name
+                 FROM (
+                          SELECT timestamp,
+                                 product_id,
+                                 total_orders_amount,
+                                 total_available_amount,
+                                 available_amount,
+                                 purchase_price,
+                                 seller_title,
+                                 seller_id,
+                                 latest_category_id,
+                                 title
+                          FROM uzum.product
+                          WHERE timestamp BETWEEN ? AND ?
+                            AND latest_category_id IN
+                                if(length(dictGetDescendants('categories_hierarchical_dictionary', ?, 0)) >
+                                   0,
+                                   dictGetDescendants('categories_hierarchical_dictionary', ?, 0),
+                                   array(?))
+                          )
+                 GROUP BY product_id, toDate(timestamp) AS date
+                 ORDER BY date
+                 )
+        GROUP BY product_id
+        LIMIT ? OFFSET ?
+    """.trimIndent()
 
     fun getProductAdditionalInfo(
         productId: String,
@@ -320,8 +378,8 @@ class CHProductRepository(
                     " total_orders_amount, total_available_amount, available_amount, attributes," +
                     " tags, photo_key, characteristics, seller_id, seller_account_id, seller_title, seller_link," +
                     " seller_registrationDate, seller_rating, seller_reviewsCount, seller_orders, seller_contacts, " +
-                    " is_eco, is_adult, full_price, purchase_price)" +
-                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    " is_eco, is_adult, full_price, purchase_price, restriction)" +
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             ProductBatchPreparedStatementSetter(productFetchList)
         )
     }
@@ -387,6 +445,34 @@ class CHProductRepository(
         )
     }
 
+    fun getSellerSalesForReport(
+        sellerLink: String,
+        fromTime: LocalDateTime,
+        toTime: LocalDateTime,
+        limit: Int,
+        offset: Int,
+    ): List<ChProductSalesReport> {
+        return jdbcTemplate.query(
+            GET_SELLER_SALES_REPORT,
+            ProductSalesReportMapper(),
+            sellerLink, fromTime, toTime, limit, offset
+        )
+    }
+
+    fun getCategorySalesForReport(
+        categoryId: Long,
+        fromTime: LocalDateTime,
+        toTime: LocalDateTime,
+        limit: Int,
+        offset: Int
+    ): List<ChProductSalesReport> {
+        return jdbcTemplate.query(
+            GET_CATEGORY_SALES_REPORT,
+            ProductSalesReportMapper(),
+            fromTime, toTime, categoryId, categoryId, categoryId, limit, offset
+        )
+    }
+
     internal class ProductHistoryStatementSetter(
         private val productId: String,
         private val skuId: String,
@@ -412,6 +498,8 @@ class CHProductRepository(
             ps.setArray(l++, ClickHouseArray(ClickHouseDataType.String, productIds.toTypedArray()))
             ps.setObject(l++, fromTime)
             ps.setObject(l++, toTime)
+            ps.setObject(l++, fromTime.toLocalDate())
+            ps.setObject(l++, toTime.toLocalDate())
         }
     }
 
@@ -460,6 +548,7 @@ class CHProductRepository(
             ps.setBoolean(l++, product.adultCategory)
             product.fullPrice?.let { ps.setLong(l++, product.fullPrice) } ?: ps.setNull(l++, Types.BIGINT)
             ps.setLong(l++, product.purchasePrice)
+            ps.setShort(l++, product.restriction)
         }
 
         override fun getBatchSize(): Int {
