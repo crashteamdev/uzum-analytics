@@ -6,6 +6,7 @@ import mu.KotlinLogging
 import dev.crashteam.uzumanalytics.domain.mongo.ReportDocument
 import dev.crashteam.uzumanalytics.domain.mongo.ReportStatus
 import dev.crashteam.uzumanalytics.domain.mongo.ReportType
+import dev.crashteam.uzumanalytics.domain.mongo.ReportVersion
 import dev.crashteam.uzumanalytics.extensions.getApplicationContext
 import dev.crashteam.uzumanalytics.repository.mongo.ReportRepository
 import org.quartz.*
@@ -64,6 +65,8 @@ class GenerateReportMasterJob : Job {
         jobDetail.jobDataMap["sellerLink"] = reportDoc.sellerLink
         jobDetail.jobDataMap["interval"] = reportDoc.interval
         jobDetail.jobDataMap["job_id"] = reportDoc.jobId
+        jobDetail.jobDataMap["user_id"] = reportDoc.userId
+        jobDetail.jobDataMap["version"] = reportDoc.version?.name ?: ReportVersion.V2.name
         if (!schedulerFactoryBean.checkExists(jobKey)) {
             schedulerFactoryBean.scheduleJob(jobDetail, triggerFactoryBean)
         }
@@ -74,12 +77,6 @@ class GenerateReportMasterJob : Job {
         reportDoc: ReportDocument,
         schedulerFactoryBean: Scheduler
     ) {
-        val triggerKeys: MutableSet<TriggerKey> = schedulerFactoryBean.getTriggerKeys(
-            GroupMatcher.triggerGroupEquals("CATEGORY")
-        )
-        if (triggerKeys.size > 0) {
-            return
-        }
         val jobKey = JobKey(jobIdentity)
         val jobDetail =
             JobBuilder.newJob(GenerateCategoryReportJob::class.java).withIdentity(jobKey).build()
@@ -90,12 +87,13 @@ class GenerateReportMasterJob : Job {
             setRepeatCount(0)
             setMisfireInstruction(SimpleTrigger.MISFIRE_INSTRUCTION_FIRE_NOW)
             setPriority(Int.MAX_VALUE)
-            setGroup("CATEGORY")
             afterPropertiesSet()
         }.getObject()
         jobDetail.jobDataMap["categoryPublicId"] = reportDoc.categoryPublicId
         jobDetail.jobDataMap["interval"] = reportDoc.interval
         jobDetail.jobDataMap["job_id"] = reportDoc.jobId
+        jobDetail.jobDataMap["user_id"] = reportDoc.userId
+        jobDetail.jobDataMap["version"] = reportDoc.version?.name ?: ReportVersion.V2.name
         if (!schedulerFactoryBean.checkExists(jobKey)) {
             schedulerFactoryBean.scheduleJob(jobDetail, triggerFactoryBean)
         }

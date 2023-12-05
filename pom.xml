@@ -83,7 +83,7 @@
         <dependency>
             <groupId>dev.crashteam</groupId>
             <artifactId>openapi-uzum-analytics</artifactId>
-            <version>1.20-d2bedac-server</version>
+            <version>1.21-2c0d92a-server</version>
         </dependency>
         <dependency>
             <groupId>dev.crashteam</groupId>

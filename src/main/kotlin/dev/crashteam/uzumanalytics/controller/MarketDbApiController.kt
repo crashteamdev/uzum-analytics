@@ -8,6 +8,7 @@ import dev.crashteam.uzumanalytics.controller.model.*
 import dev.crashteam.uzumanalytics.domain.mongo.ReportDocument
 import dev.crashteam.uzumanalytics.domain.mongo.ReportStatus
 import dev.crashteam.uzumanalytics.domain.mongo.ReportType
+import dev.crashteam.uzumanalytics.domain.mongo.ReportVersion
 import dev.crashteam.uzumanalytics.report.ReportFileService
 import dev.crashteam.uzumanalytics.report.ReportService
 import dev.crashteam.uzumanalytics.report.model.ReportJob
@@ -378,7 +379,8 @@ class MarketDbApiController(
                 sellerLink = sellerLink,
                 categoryPublicId = null,
                 reportType = ReportType.SELLER,
-                status = ReportStatus.PROCESSING
+                status = ReportStatus.PROCESSING,
+                version = ReportVersion.V1,
             )
         ).awaitSingleOrNull()
 
@@ -436,7 +438,8 @@ class MarketDbApiController(
                 sellerLink = null,
                 categoryPublicId = categoryDocument.publicId,
                 reportType = ReportType.CATEGORY,
-                status = ReportStatus.PROCESSING
+                status = ReportStatus.PROCESSING,
+                version = ReportVersion.V1
             )
         ).awaitSingleOrNull()
 
