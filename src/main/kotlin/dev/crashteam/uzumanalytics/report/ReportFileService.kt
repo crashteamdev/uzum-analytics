@@ -106,7 +106,7 @@ class ReportFileService(
         SXSSFWorkbook().use { wb ->
             val styles = stylesGenerator.prepareStyles(wb)
             val sheet: SXSSFSheet = wb.createSheet("ABC отчет")
-            wb.createSheet("marketdb.ru")
+            wb.createSheet("marketdb.org")
             wb.createSheet("Report range - ${Duration.between(fromTime, toTime).toDays()}")
             val rubleCurrencyCellFormat = rubleCurrencyCellFormat(wb)
             val linkFont: Font = wb.createFont().apply {
@@ -167,7 +167,7 @@ class ReportFileService(
         SXSSFWorkbook().use { wb ->
             val styles = stylesGenerator.prepareStyles(wb)
             val sheet: SXSSFSheet = wb.createSheet("ABC отчет")
-            wb.createSheet("marketdb.ru")
+            wb.createSheet("marketdb.org")
             wb.createSheet("Report range - ${Duration.between(fromTime, toTime).toDays()}")
             val rubleCurrencyCellFormat = rubleCurrencyCellFormat(wb)
             val linkFont: Font = wb.createFont().apply {
@@ -257,7 +257,7 @@ class ReportFileService(
                 1 -> {
                     cell.setCellValue(sellerSale.productId)
                     val link = wb.creationHelper.createHyperlink(HyperlinkType.URL)
-                    link.address = "https://kazanexpress.ru/product/${sellerSale.productId}"
+                    link.address = "https://uzum.uz/ru/product/${sellerSale.productId}"
                     cell.hyperlink = link
                     cell.cellStyle = linkStyle
                 }
@@ -304,7 +304,7 @@ class ReportFileService(
         SXSSFWorkbook().use { wb ->
             val styles = stylesGenerator.prepareStyles(wb)
             val sheet: SXSSFSheet = wb.createSheet("ABC отчет")
-            wb.createSheet("marketdb.ru")
+            wb.createSheet("marketdb.org")
             wb.createSheet("Report range - ${Duration.between(fromTime, toTime).toDays()}")
 
             createHeaderRow(sheet, styles, headerNames)
@@ -334,7 +334,7 @@ class ReportFileService(
         SXSSFWorkbook().use { wb ->
             val styles = stylesGenerator.prepareStyles(wb)
             val sheet: SXSSFSheet = wb.createSheet("ABC отчет")
-            wb.createSheet("marketdb.ru")
+            wb.createSheet("marketdb.org")
             wb.createSheet("Report range - ${Duration.between(fromTime, toTime).toDays()}")
 
             createHeaderRow(sheet, styles, headerNames)
@@ -382,7 +382,7 @@ class ReportFileService(
                     1 -> {
                         cell.setCellValue(sellerSale.productId.toString())
                         val link = helper.createHyperlink(HyperlinkType.URL)
-                        link.address = "https://kazanexpress.ru/product/${sellerSale.productId}"
+                        link.address = "https://uzum.uz/ru/product/${sellerSale.productId}"
                         cell.hyperlink = link
                         cell.cellStyle = linkStyle
                     }
