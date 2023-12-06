@@ -108,7 +108,7 @@ class ReportFileService(
             val sheet: SXSSFSheet = wb.createSheet("ABC отчет")
             wb.createSheet("marketdb.org")
             wb.createSheet("Report range - ${Duration.between(fromTime, toTime).toDays()}")
-            val rubleCurrencyCellFormat = rubleCurrencyCellFormat(wb)
+            val sumCurrencyCellFormat = sumCurrencyCellFormat(wb)
             val linkFont: Font = wb.createFont().apply {
                 this.underline = XSSFFont.U_SINGLE
                 this.color = HSSFColor.HSSFColorPredefined.BLUE.index
@@ -142,7 +142,7 @@ class ReportFileService(
                         columnCursor,
                         totalRowCount,
                         sheet,
-                        rubleCurrencyCellFormat,
+                        sumCurrencyCellFormat,
                         linkStyle,
                         wb
                     )
@@ -169,7 +169,7 @@ class ReportFileService(
             val sheet: SXSSFSheet = wb.createSheet("ABC отчет")
             wb.createSheet("marketdb.org")
             wb.createSheet("Report range - ${Duration.between(fromTime, toTime).toDays()}")
-            val rubleCurrencyCellFormat = rubleCurrencyCellFormat(wb)
+            val sumCurrencyCellFormat = sumCurrencyCellFormat(wb)
             val linkFont: Font = wb.createFont().apply {
                 this.underline = XSSFFont.U_SINGLE
                 this.color = HSSFColor.HSSFColorPredefined.BLUE.index
@@ -222,7 +222,7 @@ class ReportFileService(
                         columnCursor,
                         totalRowCount,
                         sheet,
-                        rubleCurrencyCellFormat,
+                        sumCurrencyCellFormat,
                         linkStyle,
                         wb
                     )
@@ -359,7 +359,7 @@ class ReportFileService(
     }
 
     private fun fillWorkBookData(sheet: SXSSFSheet, wb: Workbook, data: List<AggregateSalesProduct>) {
-        val rubleCurrencyCellFormat = rubleCurrencyCellFormat(wb)
+        val sumCurrencyCellFormat = sumCurrencyCellFormat(wb)
         val rowCount = data.size + 1
         var rowCursor = 0
         var columnCursor = 1
@@ -393,7 +393,7 @@ class ReportFileService(
                     5 -> cell.setCellValue(sellerSale.availableAmount.toDouble())
                     6 -> cell.setCellValue(sellerSale.daysInStock.toDouble())
                     7 -> {
-                        cell.cellStyle = rubleCurrencyCellFormat
+                        cell.cellStyle = sumCurrencyCellFormat
                         cell.setCellValue(sellerSale.price.toDouble())
                     }
 
@@ -402,7 +402,7 @@ class ReportFileService(
                     }
 
                     9 -> {
-                        cell.cellStyle = rubleCurrencyCellFormat
+                        cell.cellStyle = sumCurrencyCellFormat
                         cell.setCellValue(
                             sellerSale.proceeds.setScale(2, RoundingMode.HALF_UP).toDouble()
                         )
@@ -426,10 +426,10 @@ class ReportFileService(
         }
     }
 
-    private fun rubleCurrencyCellFormat(wb: Workbook): CellStyle? {
+    private fun sumCurrencyCellFormat(wb: Workbook): CellStyle? {
         val cellStyle = wb.createCellStyle()
         val format: DataFormat = wb.createDataFormat()
-        cellStyle.dataFormat = format.getFormat("₽#,#0.00")
+        cellStyle.dataFormat = format.getFormat("#,#0.00")
 
         return cellStyle
     }
