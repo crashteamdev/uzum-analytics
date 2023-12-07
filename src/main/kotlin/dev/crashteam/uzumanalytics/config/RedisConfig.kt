@@ -14,12 +14,17 @@ import org.springframework.boot.autoconfigure.cache.RedisCacheManagerBuilderCust
 import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.data.redis.RedisSystemException
 import org.springframework.data.redis.cache.RedisCacheConfiguration
 import org.springframework.data.redis.cache.RedisCacheManager
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration.LettuceClientConfigurationBuilder
+import org.springframework.data.redis.connection.stream.ObjectRecord
+import org.springframework.data.redis.connection.stream.ReadOffset
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.data.redis.serializer.*
+import org.springframework.data.redis.stream.StreamReceiver
+import java.nio.ByteBuffer
 import java.time.Duration
 
 private val log = KotlinLogging.logger {}
@@ -54,6 +59,29 @@ class RedisConfig(
             )
                 .key(stringRedisSerializer).value(jackson2JsonRedisSerializer).build()
         )
+    }
+
+    @Bean
+    fun paymentSubscription(
+        redisConnectionFactory: ReactiveRedisConnectionFactory
+    ): StreamReceiver<String, ObjectRecord<String, ByteArray>> {
+        val options = StreamReceiver.StreamReceiverOptions.builder().pollTimeout(Duration.ofMillis(100))
+            .targetType(ByteArray::class.java).build()
+        try {
+//            redisConnectionFactory.reactiveConnection.streamCommands().xGroupDestroy(
+//                ByteBuffer.wrap(redisProperties.stream.keCategoryInfo.streamName.toByteArray()),
+//                redisProperties.stream.keCategoryInfo.consumerGroup
+//            )?.subscribe()
+            redisConnectionFactory.reactiveConnection.streamCommands().xGroupCreate(
+                ByteBuffer.wrap(redisProperties.stream.payment.streamName.toByteArray()),
+                redisProperties.stream.payment.consumerGroup,
+                ReadOffset.from("0-0"),
+                true
+            ).subscribe()
+        } catch (e: RedisSystemException) {
+            log.warn(e) { "Failed to create consumer group: ${redisProperties.stream.payment.consumerGroup}" }
+        }
+        return StreamReceiver.create(redisConnectionFactory, options)
     }
 
     @Bean

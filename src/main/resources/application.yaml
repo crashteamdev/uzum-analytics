@@ -117,6 +117,10 @@ redis:
       streamName: uzum-category-stream
       consumerGroup: uzum-analytics-category-group
       consumerName: uzum-analytics-category-consumer
+    payment:
+      streamName: payment-stream
+      consumerGroup: ke-analytics-payment-group
+      consumerName: ke-analytics-payment-consumer
 
 clickhouse:
   url: "jdbc:clickhouse://${CLICKHOUSE_HOST:localhost}:${CLICKHOUSE_PORT:8443}/${CLICKHOUSE_DB:uzum}"
