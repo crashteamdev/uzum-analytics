@@ -7,8 +7,11 @@ import dev.crashteam.uzumanalytics.extension.toLocalDateTime
 import dev.crashteam.uzumanalytics.repository.mongo.PaymentRepository
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
+import mu.KotlinLogging
 import org.springframework.core.convert.ConversionService
 import org.springframework.stereotype.Component
+
+private val log = KotlinLogging.logger {}
 
 @Component
 class UzumPaymentCreatedEventHandler(
@@ -37,6 +40,7 @@ class UzumPaymentCreatedEventHandler(
                         paymentCreated.userPaidService.paidService.context.uzumAnalyticsContext.plan
                     )
                 )
+                log.info { "Save new payment: $newPaymentDocument" }
                 paymentRepository.save(newPaymentDocument).awaitSingleOrNull()
             }
         }

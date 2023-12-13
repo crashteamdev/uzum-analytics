@@ -32,10 +32,12 @@ class UzumPaymentStatusEventHandler(
                     PaymentStatus.PAYMENT_STATUS_PENDING,
                     PaymentStatus.PAYMENT_STATUS_CANCELED,
                     PaymentStatus.PAYMENT_STATUS_FAILED -> {
+                        log.warn { "Failed payment: $updatePaymentDocument" }
                         paymentRepository.save(updatePaymentDocument).awaitSingleOrNull()
                     }
 
                     PaymentStatus.PAYMENT_STATUS_SUCCESS -> {
+                        log.info { "Success payment. paymentId=${paymentStatusChanged.paymentId}" }
                         paymentService.callbackPayment(
                             paymentId = paymentStatusChanged.paymentId,
                             userId = paymentDocument.userId,
