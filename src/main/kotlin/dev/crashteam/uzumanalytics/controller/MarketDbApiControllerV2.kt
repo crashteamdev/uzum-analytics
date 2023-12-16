@@ -1,11 +1,6 @@
 package dev.crashteam.uzumanalytics.controller
 
-import dev.crashteam.openapi.uzumanalytics.api.CategoryApi
-import dev.crashteam.openapi.uzumanalytics.api.ProductApi
-import dev.crashteam.openapi.uzumanalytics.api.PromoCodeApi
-import dev.crashteam.openapi.uzumanalytics.api.ReportApi
-import dev.crashteam.openapi.uzumanalytics.api.ReportsApi
-import dev.crashteam.openapi.uzumanalytics.api.SellerApi
+import dev.crashteam.openapi.uzumanalytics.api.*
 import dev.crashteam.openapi.uzumanalytics.model.*
 import dev.crashteam.uzumanalytics.domain.mongo.*
 import dev.crashteam.uzumanalytics.report.ReportFileService
@@ -68,18 +63,20 @@ class MarketDbApiControllerV2(
         toTime: OffsetDateTime,
         exchange: ServerWebExchange
     ): Mono<ResponseEntity<ProductOverallInfo200Response>> {
-        val fromTimeLocalDateTime = fromTime.toLocalDateTime()
-        val toTimeLocalDateTime = toTime.toLocalDateTime()
-        val productAdditionalInfo = productServiceAnalytics.getProductAdditionalInfo(
-            productId.toString(),
-            skuId.toString(),
-            fromTimeLocalDateTime,
-            toTimeLocalDateTime
-        ) ?: return ResponseEntity.notFound().build<ProductOverallInfo200Response>().toMono()
+        return checkRequestDaysPermission(X_API_KEY, fromTime.toLocalDateTime(), toTime.toLocalDateTime()).flatMap { access ->
+            val fromTimeLocalDateTime = fromTime.toLocalDateTime()
+            val toTimeLocalDateTime = toTime.toLocalDateTime()
+            val productAdditionalInfo = productServiceAnalytics.getProductAdditionalInfo(
+                productId.toString(),
+                skuId.toString(),
+                fromTimeLocalDateTime,
+                toTimeLocalDateTime
+            ) ?: return@flatMap ResponseEntity.notFound().build<ProductOverallInfo200Response>().toMono()
 
-        return ResponseEntity.ok(ProductOverallInfo200Response().apply {
-            firstDiscovered = productAdditionalInfo.firstDiscovered.atOffset(ZoneOffset.UTC)
-        }).toMono()
+            return@flatMap ResponseEntity.ok(ProductOverallInfo200Response().apply {
+                firstDiscovered = productAdditionalInfo.firstDiscovered.atOffset(ZoneOffset.UTC)
+            }).toMono()
+        }
     }
 
     override fun categoryOverallInfo(
@@ -165,32 +162,41 @@ class MarketDbApiControllerV2(
         offset: Int?,
         exchange: ServerWebExchange
     ): Mono<ResponseEntity<Flux<ProductSkuHistory>>> {
-        val productAnalytics = productServiceAnalytics.getProductAnalytics(
-            productId,
-            skuId,
+        return checkRequestDaysPermission(
+            X_API_KEY,
             fromTime.toLocalDateTime(),
             toTime.toLocalDateTime()
-        )
-        if (productAnalytics.isEmpty()) {
-            return ResponseEntity.notFound().build<Flux<ProductSkuHistory>>().toMono()
-        }
-        val productSkuHistoryList = productAnalytics.map {
-            ProductSkuHistory().apply {
-                this.productId = productId
-                this.skuId = skuId
-                this.name = it.title
-                this.orderAmount = it.orderAmount
-                this.reviewsAmount = it.reviewAmount
-                this.totalAvailableAmount = it.totalAvailableAmount
-                this.fullPrice = it.fullPrice?.toDouble()
-                this.purchasePrice = it.purchasePrice.toDouble()
-                this.availableAmount = it.availableAmount
-                this.salesAmount = it.salesAmount.toDouble()
-                this.photoKey = it.photoKey
-                this.date = it.date
+        ).flatMap { isAccess ->
+            if (!isAccess) {
+                return@flatMap ResponseEntity.status(HttpStatus.FORBIDDEN).build<Flux<ProductSkuHistory>>().toMono()
             }
+            val productAnalytics = productServiceAnalytics.getProductAnalytics(
+                productId,
+                skuId,
+                fromTime.toLocalDateTime(),
+                toTime.toLocalDateTime()
+            )
+            if (productAnalytics.isEmpty()) {
+                return@flatMap ResponseEntity.notFound().build<Flux<ProductSkuHistory>>().toMono()
+            }
+            val productSkuHistoryList = productAnalytics.map {
+                ProductSkuHistory().apply {
+                    this.productId = productId
+                    this.skuId = skuId
+                    this.name = it.title
+                    this.orderAmount = it.orderAmount
+                    this.reviewsAmount = it.reviewAmount
+                    this.totalAvailableAmount = it.totalAvailableAmount
+                    this.fullPrice = it.fullPrice?.toDouble()
+                    this.purchasePrice = it.purchasePrice.toDouble()
+                    this.availableAmount = it.availableAmount
+                    this.salesAmount = it.salesAmount.toDouble()
+                    this.photoKey = it.photoKey
+                    this.date = it.date
+                }
+            }
+            return@flatMap ResponseEntity.ok(productSkuHistoryList.toFlux()).toMono()
         }
-        return ResponseEntity.ok(productSkuHistoryList.toFlux()).toMono()
     }
 
     override fun getSellerShops(
@@ -214,25 +220,34 @@ class MarketDbApiControllerV2(
         toTime: OffsetDateTime,
         exchange: ServerWebExchange
     ): Mono<ResponseEntity<Flux<GetProductSales200ResponseInner>>> {
-        val productSalesAnalytics = productServiceAnalytics.getProductSalesAnalytics(
-            productIds,
+        return checkRequestDaysPermission(
+            X_API_KEY,
             fromTime.toLocalDateTime(),
             toTime.toLocalDateTime()
-        )
-        val productSales = productSalesAnalytics.map {
-            GetProductSales200ResponseInner().apply {
-                this.productId = it.productId.toLong()
-                this.salesAmount = it.salesAmount.toLong()
-                this.orderAmount = it.orderAmount
-                this.dailyOrder = it.dailyOrderAmount.setScale(2, RoundingMode.HALF_UP).toDouble()
-                this.seller = Seller().apply {
-                    this.accountId = it.sellerAccountId
-                    this.link = it.sellerLink
-                    this.title = it.sellerTitle
+        ).flatMap { isAccess ->
+            if (!isAccess) {
+                return@flatMap ResponseEntity.status(HttpStatus.FORBIDDEN).build<Flux<GetProductSales200ResponseInner>>().toMono()
+            }
+            val productSalesAnalytics = productServiceAnalytics.getProductSalesAnalytics(
+                productIds,
+                fromTime.toLocalDateTime(),
+                toTime.toLocalDateTime()
+            )
+            val productSales = productSalesAnalytics.map {
+                GetProductSales200ResponseInner().apply {
+                    this.productId = it.productId.toLong()
+                    this.salesAmount = it.salesAmount.toLong()
+                    this.orderAmount = it.orderAmount
+                    this.dailyOrder = it.dailyOrderAmount.setScale(2, RoundingMode.HALF_UP).toDouble()
+                    this.seller = Seller().apply {
+                        this.accountId = it.sellerAccountId
+                        this.link = it.sellerLink
+                        this.title = it.sellerTitle
+                    }
                 }
             }
+            return@flatMap ResponseEntity.ok(productSales.toFlux()).toMono()
         }
-        return ResponseEntity.ok(productSales.toFlux()).toMono()
     }
 
     override fun createPromoCode(
