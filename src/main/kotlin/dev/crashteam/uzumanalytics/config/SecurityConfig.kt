@@ -70,7 +70,7 @@ class SecurityConfig(
     @Order(2)
     fun apiKeyWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
         return http
-            .cors().disable()
+            .cors().configurationSource(createCorsConfigSource()).and()
             .securityMatcher(
                 pathMatchers(
                     "/v1/product/**",
