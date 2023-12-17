@@ -228,6 +228,11 @@ class MarketDbApiControllerV2(
             if (!isAccess) {
                 return@flatMap ResponseEntity.status(HttpStatus.FORBIDDEN).build<Flux<GetProductSales200ResponseInner>>().toMono()
             }
+            val daysCount = ChronoUnit.DAYS.between(fromTime, toTime)
+            if (daysCount <= 0) {
+                return@flatMap ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .build<Flux<GetProductSales200ResponseInner>>().toMono()
+            }
             val productSalesAnalytics = productServiceAnalytics.getProductSalesAnalytics(
                 productIds,
                 fromTime.toLocalDateTime(),
