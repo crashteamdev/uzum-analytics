@@ -10,6 +10,6 @@ class UzumEventStreamInitializer(
     @PostConstruct
     fun initialize() {
         uzumEventStreamAsyncLoop.startUzumDataStreamLoop()
-//        uzumEventStreamAsyncLoop.startPaymentStreamLoop()
+        uzumEventStreamAsyncLoop.startPaymentStreamLoop()
     }
 }

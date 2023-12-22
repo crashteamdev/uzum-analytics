@@ -33,10 +33,10 @@ class JobConfiguration(
         if (!schedulerFactoryBean.checkExists(TriggerKey(REPORT_GENERATE_MASTER_JOB, REPORT_GENERATE_MASTER_GROUP))) {
             schedulerFactoryBean.scheduleJob(triggerReportGenerateMasterJob())
         }
-        schedulerFactoryBean.addJob(pendingMessageJob(), true, true)
-        if (!schedulerFactoryBean.checkExists(TriggerKey(PENDING_MESSAGE_JOB, PENDING_MESSAGE_GROUP))) {
-            schedulerFactoryBean.scheduleJob(triggerPendingMessageJob())
-        }
+//        schedulerFactoryBean.addJob(pendingMessageJob(), true, true)
+//        if (!schedulerFactoryBean.checkExists(TriggerKey(PENDING_MESSAGE_JOB, PENDING_MESSAGE_GROUP))) {
+//            schedulerFactoryBean.scheduleJob(triggerPendingMessageJob())
+//        }
     }
 
 //
@@ -57,22 +57,22 @@ class JobConfiguration(
 //            .build()
 //    }
 
-    private fun pendingMessageJob(): JobDetailImpl {
-        val jobDetail = JobDetailImpl()
-        jobDetail.key = JobKey(PENDING_MESSAGE_JOB, PENDING_MESSAGE_GROUP)
-        jobDetail.jobClass = PendingMessageScheduler::class.java
-
-        return jobDetail
-    }
-
-    private fun triggerPendingMessageJob(): CronTrigger {
-        return TriggerBuilder.newTrigger()
-            .forJob(pendingMessageJob())
-            .withIdentity(PENDING_MESSAGE_JOB, PENDING_MESSAGE_GROUP)
-            .withSchedule(CronScheduleBuilder.cronSchedule(uzumProperties.pendingMessageCron))
-            .withPriority(Int.MAX_VALUE)
-            .build()
-    }
+//    private fun pendingMessageJob(): JobDetailImpl {
+//        val jobDetail = JobDetailImpl()
+//        jobDetail.key = JobKey(PENDING_MESSAGE_JOB, PENDING_MESSAGE_GROUP)
+//        jobDetail.jobClass = PendingMessageScheduler::class.java
+//
+//        return jobDetail
+//    }
+//
+//    private fun triggerPendingMessageJob(): CronTrigger {
+//        return TriggerBuilder.newTrigger()
+//            .forJob(pendingMessageJob())
+//            .withIdentity(PENDING_MESSAGE_JOB, PENDING_MESSAGE_GROUP)
+//            .withSchedule(CronScheduleBuilder.cronSchedule(uzumProperties.pendingMessageCron))
+//            .withPriority(Int.MAX_VALUE)
+//            .build()
+//    }
 
     private fun reportCleanupJob(): JobDetailImpl {
         val jobDetail = JobDetailImpl()
@@ -112,7 +112,7 @@ class JobConfiguration(
         const val REPORT_CLEANUP_GROUP = "reportCleanupGroup"
         const val REPORT_GENERATE_MASTER_JOB = "reportGenerateMasterJob"
         const val REPORT_GENERATE_MASTER_GROUP = "reportGenerateMasterGroup"
-        const val PENDING_MESSAGE_JOB = "pendingMessageJob"
-        const val PENDING_MESSAGE_GROUP = "pendingMessageGroup"
+//        const val PENDING_MESSAGE_JOB = "pendingMessageJob"
+//        const val PENDING_MESSAGE_GROUP = "pendingMessageGroup"
     }
 }
