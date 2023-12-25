@@ -47,10 +47,11 @@ class UzumEventStreamListener(
 
     override fun shutdown(shutdownInput: ShutdownInput) {
         try {
-            log.debug { "[Uzum-Data-Stream] Shutting down event processor for $partitionId" }
-            if (shutdownInput.shutdownReason == ShutdownReason.TERMINATE) {
-                shutdownInput.checkpointer.checkpoint()
-            }
+            log.debug { "[Uzum-Data-Stream] Shutting down event processor for $partitionId." +
+                    "shutdownReason=${shutdownInput.shutdownReason}" }
+//            if (shutdownInput.shutdownReason == ShutdownReason.TERMINATE) {
+//                shutdownInput.checkpointer.checkpoint()
+//            }
         } catch (e: Exception) {
             log.error(e) { "[Uzum-Data-Stream] Failed to checkpoint on shutdown" }
         }
