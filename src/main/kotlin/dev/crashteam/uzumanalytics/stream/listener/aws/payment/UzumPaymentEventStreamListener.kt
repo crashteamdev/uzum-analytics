@@ -48,10 +48,11 @@ class UzumPaymentEventStreamListener(
 
     override fun shutdown(shutdownInput: ShutdownInput) {
         try {
-            log.info { "[Uzum-Payment-Stream] Shutting down event processor for $partitionId" }
-            if (shutdownInput.shutdownReason == ShutdownReason.TERMINATE) {
-                shutdownInput.checkpointer.checkpoint()
-            }
+            log.info { "[Uzum-Payment-Stream] Shutting down event processor for $partitionId." +
+                    " shutdownReason=${shutdownInput.shutdownReason}" }
+//            if (shutdownInput.shutdownReason == ShutdownReason.TERMINATE) {
+//                shutdownInput.checkpointer.checkpoint()
+//            }
         } catch (e: Exception) {
             log.error(e) { "[Uzum-Payment-Stream] Failed to checkpoint on shutdown" }
         }
