@@ -4,15 +4,18 @@ import com.amazonaws.services.kinesis.clientlibrary.lib.worker.ShutdownReason
 import com.amazonaws.services.kinesis.clientlibrary.types.InitializationInput
 import com.amazonaws.services.kinesis.clientlibrary.types.ProcessRecordsInput
 import com.amazonaws.services.kinesis.clientlibrary.types.ShutdownInput
+import dev.crashteam.uzumanalytics.stream.listener.aws.model.RestartPaymentStreamEvent
 import dev.crashteam.payment.PaymentEvent
 import dev.crashteam.uzumanalytics.stream.handler.payment.PaymentEventHandler
 import dev.crashteam.uzumanalytics.stream.listener.aws.AwsStreamListener
 import mu.KotlinLogging
+import org.springframework.context.ApplicationEventPublisher
 
 private val log = KotlinLogging.logger {}
 
 class UzumPaymentEventStreamListener(
-    private val paymentEventHandler: List<PaymentEventHandler>
+    private val paymentEventHandler: List<PaymentEventHandler>,
+    private val publisher: ApplicationEventPublisher,
 ) : AwsStreamListener {
 
     private var partitionId: String? = null
@@ -50,9 +53,10 @@ class UzumPaymentEventStreamListener(
         try {
             log.info { "[Uzum-Payment-Stream] Shutting down event processor for $partitionId." +
                     " shutdownReason=${shutdownInput.shutdownReason}" }
-//            if (shutdownInput.shutdownReason == ShutdownReason.TERMINATE) {
-//                shutdownInput.checkpointer.checkpoint()
-//            }
+            if (shutdownInput.shutdownReason == ShutdownReason.TERMINATE) {
+                publisher.publishEvent(RestartPaymentStreamEvent(shutdownInput))
+                //shutdownInput.checkpointer.checkpoint()
+            }
         } catch (e: Exception) {
             log.error(e) { "[Uzum-Payment-Stream] Failed to checkpoint on shutdown" }
         }

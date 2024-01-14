@@ -16,6 +16,7 @@ import dev.crashteam.uzumanalytics.stream.listener.aws.payment.UzumPaymentEventS
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Scope
 import java.time.Duration
 import java.util.*
 
@@ -74,6 +75,7 @@ class AwsSteamConfig(
     }
 
     @Bean
+    @Scope(value = "prototype")
     fun paymentStreamWorker(): Worker {
         val awsCredentials = BasicAWSCredentials(awsStreamProperties.accessKey, awsStreamProperties.secretKey)
         val consumerConfig = KinesisClientLibConfiguration(
