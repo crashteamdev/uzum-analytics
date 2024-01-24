@@ -76,6 +76,7 @@ class UzumCategoryEventHandler(
                 } else "$path${childCategory.title.trim()},",
                 LocalDateTime.now()
             )
+            log.info { "Save child category: $categoryDocument" }
             categoryDao.saveCategory(categoryDocument).awaitSingleOrNull()
             if (childCategory.childrenList?.isNotEmpty() == true) {
                 saveChildCategories(childCategory, childCategory.childrenList, categoryDocument.path)
@@ -91,6 +92,7 @@ class UzumCategoryEventHandler(
             parentCategoryId = 0,
             title = rootCategoryRecord.title
         )
+        log.info { "Save root category: $rootCategory" }
         categoryTreeDao.saveCategory(rootCategory).awaitSingleOrNull()
         if (rootCategoryRecord.childrenList?.isNotEmpty() == true) {
             saveHierarchicalChildCategory(rootCategoryRecord, rootCategoryRecord.childrenList)
