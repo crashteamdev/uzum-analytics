@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS uzum.uzum_product_daily_sales
 
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS uzum.uzum_product_daily_sales_mv
-            TO uzum_product_daily_sales AS
+            TO uzum.uzum_product_daily_sales AS
 SELECT toDate(timestamp)                 AS date,
        product_id                        AS product_id,
        sku_id                            AS sku_id,
