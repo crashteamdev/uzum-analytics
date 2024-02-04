@@ -1,6 +1,6 @@
 --liquibase formatted sql
 --changeset vitaxa:create-product-daily-sales
-CREATE TABLE IF NOT EXISTS uzum_product_daily_sales
+CREATE TABLE IF NOT EXISTS uzum.uzum_product_daily_sales
 (
     date              Date,
     product_id        UInt64,
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS uzum_product_daily_sales
         ORDER BY (product_id, sku_id, date);
 
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS uzum_product_daily_sales_mv
+CREATE MATERIALIZED VIEW IF NOT EXISTS uzum.uzum_product_daily_sales_mv
             TO uzum_product_daily_sales AS
 SELECT toDate(timestamp)                 AS date,
        product_id                        AS product_id,
