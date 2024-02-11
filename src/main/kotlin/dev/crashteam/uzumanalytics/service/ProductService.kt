@@ -6,6 +6,8 @@ import com.mongodb.client.model.InsertOneModel
 import com.mongodb.client.model.UpdateOneModel
 import com.mongodb.client.model.WriteModel
 import dev.crashteam.uzumanalytics.domain.mongo.*
+import dev.crashteam.uzumanalytics.repository.clickhouse.CHProductPositionRepository
+import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductPositionHistory
 import dev.crashteam.uzumanalytics.repository.mongo.CategoryRepository
 import dev.crashteam.uzumanalytics.repository.mongo.ProductChangeHistoryDao
 import dev.crashteam.uzumanalytics.repository.mongo.ProductPositionRepository
@@ -32,6 +34,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import java.util.Collections.emptyList
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.stream.Stream
 import kotlin.math.abs
@@ -46,6 +49,7 @@ class ProductService(
     private val productHistoryCalculator: ProductHistoryCalculator,
     private val productPositionRepository: ProductPositionRepository,
     private val reactiveMongoTemplate: ReactiveMongoTemplate,
+    private val chProductPositionRepository: CHProductPositionRepository,
 ) {
 
     fun findProductByProperties(
