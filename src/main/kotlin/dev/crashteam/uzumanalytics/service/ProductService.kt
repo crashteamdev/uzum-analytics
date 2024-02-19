@@ -410,48 +410,23 @@ class ProductService(
         skuId: Long,
         fromTime: LocalDateTime,
         toTime: LocalDateTime,
-    ): List<ProductPositionAggregate>? {
+    ): List<ChProductPositionHistory> {
         log.info {
             "Get product positions. categoryId=$categoryId; productId=$productId; skuId=$skuId;" +
                     " fromTime=$fromTime; toTime=$toTime"
         }
-        val productPositions =
-            productPositionRepository.findProductPositions(categoryId, productId, skuId, fromTime, toTime).collectList()
-                .awaitSingleOrNull() ?: return null
-
-        if (productPositions.isEmpty()) return null
-
-        val minFoundDate = productPositions.minOf { it.id?.date!! }
-        val datesList = Stream.iterate(minFoundDate.atStartOfDay()) { it.plusDays(1) }
-            .limit(ChronoUnit.DAYS.between(minFoundDate.atStartOfDay(), toTime) + 1).toList()
-        val resultProductPositions = mutableListOf<ProductPositionAggregate>()
-        var comparableIndex = 0
-        datesList.forEachIndexed { index, cursorDateTime ->
-            val cursorDate = cursorDateTime.toLocalDate()
-            if (comparableIndex >= productPositions.size) {
-                resultProductPositions.add(
-                    ProductPositionAggregate().apply {
-                        id = productPositions.first().id?.copy(date = cursorDate)
-                        position = 0
-                    }
-                )
-            } else {
-                val productPositionAggregate = productPositions[comparableIndex]
-                if (cursorDateTime.toLocalDate() == productPositionAggregate.id?.date) {
-                    resultProductPositions.add(productPositionAggregate)
-                    comparableIndex++
-                } else {
-                    resultProductPositions.add(
-                        ProductPositionAggregate().apply {
-                            id = productPositionAggregate.id?.copy(date = cursorDate)
-                            position = 0
-                        }
-                    )
-                }
-            }
+        val productPositionHistory = chProductPositionRepository.getProductPositionHistory(
+            categoryId.toString(),
+            productId.toString(),
+            skuId.toString(),
+            fromTime,
+            toTime
+        )
+        if (productPositionHistory.isEmpty()) {
+            return kotlin.collections.emptyList()
         }
 
-        return resultProductPositions
+        return productPositionHistory
     }
 
     private fun calculateAggregateProductHistory(
