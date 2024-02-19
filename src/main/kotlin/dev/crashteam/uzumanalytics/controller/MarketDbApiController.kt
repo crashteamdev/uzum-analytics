@@ -1,9 +1,5 @@
 package dev.crashteam.uzumanalytics.controller
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.reactive.awaitFirstOrNull
-import kotlinx.coroutines.reactor.awaitSingleOrNull
-import kotlinx.coroutines.withContext
 import dev.crashteam.uzumanalytics.controller.model.*
 import dev.crashteam.uzumanalytics.domain.mongo.ReportDocument
 import dev.crashteam.uzumanalytics.domain.mongo.ReportStatus
@@ -23,6 +19,11 @@ import dev.crashteam.uzumanalytics.repository.mongo.pageable.PageResult
 import dev.crashteam.uzumanalytics.service.CategoryService
 import dev.crashteam.uzumanalytics.service.ProductService
 import dev.crashteam.uzumanalytics.service.UserRestrictionService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.reactive.awaitFirstOrNull
+import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.withContext
+import liquibase.pro.packaged.it
 import mu.KotlinLogging
 import org.springframework.core.convert.ConversionService
 import org.springframework.format.annotation.DateTimeFormat
@@ -38,6 +39,7 @@ import java.math.RoundingMode
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.*
+
 
 private val log = KotlinLogging.logger {}
 
@@ -225,20 +227,18 @@ class MarketDbApiController(
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
         }
         val productPositions = productService.getProductPositions(categoryId, productId, skuId, fromTime, toTime)
-            ?: return ResponseEntity.ok(null)
-
-        if (productPositions.isEmpty()) return ResponseEntity.ok(null)
-
-        val positionAggregate = productPositions.first()
+        if (productPositions.isNullOrEmpty()) {
+            return ResponseEntity.ok(null)
+        }
 
         return ResponseEntity.ok(ProductPositionView(
-            categoryId = positionAggregate.id!!.categoryId,
-            productId = positionAggregate.id!!.productId,
-            skuId = positionAggregate.id!!.skuId,
+            categoryId = categoryId,
+            productId = productId,
+            skuId = skuId,
             history = productPositions.map {
                 ProductPositionHistoryView(
-                    position = it.position!!,
-                    date = it.id?.date!!
+                    position = it.position,
+                    date = it.date
                 )
             }
         ))
