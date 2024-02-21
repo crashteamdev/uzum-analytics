@@ -7,10 +7,8 @@ import dev.crashteam.uzumanalytics.report.ReportFileService
 import dev.crashteam.uzumanalytics.report.ReportService
 import dev.crashteam.uzumanalytics.repository.mongo.ReportRepository
 import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
-import dev.crashteam.uzumanalytics.service.ProductServiceAnalytics
-import dev.crashteam.uzumanalytics.service.PromoCodeService
-import dev.crashteam.uzumanalytics.service.SellerService
-import dev.crashteam.uzumanalytics.service.UserRestrictionService
+import dev.crashteam.uzumanalytics.service.*
+import dev.crashteam.uzumanalytics.service.exception.UserSubscriptionGiveawayException
 import dev.crashteam.uzumanalytics.service.model.PromoCodeCheckCode
 import dev.crashteam.uzumanalytics.service.model.PromoCodeCreateData
 import kotlinx.coroutines.Dispatchers
@@ -52,7 +50,8 @@ class MarketDbApiControllerV2(
     private val reportService: ReportService,
     private val reportRepository: ReportRepository,
     private val reportFileService: ReportFileService,
-) : CategoryApi, ProductApi, SellerApi, PromoCodeApi, ReportApi, ReportsApi {
+    private val userSubscriptionService: UserSubscriptionService,
+) : CategoryApi, ProductApi, SellerApi, PromoCodeApi, ReportApi, ReportsApi, SubscriptionApi {
 
     override fun productOverallInfo(
         xRequestID: UUID,
@@ -504,6 +503,27 @@ class MarketDbApiControllerV2(
             }
             ResponseEntity.ok(reportDocuments.toFlux()).toMono()
         }.doOnError { log.error(it) { "Failed get reports" } }
+    }
+
+    override fun giveawayDemoSubscription(
+        xRequestID: UUID,
+        giveawayUserDemoRequest: Mono<GiveawayUserDemoRequest>,
+        exchange: ServerWebExchange
+    ): Mono<ResponseEntity<Void>> {
+        return exchange.getPrincipal<Principal>().flatMap {
+            userRepository.findByUserId(it.name).flatMap { userDocument ->
+                if (userDocument.role != UserRole.ADMIN) {
+                    ResponseEntity.status(HttpStatus.FORBIDDEN).build<Void>().toMono()
+                } else {
+                    try {
+                        userSubscriptionService.giveawayDemoSubscription(it.name)
+                        ResponseEntity.ok().build<Void>().toMono()
+                    } catch (e: UserSubscriptionGiveawayException) {
+                        ResponseEntity.badRequest().build<Void>().toMono()
+                    }
+                }
+            }
+        }.doOnError { log.error(it) { "Failed to giveaway demo for user" } }
     }
 
     private fun checkRequestDaysPermission(
