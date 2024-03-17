@@ -117,7 +117,7 @@ class CHProductRepository(
                                  max(seller_title)                                                                                AS seller_title,
                                  max(seller_link)                                                                                 AS seller_link,
                                  max(seller_account_id)                                                                           AS seller_account_id
-                          FROM kazanex.product
+                          FROM uzum.product
                           WHERE product_id IN (?)
                             AND timestamp BETWEEN ? AND ?
                           GROUP BY product_id, toDate(timestamp) AS date
