@@ -1,11 +1,15 @@
 package dev.crashteam.uzumanalytics.service
 
 import dev.crashteam.uzumanalytics.config.RedisConfig
+import dev.crashteam.uzumanalytics.repository.clickhouse.CHCategoryRepository
 import dev.crashteam.uzumanalytics.repository.clickhouse.CHProductRepository
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChCategoryOverallInfo
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductAdditionalInfo
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductSalesHistory
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductsSales
+import dev.crashteam.uzumanalytics.service.model.ProductDailyAnalytics
+import dev.crashteam.uzumanalytics.service.model.ProductDailyAnalyticsCategory
+import dev.crashteam.uzumanalytics.service.model.ProductDailyAnalyticsSeller
 import dev.crashteam.uzumanalytics.service.model.SellerOverallInfo
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -13,11 +17,14 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Component
+import java.math.RoundingMode
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Component
 class ProductServiceAnalytics(
-    private val chProductRepository: CHProductRepository
+    private val chProductRepository: CHProductRepository,
+    private val chCategoryRepository: CHCategoryRepository,
 ) {
 
     fun getProductAdditionalInfo(
@@ -85,5 +92,38 @@ class ProductServiceAnalytics(
     ): List<ChProductsSales> {
         val productIdList = productIds.map { it.toString() }
         return chProductRepository.getProductsSales(productIdList, fromTime, toTime)
+    }
+
+    fun getProductDailyAnalytics(
+        productId: String,
+        fromDate: LocalDate,
+        toDate: LocalDate,
+    ): ProductDailyAnalytics? {
+        val productDailyAnalytics =
+            chProductRepository.getProductDailyAnalytics(productId, fromDate, toDate) ?: return null
+        val categoryTitle = chCategoryRepository.getCategoryTitle(productDailyAnalytics.categoryId) ?: "unknown"
+        return ProductDailyAnalytics(
+            productId = productDailyAnalytics.productId,
+            title = productDailyAnalytics.title,
+            category = ProductDailyAnalyticsCategory(
+                categoryId = productDailyAnalytics.categoryId,
+                categoryName = categoryTitle
+            ),
+            seller = ProductDailyAnalyticsSeller(
+                sellerLink = productDailyAnalytics.sellerLink,
+                sellerTitle = productDailyAnalytics.sellerTitle,
+            ),
+            price = productDailyAnalytics.price.setScale(2, RoundingMode.HALF_UP),
+            fullPrice = productDailyAnalytics.fullPrice.setScale(2, RoundingMode.HALF_UP),
+            reviewAmount = productDailyAnalytics.reviewAmount,
+            revenue = productDailyAnalytics.revenue.setScale(2, RoundingMode.HALF_UP),
+            photoKey = productDailyAnalytics.photoKey,
+            priceChart = productDailyAnalytics.priceChart,
+            revenueChart = productDailyAnalytics.revenueChart,
+            orderChart = productDailyAnalytics.orderChart,
+            availableChart = productDailyAnalytics.availableChart,
+            firstDiscovered = productDailyAnalytics.firstDiscovered,
+            rating = productDailyAnalytics.rating
+        )
     }
 }

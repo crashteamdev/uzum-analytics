@@ -14,7 +14,7 @@ data class UzumProperties(
     @field:NotEmpty
     val productCron: String? = null,
     @field:NotEmpty
-    val paymentCron: String? = null,
+    val aggregateCron: String? = null,
     @field:NotEmpty
     val sellerCron: String? = null,
     @field:NotEmpty

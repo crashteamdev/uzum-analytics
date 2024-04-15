@@ -1,5 +1,7 @@
 package dev.crashteam.uzumanalytics.config
 
+import com.clickhouse.client.config.ClickHouseClientOption
+import com.clickhouse.client.config.ClickHouseDefaults
 import dev.crashteam.uzumanalytics.config.properties.ClickHouseDbProperties
 import liquibase.integration.spring.SpringLiquibase
 import org.springframework.beans.factory.annotation.Autowired
@@ -19,12 +21,16 @@ class ClickhouseConfig {
     @Bean
     fun clickHouseDataSource(clickHouseDbProperties: ClickHouseDbProperties): ClickHouseDataSource {
         val info = Properties()
-        info.setProperty(ClickHouseQueryParam.USER.key, clickHouseDbProperties.user)
-        info.setProperty(ClickHouseQueryParam.PASSWORD.key, clickHouseDbProperties.password)
-        info.setProperty(ClickHouseQueryParam.COMPRESS.key, clickHouseDbProperties.compress.toString())
+        info.setProperty(ClickHouseDefaults.USER.key, clickHouseDbProperties.user)
+        info.setProperty(ClickHouseDefaults.PASSWORD.key, clickHouseDbProperties.password)
+        info.setProperty(ClickHouseClientOption.COMPRESS.key, clickHouseDbProperties.compress.toString())
         info.setProperty(
-            ClickHouseQueryParam.CONNECT_TIMEOUT.key,
+            ClickHouseClientOption.CONNECTION_TIMEOUT.key,
             clickHouseDbProperties.connectionTimeout.toString()
+        )
+        info.setProperty(
+            ClickHouseClientOption.SOCKET_TIMEOUT.key,
+            clickHouseDbProperties.socketTimeout.toString()
         )
         info.setProperty("ssl", clickHouseDbProperties.ssl.toString())
         return ClickHouseDataSource(clickHouseDbProperties.url, info)
