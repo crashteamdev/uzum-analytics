@@ -107,17 +107,17 @@ class AggregateStatsJob : Job {
     }
 
     private fun getTableNameForAggCategoryProductsStatsByStatType(statType: StatType) = when (statType) {
-        StatType.WEEK -> "kazanex.category_product_weekly_stats"
-        StatType.TWO_WEEK -> "kazanex.category_product_two_week_stats"
-        StatType.MONTH -> "kazanex.category_product_monthly_stats"
-        StatType.TWO_MONTH -> "kazanex.category_product_two_month_stats"
+        StatType.WEEK -> "uzum.category_product_weekly_stats"
+        StatType.TWO_WEEK -> "uzum.category_product_two_week_stats"
+        StatType.MONTH -> "uzum.category_product_monthly_stats"
+        StatType.TWO_MONTH -> "uzum.category_product_two_month_stats"
     }
 
     private fun getTableNameForAggCategoryStatsByStatType(statType: StatType) = when (statType) {
-        StatType.WEEK -> "kazanex.category_weekly_stats"
-        StatType.TWO_WEEK -> "kazanex.category_two_week_stats"
-        StatType.MONTH -> "kazanex.category_monthly_stats"
-        StatType.TWO_MONTH -> "kazanex.category_two_month_stats"
+        StatType.WEEK -> "uzum.category_weekly_stats"
+        StatType.TWO_WEEK -> "uzum.category_two_week_stats"
+        StatType.MONTH -> "uzum.category_monthly_stats"
+        StatType.TWO_MONTH -> "uzum.category_two_month_stats"
     }
 
     private fun getPeriodFromStatTypeWithColumName(dateColumnName: String, statType: StatType) = when (statType) {
@@ -170,11 +170,11 @@ class AggregateStatsJob : Job {
                                        OVER (PARTITION BY latest_category_id, product_id ORDER BY timestamp ASC)         AS last_reviews_amount,
                             last_value(total_available_amount)
                                        OVER (PARTITION BY latest_category_id, product_id ORDER BY timestamp ASC)         AS last_available_amount
-                     FROM kazanex.product
+                     FROM uzum.product
                      WHERE %s
                      AND latest_category_id IN (
-                         if(length(dictGetDescendants('kazanex.categories_hierarchical_dictionary', %s, 0)) > 0,
-                            dictGetDescendants('kazanex.categories_hierarchical_dictionary', %s, 0),
+                         if(length(dictGetDescendants('uzum.categories_hierarchical_dictionary', %s, 0)) > 0,
+                            dictGetDescendants('uzum.categories_hierarchical_dictionary', %s, 0),
                             array(%s))
                          )
                      )
@@ -217,12 +217,12 @@ class AggregateStatsJob : Job {
                             order_amount / seller_count                      AS order_per_seller,
                             if(order_amount > 0, revenue / product_count, 0) AS revenue_per_product,
                             (SELECT uniq(seller_id), uniq(product_id)
-                             FROM kazanex.ke_product_daily_sales
+                             FROM uzum.ke_product_daily_sales
                              WHERE date BETWEEN %s AND %s
                                AND category_id IN
-                                   if(length(dictGetDescendants('kazanex.categories_hierarchical_dictionary', %s, 0)) >
+                                   if(length(dictGetDescendants('uzum.categories_hierarchical_dictionary', %s, 0)) >
                                       0,
-                                      dictGetDescendants('kazanex.categories_hierarchical_dictionary', %s, 0),
+                                      dictGetDescendants('uzum.categories_hierarchical_dictionary', %s, 0),
                                       array(%s)))                         AS product_seller_count_tuple
                      FROM (
                               SELECT date,
@@ -246,12 +246,12 @@ class AggregateStatsJob : Job {
                                      min(p.total_available_amount)                                                                    AS available_amount,
                                      quantile(p.purchase_price)                                                                       AS median_price,
                                      anyLast(seller_id)                                                                               AS seller_id
-                              FROM kazanex.product p
+                              FROM uzum.product p
                               WHERE timestamp BETWEEN %s AND %s
                                 AND latest_category_id IN
-                                    if(length(dictGetDescendants('kazanex.categories_hierarchical_dictionary', %s, 0)) >
+                                    if(length(dictGetDescendants('uzum.categories_hierarchical_dictionary', %s, 0)) >
                                        0,
-                                       dictGetDescendants('kazanex.categories_hierarchical_dictionary', %s, 0),
+                                       dictGetDescendants('uzum.categories_hierarchical_dictionary', %s, 0),
                                        array(%s))
                               GROUP BY product_id, toDate(timestamp) AS date
                               )
@@ -270,12 +270,12 @@ class AggregateStatsJob : Job {
                        prev_order_amount / prev_seller_count                           AS prev_order_per_seller,
                        if(prev_order_amount > 0, prev_revenue / prev_product_count, 0) AS prev_revenue_per_product,
                        (SELECT uniq(seller_id), uniq(product_id)
-                        FROM kazanex.ke_product_daily_sales
+                        FROM uzum.ke_product_daily_sales
                         WHERE date BETWEEN %s AND %s
                           AND category_id IN
-                              if(length(dictGetDescendants('kazanex.categories_hierarchical_dictionary', %s, 0)) >
+                              if(length(dictGetDescendants('uzum.categories_hierarchical_dictionary', %s, 0)) >
                                  0,
-                                 dictGetDescendants('kazanex.categories_hierarchical_dictionary', %s, 0),
+                                 dictGetDescendants('uzum.categories_hierarchical_dictionary', %s, 0),
                                  array(%s)))                                        AS prev_product_seller_count_tuple
                 FROM (
                          SELECT date,
@@ -299,12 +299,12 @@ class AggregateStatsJob : Job {
                                 min(p.total_available_amount)                                                                    AS available_amount,
                                 quantile(p.purchase_price)                                                                       AS median_price,
                                 anyLast(seller_id)                                                                               AS seller_id
-                         FROM kazanex.product p
+                         FROM uzum.product p
                          WHERE timestamp BETWEEN %s AND %s
                            AND latest_category_id IN
-                               if(length(dictGetDescendants('kazanex.categories_hierarchical_dictionary', %s, 0)) >
+                               if(length(dictGetDescendants('uzum.categories_hierarchical_dictionary', %s, 0)) >
                                   0,
-                                  dictGetDescendants('kazanex.categories_hierarchical_dictionary', %s, 0),
+                                  dictGetDescendants('uzum.categories_hierarchical_dictionary', %s, 0),
                                   array(%s))
                          GROUP BY product_id, toDate(timestamp) AS date
                          ) AS p

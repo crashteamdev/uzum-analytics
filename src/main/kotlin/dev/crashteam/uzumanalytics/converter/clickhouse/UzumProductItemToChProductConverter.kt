@@ -3,7 +3,7 @@ package dev.crashteam.uzumanalytics.converter.clickhouse
 import dev.crashteam.uzum.scrapper.data.v1.UzumProductChange
 import dev.crashteam.uzumanalytics.converter.DataConverter
 import dev.crashteam.uzumanalytics.extensions.toLocalDateTime
-import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChKazanExpressCharacteristic
+import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChUzumCharacteristic
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChUzumProduct
 import dev.crashteam.uzumanalytics.stream.handler.model.UzumProductWrapper
 import org.springframework.stereotype.Component
@@ -34,7 +34,7 @@ class UzumProductItemToChProductConverter : DataConverter<UzumProductWrapper, Ch
                 tags = uzumProductChange.tagsList,
                 photoKey = sku.photoKey.ifEmpty { null },
                 characteristics = sku.characteristicsList.map {
-                    ChKazanExpressCharacteristic(it.type, it.title)
+                    ChUzumCharacteristic(it.type, it.title)
                 },
                 sellerId = uzumProductChange.seller.id,
                 sellerAccountId = uzumProductChange.seller.accountId,
