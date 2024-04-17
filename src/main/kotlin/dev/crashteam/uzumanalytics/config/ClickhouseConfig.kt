@@ -2,6 +2,7 @@ package dev.crashteam.uzumanalytics.config
 
 import com.clickhouse.client.config.ClickHouseClientOption
 import com.clickhouse.client.config.ClickHouseDefaults
+import com.clickhouse.jdbc.ClickHouseDataSource
 import dev.crashteam.uzumanalytics.config.properties.ClickHouseDbProperties
 import liquibase.integration.spring.SpringLiquibase
 import org.springframework.beans.factory.annotation.Autowired
@@ -10,8 +11,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.jdbc.core.JdbcTemplate
-import ru.yandex.clickhouse.ClickHouseDataSource
-import ru.yandex.clickhouse.settings.ClickHouseQueryParam
 import java.util.*
 import javax.sql.DataSource
 
