@@ -44,6 +44,13 @@ spring:
     username: default
     password: password
     ssl: false
+  datasource:
+    url: jdbc:postgresql://localhost:5432/uzum-analytics
+    username: postgres
+    password: postgres
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
   quartz:
     properties:
       org.quartz.scheduler.instanceName: UzumMasterScheduler
@@ -131,6 +138,10 @@ clickhouse:
   ssl: false
   liquibase:
     change-log: "classpath:db/changelog/db.ch.changelog-main.yml"
+
+postgresql:
+  liquibase:
+    change-log: "classpath:db/changelog/db.pg.changelog-main.yml"
 
 aws-stream:
   kinesisEndpoint: 'fake-endpoint'
