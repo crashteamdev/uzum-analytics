@@ -217,7 +217,7 @@ class AggregateStatsJob : Job {
                             order_amount / seller_count                      AS order_per_seller,
                             if(order_amount > 0, revenue / product_count, 0) AS revenue_per_product,
                             (SELECT uniq(seller_id), uniq(product_id)
-                             FROM uzum.ke_product_daily_sales
+                             FROM uzum.uzum_product_daily_sales
                              WHERE date BETWEEN %s AND %s
                                AND category_id IN
                                    if(length(dictGetDescendants('uzum.categories_hierarchical_dictionary', %s, 0)) >
@@ -270,7 +270,7 @@ class AggregateStatsJob : Job {
                        prev_order_amount / prev_seller_count                           AS prev_order_per_seller,
                        if(prev_order_amount > 0, prev_revenue / prev_product_count, 0) AS prev_revenue_per_product,
                        (SELECT uniq(seller_id), uniq(product_id)
-                        FROM uzum.ke_product_daily_sales
+                        FROM uzum.uzum_product_daily_sales
                         WHERE date BETWEEN %s AND %s
                           AND category_id IN
                               if(length(dictGetDescendants('uzum.categories_hierarchical_dictionary', %s, 0)) >
