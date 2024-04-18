@@ -30,10 +30,12 @@ CREATE TABLE category_hierarchical
 
 CREATE TABLE sellers
 (
-    seller_id  BIGINT PRIMARY KEY,
+    seller_id  BIGINT            NOT NULL,
     account_id BIGINT            NOT NULL,
     link       CHARACTER VARYING NOT NULL,
-    title      CHARACTER VARYING NOT NULL
+    title      CHARACTER VARYING NOT NULL,
+
+    PRIMARY KEY (seller_id, account_id)
 );
 
 CREATE TABLE user_subscription
@@ -65,16 +67,16 @@ CREATE TABLE reports
 (
     report_id   CHARACTER VARYING PRIMARY KEY,
     job_id      CHARACTER VARYING           NOT NULL,
-    user_id     CHARACTER VARYING PRIMARY KEY,
+    user_id     CHARACTER VARYING           NOT NULL,
     interval    INT                         NOT NULL,
     created_at  TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     seller_link CHARACTER VARYING,
-    report_type monitor_state               NOT NULL,
+    report_type report_type                 NOT NULL,
     status      report_status               NOT NULL,
     file        BYTEA
 );
 
-CREATE UNIQUE INDEX report_user_id_idx ON reports (user_id);
+CREATE INDEX report_user_id_idx ON reports (user_id);
 CREATE UNIQUE INDEX report_job_id_idx ON reports (job_id);
 
 --changeset vitaxa:create-qrtz-schema
