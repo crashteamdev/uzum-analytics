@@ -1,5 +1,7 @@
 --liquibase formatted sql
 --changeset vitaxa:recreate-product-daily-sales-view
+
+DROP TABLE IF EXISTS uzum.ke_product_daily_sales_mv;
 DROP TABLE IF EXISTS uzum.uzum_product_daily_sales_mv;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS uzum.uzum_product_daily_sales_mv
