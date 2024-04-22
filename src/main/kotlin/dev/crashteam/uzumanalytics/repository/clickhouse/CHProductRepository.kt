@@ -218,7 +218,7 @@ class CHProductRepository(
                                    daily_order_amount + (total_orders_amount_min - max_total_order_amount_delta),
                                    daily_order_amount)                                                                      AS order_amount_with_gaps,
                            if(order_amount_with_gaps < 0, 0, order_amount_with_gaps)                                        AS order_amount,
-                           quantileMerge(median_price)                                                                      AS purchase_price,
+                           quantileMerge(median_price) / 100                                                                AS purchase_price,
                            order_amount * purchase_price                                                                    AS revenue
                     FROM uzum.uzum_product_daily_sales
                     WHERE seller_link = ?
@@ -305,7 +305,7 @@ class CHProductRepository(
                                     daily_order_amount + (total_orders_amount_min - max_total_order_amount_delta),
                                     daily_order_amount)                                                                      AS order_amount_with_gaps,
                             if(order_amount_with_gaps < 0, 0, order_amount_with_gaps)                                        AS final_order_amount,
-                            quantileMerge(median_price)                                                                      AS median_price,
+                            quantileMerge(median_price) / 100                                                                AS median_price,
                             maxMerge(seller_title)                                                                           AS seller_title,
                             anyLast(seller_id)                                                                               AS seller_id,
                             final_order_amount * median_price                                                                AS revenue
@@ -352,7 +352,7 @@ class CHProductRepository(
                            daily_order_amount + (total_orders_amount_min - max_total_order_amount_delta),
                            daily_order_amount)                                                                      AS order_amount_with_gaps,
                    if(order_amount_with_gaps < 0, 0, order_amount_with_gaps)                                        AS order_amount,
-                   quantileMerge(median_price)                                                                      AS median_price,
+                   quantileMerge(median_price) / 100                                                                AS median_price,
                    maxMerge(seller_title)                                                                           AS seller_title,
                    anyLast(seller_id)                                                                               AS seller_id,
                    order_amount * median_price                                                                      AS revenue
