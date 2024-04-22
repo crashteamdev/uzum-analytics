@@ -282,6 +282,7 @@ class CHProductRepository(
                    anyLast(available_amount)                                                            AS available_amounts,
                    anyLast(median_price)                                                                AS purchase_price,
                    sum(revenue)                                                                         AS sales,
+                   (dictGet('uzum.categories_hierarchical_dictionary', 'title', latest_category_id))    AS category_name,
                    anyLast(title)                                                                       AS name,
                    count() OVER ()                                                                      AS total
             FROM (
