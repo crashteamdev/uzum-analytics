@@ -272,7 +272,8 @@ class CHProductRepository(
             SELECT date, sum(order_amount) AS order_amount FROM product_sales GROUP BY date
         """.trimIndent()
         private val GET_SELLER_SALES_REPORT = """
-            SELECT anyLast(seller_title)                                                                AS seller_title,
+            SELECT product_id,
+                   anyLast(seller_title)                                                                AS seller_title,
                    anyLast(seller_id)                                                                   AS seller_id,
                    anyLast(category_id)                                                                 AS latest_category_id,
                    groupArray(final_order_amount)                                                       AS order_graph,
