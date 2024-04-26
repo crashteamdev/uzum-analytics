@@ -21,7 +21,6 @@ private val log = KotlinLogging.logger {}
 
 @Component
 class UzumProductPositionEventHandler(
-    private val productPositionRepository: ProductPositionRepository,
     private val chProductPositionRepository: CHProductPositionRepository
 ) : UzumScrapEventHandler {
 
@@ -29,13 +28,6 @@ class UzumProductPositionEventHandler(
         runBlocking {
             val uzumProductPositionEventWrappers =
                 events.map { UzumProductPositionEventWrapper(it.eventPayload.uzumProductPositionChange, it.scrapTime) }
-            val oldSaveProductPositionTask = async {
-                try {
-                    oldSaveProductPosition(uzumProductPositionEventWrappers)
-                } catch (e: Exception) {
-                    log.error(e) { "Exception during save old schema product position events" }
-                }
-            }
             val saveProductPositionTask = async {
                 try {
                     saveProductPosition(uzumProductPositionEventWrappers)
@@ -43,23 +35,7 @@ class UzumProductPositionEventHandler(
                     log.error(e) { "Exception during save product position events" }
                 }
             }
-            awaitAll(oldSaveProductPositionTask, saveProductPositionTask)
-        }
-        try {
-            val uzumProductPositionEventWrappers =
-                events.map { UzumProductPositionEventWrapper(it.eventPayload.uzumProductPositionChange, it.scrapTime) }
-            val chProductPositions = uzumProductPositionEventWrappers.map {
-                ChProductPosition(
-                    fetchTime = it.eventTime.toLocalDateTime(),
-                    productId = it.productCategoryPositionChange.productId,
-                    skuId = it.productCategoryPositionChange.skuId,
-                    categoryId = it.productCategoryPositionChange.categoryId,
-                    position = it.productCategoryPositionChange.position
-                )
-            }
-            chProductPositionRepository.saveProductsPosition(chProductPositions)
-        } catch (e: Exception) {
-            log.error(e) { "Exception during handle position event" }
+            awaitAll(saveProductPositionTask)
         }
     }
 
@@ -75,40 +51,6 @@ class UzumProductPositionEventHandler(
         }
         chProductPositionRepository.saveProductsPosition(chProductPositions)
         log.info { "Successfully save product position. count=${chProductPositions.size}" }
-    }
-
-    private fun oldSaveProductPosition(uzumProductPositionEventWrappers: List<UzumProductPositionEventWrapper>) {
-        for (uzumProductPositionEventWrapper in uzumProductPositionEventWrappers) {
-            val productCategoryPositionChange = uzumProductPositionEventWrapper.productCategoryPositionChange
-            log.info {
-                "[OLD] Consume product position record from stream." +
-                        " productId=${productCategoryPositionChange.productId};" +
-                        " skuId=${productCategoryPositionChange.skuId};" +
-                        " position=${productCategoryPositionChange.position}"
-            }
-            val productPositionTSDocument = ProductPositionTSDocument(
-                position = productCategoryPositionChange.position,
-                metadata = ProductPositionMetadata(
-                    id = ProductPositionId(
-                        productId = productCategoryPositionChange.productId,
-                        skuId = productCategoryPositionChange.skuId
-                    ),
-                    categoryId = productCategoryPositionChange.categoryId
-                ),
-                timestamp = Instant.ofEpochSecond(
-                    uzumProductPositionEventWrapper.eventTime.seconds,
-                    uzumProductPositionEventWrapper.eventTime.nanos.toLong(),
-                )
-            )
-            productPositionRepository.save(productPositionTSDocument).doOnSuccess {
-                log.info {
-                    "[OLD] Successfully saved product position. " + "" +
-                            " productId=${productCategoryPositionChange.productId};" +
-                            " skuId=${productCategoryPositionChange.skuId};" +
-                            " position=${productCategoryPositionChange.position}"
-                }
-            }.subscribe()
-        }
     }
 
     override fun isHandle(event: UzumScrapperEvent): Boolean {
