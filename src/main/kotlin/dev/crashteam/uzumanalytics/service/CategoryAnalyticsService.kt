@@ -93,6 +93,7 @@ class CategoryAnalyticsService(
                 if (categoryAnalyticsInfoList == null) {
                     return@withContext emptyList()
                 }
+                log.debug { "Category analytics (no proto): $categoryAnalyticsInfoList" }
                 if (sortBy != null) {
                     sortCategoryAnalytics(categoryAnalyticsInfoList, sortBy)
                 } else {
