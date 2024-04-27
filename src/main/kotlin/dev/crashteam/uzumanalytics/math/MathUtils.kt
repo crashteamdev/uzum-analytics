@@ -1,6 +1,7 @@
 package dev.crashteam.uzumanalytics.math
 
 import java.math.BigDecimal
+import java.math.RoundingMode
 
 object MathUtils {
 
@@ -16,7 +17,7 @@ object MathUtils {
                 BigDecimal.ZERO
             } else {
                 val difference = b - a
-                ((difference / a.abs()) * BigDecimal("100"))
+                (difference.divide(a.abs(), 10, RoundingMode.HALF_UP) * BigDecimal("100"))
             }
         }
     }
