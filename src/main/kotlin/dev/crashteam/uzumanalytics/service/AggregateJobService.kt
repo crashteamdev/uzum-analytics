@@ -36,6 +36,6 @@ class AggregateJobService(
     }
 
     private fun toKey(tableName: String, categoryId: Long, statType: StatType) =
-        "ke-$tableName-$categoryId-${statType.name.lowercase()}"
+        "uzum-$tableName-$categoryId-${statType.name.lowercase()}"
 
 }
