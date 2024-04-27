@@ -240,6 +240,7 @@ class CategoryAnalyticsService(
     private fun mapCategoryAnalyticsDifference(
         categoryAnalytics: ChCategoryAnalyticsPair
     ): CategoryAnalyticsDifference {
+        log.debug { "Map category analytics difference: $categoryAnalytics" }
         return CategoryAnalyticsDifference(
             revenuePercentage = MathUtils.percentageDifference(
                 categoryAnalytics.prevRevenue,
@@ -273,7 +274,7 @@ class CategoryAnalyticsService(
                 categoryAnalytics.prevOrderPerProduct,
                 categoryAnalytics.orderPerProduct
             ).setScale(1, RoundingMode.DOWN)
-        )
+        ).also { log.debug { "Category analytics difference percentage: $it" } }
     }
 
     private fun mapCategoryAnalytics(categoryAnalytics: ChCategoryAnalyticsPair): CategoryAnalytics {
