@@ -4,7 +4,7 @@ import dev.crashteam.uzum.scrapper.data.v1.UzumProductChange
 import dev.crashteam.uzum.scrapper.data.v1.UzumScrapperEvent
 import dev.crashteam.uzumanalytics.converter.clickhouse.ChUzumProductConverterResultWrapper
 import dev.crashteam.uzumanalytics.domain.mongo.*
-import dev.crashteam.uzumanalytics.extension.toLocalDateTime
+import dev.crashteam.uzumanalytics.extensions.toLocalDateTime
 import dev.crashteam.uzumanalytics.repository.clickhouse.CHProductRepository
 import dev.crashteam.uzumanalytics.repository.mongo.SellerRepository
 import dev.crashteam.uzumanalytics.service.ProductService

@@ -6,7 +6,7 @@ import dev.crashteam.uzum.scrapper.data.v1.UzumScrapperEvent
 import dev.crashteam.uzumanalytics.domain.mongo.ProductPositionId
 import dev.crashteam.uzumanalytics.domain.mongo.ProductPositionMetadata
 import dev.crashteam.uzumanalytics.domain.mongo.ProductPositionTSDocument
-import dev.crashteam.uzumanalytics.extension.toLocalDateTime
+import dev.crashteam.uzumanalytics.extensions.toLocalDateTime
 import dev.crashteam.uzumanalytics.repository.clickhouse.CHProductPositionRepository
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductPosition
 import dev.crashteam.uzumanalytics.repository.mongo.ProductPositionRepository
