@@ -8,23 +8,19 @@ import dev.crashteam.uzumanalytics.client.currencyapi.model.CurrencyApiResponse
 import dev.crashteam.uzumanalytics.config.properties.RedisProperties
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChCategoryOverallInfo
 import dev.crashteam.uzumanalytics.repository.redis.ApiKeyUserSessionInfo
+import dev.crashteam.uzumanalytics.service.model.CategoryAnalyticsCacheableWrapper
 import dev.crashteam.uzumanalytics.service.model.SellerOverallInfo
 import mu.KotlinLogging
 import org.springframework.boot.autoconfigure.cache.RedisCacheManagerBuilderCustomizer
 import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.data.redis.RedisSystemException
 import org.springframework.data.redis.cache.RedisCacheConfiguration
 import org.springframework.data.redis.cache.RedisCacheManager
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration.LettuceClientConfigurationBuilder
-import org.springframework.data.redis.connection.stream.ObjectRecord
-import org.springframework.data.redis.connection.stream.ReadOffset
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.data.redis.serializer.*
-import org.springframework.data.redis.stream.StreamReceiver
-import java.nio.ByteBuffer
 import java.time.Duration
 
 private val log = KotlinLogging.logger {}
@@ -120,6 +116,9 @@ class RedisConfig(
             configurationMap[SELLER_OVERALL_INFO_CACHE_NAME] = RedisCacheConfiguration.defaultCacheConfig()
                 .serializeValuesWith(redisJsonSerializer(SellerOverallInfo::class.java))
                 .entryTtl(Duration.ofSeconds(21600))
+            configurationMap[EXTERNAL_CATEGORY_ANALYTICS_CACHE_NAME] = RedisCacheConfiguration.defaultCacheConfig()
+                .serializeValuesWith(redisJsonSerializer(CategoryAnalyticsCacheableWrapper::class.java))
+                .entryTtl(Duration.ofDays(1))
             builder.withInitialCacheConfigurations(configurationMap)
         }
     }
@@ -148,6 +147,7 @@ class RedisConfig(
         const val CURRENCY_API_CACHE_NAME = "currency-api"
         const val CATEGORY_OVERALL_INFO_CACHE = "category-overall-info"
         const val SELLER_OVERALL_INFO_CACHE_NAME = "seller-overall-info"
+        const val EXTERNAL_CATEGORY_ANALYTICS_CACHE_NAME = "ke-external-category-analytics"
     }
 
 }

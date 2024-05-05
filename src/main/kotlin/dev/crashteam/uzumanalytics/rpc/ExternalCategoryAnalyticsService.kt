@@ -8,6 +8,7 @@ import dev.crashteam.uzumanalytics.extensions.toRepositoryDomain
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.SortBy
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.SortField
 import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
+import dev.crashteam.uzumanalytics.service.CategoryAnalyticsCacheableDecorator
 import dev.crashteam.uzumanalytics.service.CategoryAnalyticsService
 import dev.crashteam.uzumanalytics.service.ProductServiceAnalytics
 import dev.crashteam.uzumanalytics.service.UserRestrictionService
@@ -23,7 +24,7 @@ private val log = KotlinLogging.logger {}
 
 @GrpcService
 class ExternalCategoryAnalyticsService(
-    private val categoryAnalyticsService: CategoryAnalyticsService,
+    private val categoryAnalyticsService: CategoryAnalyticsCacheableDecorator,
     private val productServiceAnalytics: ProductServiceAnalytics,
     private val conversionService: ConversionService,
     private val userRepository: UserRepository,
@@ -60,7 +61,7 @@ class ExternalCategoryAnalyticsService(
                                     }
                                 )
                             } else null
-                        )
+                        ).categoryAnalytics
                     } else {
                         categoryAnalyticsService.getRootCategoryAnalytics(
                             datePeriod = request.datePeriod,
@@ -74,7 +75,7 @@ class ExternalCategoryAnalyticsService(
                                     }
                                 )
                             } else null
-                        )
+                        ).categoryAnalytics
                     }
                 } catch (e: Exception) {
                     log.error(e) { "Exception during get categories. request=$request" }
