@@ -1,17 +1,12 @@
 package dev.crashteam.uzumanalytics.service
 
 import dev.crashteam.uzumanalytics.client.currencyapi.CurrencyApiClient
-import dev.crashteam.uzumanalytics.client.freekassa.FreeKassaClient
-import dev.crashteam.uzumanalytics.client.freekassa.model.PaymentFormRequestParams
-import dev.crashteam.uzumanalytics.client.qiwi.QiwiClient
-import dev.crashteam.uzumanalytics.client.qiwi.model.QiwiPaymentRequestParams
 import dev.crashteam.uzumanalytics.domain.mongo.*
 import dev.crashteam.uzumanalytics.extensions.mapToSubscription
 import dev.crashteam.uzumanalytics.repository.mongo.*
 import dev.crashteam.uzumanalytics.service.model.CallbackPaymentAdditionalInfo
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
-import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.query.Criteria
@@ -20,9 +15,7 @@ import org.springframework.data.mongodb.core.query.Update
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.LocalDateTime
-import java.util.*
 
 private val log = KotlinLogging.logger {}
 
@@ -32,123 +25,10 @@ class PaymentService(
     private val userRepository: UserRepository,
     private val referralCodeRepository: ReferralCodeRepository,
     private val paymentSequenceDao: PaymentSequenceDao,
-    private val freeKassaClient: FreeKassaClient,
-    private val qiwiClient: QiwiClient,
     private val currencyApiClient: CurrencyApiClient,
     private val promoCodeRepository: PromoCodeRepository,
     private val reactiveMongoTemplate: ReactiveMongoTemplate,
 ) {
-
-    suspend fun createFreekassaPayment(
-        userId: String,
-        userSubscription: UserSubscription,
-        ip: String,
-        email: String,
-        currencySymbolCode: String,
-        referralCode: String? = null,
-        promoCode: String? = null,
-        multiply: Short? = null
-    ): String {
-        val promoCodeDocument = if (promoCode != null) {
-            log.debug { "Find promoCode by: $promoCode" }
-            promoCodeRepository.findByCode(promoCode).awaitSingleOrNull()
-        } else null
-        val paymentId = UUID.randomUUID().toString()
-        val isUserCanUseReferral = if (referralCode != null) isUserReferralCodeAccess(userId, referralCode) else false
-        val amount = calculatePriceAmount(
-            userSubscription,
-            isUserCanUseReferral,
-            promoCode,
-            multiply
-        )
-        log.debug { "Initiate freekassa payment. paymentId=$paymentId. amount=$amount" }
-        val currencyApiData = currencyApiClient.getCurrency().data["RUB"]!!
-        val finalAmount = (amount * (currencyApiData.value.setScale(2, RoundingMode.HALF_UP)))
-        log.debug { "Final payment amount. paymentId=$paymentId. amount=$amount" }
-        val orderId = paymentSequenceDao.getNextSequenceId(PAYMENT_SEQ_KEY)
-        val paymentDocument = PaymentDocument(
-            paymentId = paymentId,
-            orderId = orderId,
-            userId = userId,
-            status = "pending",
-            paid = false,
-            amount = finalAmount,
-            subscriptionType = userSubscription.num,
-            multiply = multiply,
-            referralCode = referralCode,
-            createdAt = LocalDateTime.now(),
-            currencyId = currencySymbolCode,
-            paymentSystem = "Freekassa"
-        )
-        paymentRepository.save(paymentDocument).awaitSingleOrNull()
-
-        return freeKassaClient.createPaymentFormUrl(
-            PaymentFormRequestParams(
-                userId = userId,
-                orderId = paymentId,
-                email = email,
-                amount = finalAmount,
-                currency = currencySymbolCode,
-                subscriptionId = userSubscription.num,
-                referralCode = referralCode,
-                promoCode = promoCode,
-                promoCodeType = promoCodeDocument?.type,
-                multiply = multiply ?: 1
-            )
-        )
-    }
-
-    suspend fun createQiwiPayment(
-        userId: String,
-        userSubscription: UserSubscription,
-        email: String,
-        currencySymbolCode: String,
-        referralCode: String? = null,
-        multiply: Short? = null
-    ): String {
-        val paymentId = UUID.randomUUID().toString()
-        val isUserCanUseReferral = if (referralCode != null) isUserReferralCodeAccess(userId, referralCode) else false
-        val orderId = paymentSequenceDao.getNextSequenceId(PAYMENT_SEQ_KEY)
-        val amount = calculatePriceAmount(userSubscription, isUserCanUseReferral, null, multiply)
-        val subscriptionName = when (userSubscription) {
-            DemoSubscription -> "демо"
-            DefaultSubscription -> "базовый"
-            AdvancedSubscription -> "расширенный"
-            ProSubscription -> "профессиональный"
-        }
-        val currencyApiData = currencyApiClient.getCurrency().data["RUB"]!!
-        val finalAmount = (amount * (currencyApiData.value.setScale(2, RoundingMode.HALF_UP)))
-        val payUrl = qiwiClient.createPayment(
-            QiwiPaymentRequestParams(
-                paymentId = paymentId,
-                userId = userId,
-                email = email,
-                amount = finalAmount,
-                comment = "Оплата тарифа '$subscriptionName' на ${multiply ?: 1} месяц(а)",
-                subscriptionId = userSubscription.num,
-                referralCode = referralCode,
-                multiply = multiply ?: 1,
-                currencySymbolicCode = currencySymbolCode
-            )
-        ).payUrl
-        val paymentDocument = PaymentDocument(
-            paymentId = paymentId,
-            orderId = orderId,
-            userId = userId,
-            status = "pending",
-            paid = false,
-            amount = finalAmount,
-            subscriptionType = userSubscription.num,
-            multiply = multiply,
-            referralCode = referralCode,
-            createdAt = LocalDateTime.now(),
-            currencyId = currencySymbolCode,
-            paymentSystem = "QIWI"
-        )
-        paymentRepository.save(paymentDocument).awaitSingleOrNull()
-
-        return payUrl
-    }
 
     private suspend fun isUserReferralCodeAccess(userId: String, referralCode: String): Boolean {
         return if (referralCode.isNotBlank()) {

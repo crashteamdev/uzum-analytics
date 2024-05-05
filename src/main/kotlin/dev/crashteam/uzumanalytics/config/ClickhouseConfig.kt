@@ -63,11 +63,9 @@ class ClickhouseConfig {
         liquibase.defaultSchema = properties.defaultSchema
         liquibase.isDropFirst = properties.isDropFirst
         liquibase.setShouldRun(properties.isEnabled)
-        liquibase.labels = properties.labels
+        liquibase.labelFilter = properties.labelFilter
         liquibase.setChangeLogParameters(properties.parameters)
         liquibase.setRollbackFile(properties.rollbackFile)
         return liquibase
     }
-
-
 }
