@@ -147,7 +147,7 @@ class RedisConfig(
         const val CURRENCY_API_CACHE_NAME = "currency-api"
         const val CATEGORY_OVERALL_INFO_CACHE = "category-overall-info"
         const val SELLER_OVERALL_INFO_CACHE_NAME = "seller-overall-info"
-        const val EXTERNAL_CATEGORY_ANALYTICS_CACHE_NAME = "mm-external-category-analytics"
+        const val EXTERNAL_CATEGORY_ANALYTICS_CACHE_NAME = "uzum-external-category-analytics"
     }
 
 }
