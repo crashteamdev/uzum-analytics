@@ -27,6 +27,7 @@ class AggregateStatsJob : Job {
         jdbcTemplate = applicationContext.getBean("clickHouseJdbcTemplate") as JdbcTemplate
         chCategoryRepository = applicationContext.getBean(CHCategoryRepository::class.java)
         aggregateJobService = applicationContext.getBean(AggregateJobService::class.java)
+        retryTemplate = applicationContext.getBean(RetryTemplate::class.java)
         val rootCategoryIds = chCategoryRepository.getDescendantCategories(0, 1)!!
         try {
             insertAggregateStats(
