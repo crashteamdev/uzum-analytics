@@ -19,7 +19,7 @@ data class ChUzumProduct(
     val attributes: List<String>,
     val tags: List<String>,
     val photoKey: String?,
-    val characteristics: List<ChKazanExpressCharacteristic>,
+    val characteristics: List<ChUzumCharacteristic>,
     val sellerId: Long,
     val sellerAccountId: Long,
     val sellerTitle: String,
@@ -34,7 +34,7 @@ data class ChUzumProduct(
     val restriction: Short,
 )
 
-data class ChKazanExpressCharacteristic(
+data class ChUzumCharacteristic(
     val type: String,
     val title: String
 )

@@ -1,12 +1,10 @@
 package dev.crashteam.uzumanalytics.config.properties
 
+import jakarta.validation.constraints.NotEmpty
 import org.springframework.boot.context.properties.ConfigurationProperties
-import org.springframework.boot.context.properties.ConstructorBinding
 import org.springframework.validation.annotation.Validated
-import javax.validation.constraints.NotEmpty
 
 @Validated
-@ConstructorBinding
 @ConfigurationProperties(prefix = "uzum")
 data class UzumProperties(
     @field:NotEmpty
@@ -14,7 +12,7 @@ data class UzumProperties(
     @field:NotEmpty
     val productCron: String? = null,
     @field:NotEmpty
-    val paymentCron: String? = null,
+    val aggregateCron: String? = null,
     @field:NotEmpty
     val sellerCron: String? = null,
     @field:NotEmpty

@@ -38,12 +38,13 @@ spring:
   data:
     mongodb:
       uri: mongodb://${MONGO_USER:uzum}:${MONGO_PASSWORD:my5053strongPassword}@${MONGO_HOST:77.37.140.106}/${MONGO_DATABASE:uzum}?authSource=uzum&replicaSet=${MONGO_REPLICASET:marketdb}&tls=true&maxPoolSize=200
-  redis:
-    host: marketdb-redis-do-user-9153772-0.b.db.ondigitalocean.com
-    port: 25061
-    username: default
-    password: password
-    ssl: false
+    redis:
+      host: marketdb-redis-do-user-9153772-0.b.db.ondigitalocean.com
+      port: 25061
+      username: default
+      password: password
+      ssl:
+        enable: false
   datasource:
     url: jdbc:postgresql://localhost:5432/uzum-analytics
     username: postgres
@@ -75,7 +76,7 @@ uzum:
   scheduleEnabled: true
   groupCron: '0/30 * * * * ?'
   productCron: '0 0 0/3 * * ?'
-  paymentCron: '0/10 * * * * ?'
+  aggregateCron: '0 0 0/6 * * ?'
   sellerCron: '0 0 0/3 * * ?'
   reportCleanUpCron: '0 0 0/1 * * ?'
   reportGenerateCron: '0/3 * * * * ?'
@@ -133,7 +134,8 @@ clickhouse:
   url: "jdbc:clickhouse://${CLICKHOUSE_HOST:localhost}:${CLICKHOUSE_PORT:8443}/${CLICKHOUSE_DB:uzum}"
   user: "dbuser"
   password: ${CLICKHOUSE_PASSWORD:strongPasswd}
-  connection.timeout: 50000
+  connectionTimeout: 120000
+  socketTimeout: 100000
   compress: false
   ssl: false
   liquibase:

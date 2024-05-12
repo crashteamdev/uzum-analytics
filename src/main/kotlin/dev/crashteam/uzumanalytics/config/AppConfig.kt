@@ -21,6 +21,7 @@ import org.springframework.retry.backoff.ExponentialBackOffPolicy
 import org.springframework.retry.policy.SimpleRetryPolicy
 import org.springframework.retry.support.RetryTemplate
 import org.springframework.web.client.RestTemplate
+import org.springframework.web.reactive.config.PathMatchConfigurer
 import org.springframework.web.reactive.config.WebFluxConfigurer
 
 @Configuration
@@ -71,6 +72,9 @@ class AppConfig {
             override fun configureHttpMessageCodecs(configurer: ServerCodecConfigurer) {
                 configurer.defaultCodecs().jackson2JsonEncoder(encoder)
                 configurer.defaultCodecs().jackson2JsonDecoder(decoder)
+            }
+            override fun configurePathMatching(configurer: PathMatchConfigurer) {
+                configurer.setUseTrailingSlashMatch(true)
             }
         }
     }

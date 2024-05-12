@@ -5,7 +5,7 @@ import dev.crashteam.payment.PaymentEvent
 import dev.crashteam.payment.PaymentStatus
 import dev.crashteam.payment.UzumAnalyticsContext
 import dev.crashteam.uzumanalytics.domain.mongo.PaymentDocument
-import dev.crashteam.uzumanalytics.extension.toLocalDateTime
+import dev.crashteam.uzumanalytics.extensions.toLocalDateTime
 import dev.crashteam.uzumanalytics.repository.mongo.PaymentRepository
 import dev.crashteam.uzumanalytics.service.PaymentService
 import kotlinx.coroutines.reactor.awaitSingleOrNull
