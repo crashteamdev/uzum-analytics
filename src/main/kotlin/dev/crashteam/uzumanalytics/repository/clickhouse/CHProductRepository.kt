@@ -33,7 +33,7 @@ class CHProductRepository(
                    sku_id,
                    title,
                    multiIf(restriction > 0, total_orders_amount_diff,
-                         available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, total_orders_amount_diff,
+                         available_amount_diff < 0 OR available_amount_diff > 0 AND total_orders_amount_diff = 0, 0,
                          available_amount_diff) AS order_amount,
                    reviews_amount_diff                                                  AS review_amount,
                    full_price / 100 AS full_price,
