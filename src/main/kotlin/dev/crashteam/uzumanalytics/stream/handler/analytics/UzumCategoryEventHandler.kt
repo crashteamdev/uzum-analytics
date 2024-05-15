@@ -3,16 +3,10 @@ package dev.crashteam.uzumanalytics.stream.handler.analytics
 import dev.crashteam.uzum.scrapper.data.v1.UzumCategory
 import dev.crashteam.uzum.scrapper.data.v1.UzumScrapperEvent
 import dev.crashteam.uzumanalytics.db.model.tables.pojos.CategoryHierarchical
-import dev.crashteam.uzumanalytics.domain.mongo.CategoryDocument
-import dev.crashteam.uzumanalytics.domain.mongo.CategoryTreeDocument
-import dev.crashteam.uzumanalytics.repository.mongo.CategoryDao
-import dev.crashteam.uzumanalytics.repository.mongo.CategoryTreeDao
 import dev.crashteam.uzumanalytics.repository.postgres.CategoryRepository
-import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
-import java.time.LocalDateTime
 
 private val log = KotlinLogging.logger {}
 

@@ -71,6 +71,7 @@ CREATE TABLE reports
     interval    INT                         NOT NULL,
     created_at  TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     seller_link CHARACTER VARYING,
+    category_id CHARACTER VARYING,
     report_type report_type                 NOT NULL,
     status      report_status               NOT NULL,
     file        BYTEA
