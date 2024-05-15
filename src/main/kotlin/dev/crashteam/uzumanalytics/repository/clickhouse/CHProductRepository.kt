@@ -47,7 +47,8 @@ class CHProductRepository(
                         product_id,
                         sku_id,
                         title,
-                        available_amount_max - available_amount_min       AS available_amount_diff,
+                        if(available_amount_max > prev_last_available_amount,
+                            0, available_amount_max - available_amount_min)       AS available_amount_diff,
                         last_available_amount                             AS available_amount,
                         total_orders_amount_max - total_orders_amount_min AS total_orders_amount_diff,
                         total_available_amount,
@@ -64,6 +65,8 @@ class CHProductRepository(
                                  min(available_amount)    AS available_amount_min,
                                  max(available_amount)    AS available_amount_max,
                                  anyLast(available_amount) AS last_available_amount,
+                                 lagInFrame(anyLast(available_amount))
+                                    over (partition by product_id order by date ROWS BETWEEN 1 PRECEDING AND 1 PRECEDING) AS prev_last_available_amount,
                                  min(total_orders_amount) AS total_orders_amount_min,
                                  max(total_orders_amount) AS total_orders_amount_max,
                                  max(total_available_amount) AS total_available_amount,
