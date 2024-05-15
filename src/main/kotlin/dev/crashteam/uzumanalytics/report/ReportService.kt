@@ -1,12 +1,10 @@
 package dev.crashteam.uzumanalytics.report
 
-import dev.crashteam.uzumanalytics.domain.mongo.ReportStatus
-import dev.crashteam.uzumanalytics.domain.mongo.ReportType
-import dev.crashteam.uzumanalytics.repository.mongo.ReportRepository
-import kotlinx.coroutines.reactor.awaitSingleOrNull
+import dev.crashteam.uzumanalytics.db.model.enums.ReportStatus
+import dev.crashteam.uzumanalytics.db.model.enums.ReportType
+import dev.crashteam.uzumanalytics.repository.postgres.ReportRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Mono
 import java.io.InputStream
 import java.time.LocalDate
 import java.time.LocalTime
@@ -19,18 +17,17 @@ class ReportService(
 
     @Transactional
     suspend fun saveSellerReportV2(sellerLink: String, interval: Int, jobId: String, reportInputStream: InputStream) {
-        val reportId: String =
-            reportFileService.saveSellerReport(sellerLink, jobId, reportInputStream, "$sellerLink-$interval.xlsx")
-        reportRepository.updateReportStatus(jobId, ReportStatus.COMPLETED).awaitSingleOrNull()
-        reportRepository.setReportId(jobId, reportId).awaitSingleOrNull()
+        val reportId: String = reportFileService.saveReport(jobId, reportInputStream)
+        reportRepository.updateReportStatusByJobId(jobId, ReportStatus.completed)
+        reportRepository.updateReportIdByJobId(jobId, reportId)
     }
 
     @Transactional
     suspend fun saveSellerReport(sellerLink: String, interval: Int, jobId: String, report: ByteArray) {
         val reportId: String =
-            reportFileService.saveSellerReport(sellerLink, jobId, report.inputStream(), "$sellerLink-$interval.xlsx")
-        reportRepository.updateReportStatus(jobId, ReportStatus.COMPLETED).awaitSingleOrNull()
-        reportRepository.setReportId(jobId, reportId).awaitSingleOrNull()
+            reportFileService.saveReport(jobId, report.inputStream())
+        reportRepository.updateReportStatusByJobId(jobId, ReportStatus.completed)
+        reportRepository.updateReportIdByJobId(jobId, reportId)
     }
 
     @Transactional
@@ -40,14 +37,9 @@ class ReportService(
         jobId: String,
         reportInputStream: InputStream
     ) {
-        val reportId: String = reportFileService.saveCategoryReport(
-            categoryPublicId,
-            jobId,
-            reportInputStream,
-            "$categoryPublicId-$interval.xlsx"
-        )
-        reportRepository.updateReportStatus(jobId, ReportStatus.COMPLETED).awaitSingleOrNull()
-        reportRepository.setReportId(jobId, reportId).awaitSingleOrNull()
+        val reportId: String = reportFileService.saveReport(jobId, reportInputStream)
+        reportRepository.updateReportStatusByJobId(jobId, ReportStatus.completed)
+        reportRepository.updateReportIdByJobId(jobId, reportId)
     }
 
     @Transactional
@@ -58,49 +50,44 @@ class ReportService(
         jobId: String,
         report: ByteArray
     ) {
-        val reportId: String = reportFileService.saveCategoryReport(
-            categoryPublicId,
-            jobId,
-            report.inputStream(),
-            "$categoryTitle-$interval.xlsx"
-        )
-        reportRepository.updateReportStatus(jobId, ReportStatus.COMPLETED).awaitSingleOrNull()
-        reportRepository.setReportId(jobId, reportId).awaitSingleOrNull()
+        val reportId: String = reportFileService.saveReport(jobId, report.inputStream())
+        reportRepository.updateReportStatusByJobId(jobId, ReportStatus.completed)
+        reportRepository.updateReportIdByJobId(jobId, reportId)
     }
 
-    suspend fun getUserShopReportDailyReportCount(userId: String): Long? {
+    suspend fun getUserShopReportDailyReportCount(userId: String): Int {
         return reportRepository.countByUserIdAndCreatedAtBetweenAndReportType(
             userId,
             LocalDate.now().atStartOfDay(),
             LocalDate.now().atTime(LocalTime.MAX),
-            ReportType.SELLER,
-        ).awaitSingleOrNull()
-    }
-
-    fun getUserShopReportDailyReportCountV2(userId: String): Mono<Long> {
-        return reportRepository.countByUserIdAndCreatedAtBetweenAndReportType(
-            userId,
-            LocalDate.now().atStartOfDay(),
-            LocalDate.now().atTime(LocalTime.MAX),
-            ReportType.SELLER,
+            ReportType.seller
         )
     }
 
-    suspend fun getUserCategoryReportDailyReportCount(userId: String): Long? {
+    fun getUserShopReportDailyReportCountV2(userId: String): Int {
         return reportRepository.countByUserIdAndCreatedAtBetweenAndReportType(
             userId,
             LocalDate.now().atStartOfDay(),
             LocalDate.now().atTime(LocalTime.MAX),
-            ReportType.CATEGORY,
-        ).awaitSingleOrNull()
+            ReportType.seller
+        )
     }
 
-    fun getUserCategoryReportDailyReportCountV2(userId: String): Mono<Long> {
+    suspend fun getUserCategoryReportDailyReportCount(userId: String): Int {
         return reportRepository.countByUserIdAndCreatedAtBetweenAndReportType(
             userId,
             LocalDate.now().atStartOfDay(),
             LocalDate.now().atTime(LocalTime.MAX),
-            ReportType.CATEGORY
+            ReportType.category
+        )
+    }
+
+    fun getUserCategoryReportDailyReportCountV2(userId: String): Int {
+        return reportRepository.countByUserIdAndCreatedAtBetweenAndReportType(
+            userId,
+            LocalDate.now().atStartOfDay(),
+            LocalDate.now().atTime(LocalTime.MAX),
+            ReportType.category
         )
     }
 

@@ -13,6 +13,7 @@ import org.apache.poi.xssf.usermodel.XSSFFont
 import dev.crashteam.uzumanalytics.report.model.CustomCellStyle
 import dev.crashteam.uzumanalytics.report.model.Report
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductSalesReport
+import dev.crashteam.uzumanalytics.repository.postgres.ReportRepository
 import dev.crashteam.uzumanalytics.service.ProductService
 import dev.crashteam.uzumanalytics.service.ProductServiceV2
 import dev.crashteam.uzumanalytics.service.model.AggregateSalesProduct
@@ -33,8 +34,7 @@ private val log = KotlinLogging.logger {}
 
 @Service
 class ReportFileService(
-    private val gridFsTemplate: GridFsTemplate,
-    private val gridFsOperations: GridFsOperations,
+    private val reportRepository: ReportRepository,
     private val productService: ProductService,
     private val productServiceV2: ProductServiceV2,
     private val stylesGenerator: StylesGenerator,
@@ -46,36 +46,13 @@ class ReportFileService(
         "Цена", "Заказов", "Выручка", "ABC заказы", "ABC выручка"
     )
 
-    suspend fun saveSellerReport(
-        sellerLink: String,
+    suspend fun saveReport(
         jobId: String,
         fileInputStream: InputStream,
-        fileName: String
     ): String {
-        val metaData: DBObject = BasicDBObject()
-        metaData.put("type", "xlsx")
-        metaData.put("seller", sellerLink)
-        metaData.put("created_at", LocalDateTime.now())
-        metaData.put("job_id", jobId)
-        val store = gridFsTemplate.store(fileInputStream, fileName, metaData)
-
-        return store.toString()
-    }
-
-    suspend fun saveCategoryReport(
-        categoryPublicId: Long,
-        jobId: String,
-        fileInputStream: InputStream,
-        fileName: String
-    ): String {
-        val metaData: DBObject = BasicDBObject()
-        metaData.put("type", "xlsx")
-        metaData.put("categoryPublicId", categoryPublicId)
-        metaData.put("created_at", LocalDateTime.now())
-        metaData.put("job_id", jobId)
-        val store = gridFsTemplate.store(fileInputStream, fileName, metaData)
-
-        return store.toString()
+        val reportId = reportRepository.saveJobIdFile(jobId, fileInputStream)
+            ?: throw IllegalStateException("Empty report id")
+        return reportId
     }
 
     suspend fun getReport(jobId: String): Report? {

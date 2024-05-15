@@ -2,11 +2,12 @@ package dev.crashteam.uzumanalytics.controller
 
 import dev.crashteam.openapi.uzumanalytics.api.*
 import dev.crashteam.openapi.uzumanalytics.model.*
+import dev.crashteam.uzumanalytics.db.model.tables.pojos.Reports
 import dev.crashteam.uzumanalytics.domain.mongo.*
 import dev.crashteam.uzumanalytics.report.ReportFileService
 import dev.crashteam.uzumanalytics.report.ReportService
-import dev.crashteam.uzumanalytics.repository.mongo.ReportRepository
 import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
+import dev.crashteam.uzumanalytics.repository.postgres.ReportRepository
 import dev.crashteam.uzumanalytics.service.*
 import dev.crashteam.uzumanalytics.service.exception.UserSubscriptionGiveawayException
 import dev.crashteam.uzumanalytics.service.model.PromoCodeCheckCode
@@ -62,7 +63,11 @@ class MarketDbApiControllerV2(
         toTime: OffsetDateTime,
         exchange: ServerWebExchange
     ): Mono<ResponseEntity<ProductOverallInfo200Response>> {
-        return checkRequestDaysPermission(X_API_KEY, fromTime.toLocalDateTime(), toTime.toLocalDateTime()).flatMap { access ->
+        return checkRequestDaysPermission(
+            X_API_KEY,
+            fromTime.toLocalDateTime(),
+            toTime.toLocalDateTime()
+        ).flatMap { access ->
             val fromTimeLocalDateTime = fromTime.toLocalDateTime()
             val toTimeLocalDateTime = toTime.toLocalDateTime()
             val productAdditionalInfo = productServiceAnalytics.getProductAdditionalInfo(
@@ -225,7 +230,8 @@ class MarketDbApiControllerV2(
             toTime.toLocalDateTime()
         ).flatMap { isAccess ->
             if (!isAccess) {
-                return@flatMap ResponseEntity.status(HttpStatus.FORBIDDEN).build<Flux<GetProductSales200ResponseInner>>().toMono()
+                return@flatMap ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .build<Flux<GetProductSales200ResponseInner>>().toMono()
             }
             val daysCount = ChronoUnit.DAYS.between(fromTime, toTime)
             if (daysCount <= 0) {
@@ -345,46 +351,43 @@ class MarketDbApiControllerV2(
             }
 
             // Check daily report count permission
-            return@flatMap reportService.getUserShopReportDailyReportCountV2(userDocument.userId).defaultIfEmpty(0)
-                .flatMap { reportCount ->
-                    val checkReportAccess =
-                        userRestrictionService.checkShopReportAccess(userDocument, reportCount?.toInt() ?: 0)
-                    if (checkReportAccess == UserRestrictionService.RestrictionResult.PROHIBIT) {
-                        return@flatMap ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                            .build<GetReportBySeller200Response>().toMono()
-                    }
+            val reportCount =
+                reportService.getUserShopReportDailyReportCountV2(userDocument.userId)
 
-                    // Save report job
-                    return@flatMap reportRepository.findByRequestIdAndSellerLink(idempotenceKey, sellerLink)
-                        .flatMap { report ->
-                            ResponseEntity.ok().body(GetReportBySeller200Response().apply {
-                                this.reportId = report.reportId
-                                this.jobId = UUID.fromString(report.jobId)
-                            }).toMono()
-                        }.switchIfEmpty(Mono.defer {
-                            val jobId = UUID.randomUUID().toString()
-                            reportRepository.save(
-                                ReportDocument(
-                                    reportId = null,
-                                    requestId = idempotenceKey,
-                                    jobId = jobId,
-                                    userId = userDocument.userId,
-                                    period = null,
-                                    interval = period,
-                                    createdAt = LocalDateTime.now(),
-                                    sellerLink = sellerLink,
-                                    categoryPublicId = null,
-                                    reportType = ReportType.SELLER,
-                                    status = ReportStatus.PROCESSING,
-                                    version = ReportVersion.V2
-                                )
-                            ).flatMap {
-                                ResponseEntity.ok().body(GetReportBySeller200Response().apply {
-                                    this.jobId = UUID.fromString(jobId)
-                                }).toMono()
-                            }
-                        })
-                }
+            val checkReportAccess =
+                userRestrictionService.checkShopReportAccess(userDocument, reportCount)
+            if (checkReportAccess == UserRestrictionService.RestrictionResult.PROHIBIT) {
+                return@flatMap ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .build<GetReportBySeller200Response>().toMono()
+            }
+
+            // Save report job
+            val report = reportRepository.findByRequestIdAndSellerLink(idempotenceKey, sellerLink)
+            if (report != null) {
+                ResponseEntity.ok().body(GetReportBySeller200Response().apply {
+                    this.reportId = report.reportId
+                    this.jobId = UUID.fromString(report.jobId)
+                }).toMono()
+            } else {
+                val jobId = UUID.randomUUID().toString()
+                reportRepository.saveNewSellerReport(
+                    Reports(
+                        idempotenceKey,
+                        jobId,
+                        userDocument.userId,
+                        period,
+                        LocalDateTime.now(),
+                        sellerLink,
+                        null,
+                        dev.crashteam.uzumanalytics.db.model.enums.ReportType.seller,
+                        dev.crashteam.uzumanalytics.db.model.enums.ReportStatus.processing,
+                        null
+                    )
+                )
+                ResponseEntity.ok().body(GetReportBySeller200Response().apply {
+                    this.jobId = UUID.fromString(jobId)
+                }).toMono()
+            }
         }.doOnError { log.error(it) { "Failed to generate report by seller" } }
     }
 
@@ -407,49 +410,43 @@ class MarketDbApiControllerV2(
             }
 
             // Check daily report count permission
-            return@flatMap reportService.getUserCategoryReportDailyReportCountV2(userDocument.userId).defaultIfEmpty(0)
-                .flatMap { userReportDailyReportCount ->
-                    val checkReportAccess = userRestrictionService.checkCategoryReportAccess(
-                        userDocument, userReportDailyReportCount?.toInt() ?: 0
-                    )
-                    if (checkReportAccess == UserRestrictionService.RestrictionResult.PROHIBIT) {
-                        return@flatMap ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                            .build<GetReportBySeller200Response>().toMono()
-                    }
+            val userReportDailyReportCount =
+                reportService.getUserCategoryReportDailyReportCountV2(userDocument.userId)
+            val checkReportAccess = userRestrictionService.checkCategoryReportAccess(
+                userDocument, userReportDailyReportCount
+            )
+            if (checkReportAccess == UserRestrictionService.RestrictionResult.PROHIBIT) {
+                return@flatMap ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .build<GetReportBySeller200Response>().toMono()
+            }
 
-                    val jobId = UUID.randomUUID().toString()
-                    reportRepository.findByRequestIdAndCategoryPublicId(idempotenceKey, categoryId)
-                        .flatMap { report ->
-                            return@flatMap ResponseEntity.ok().body(GetReportBySeller200Response().apply {
-                                this.jobId = UUID.fromString(jobId)
-                                this.reportId = report.reportId
-                            }).toMono()
-                        }.switchIfEmpty(Mono.defer {
-                            reportRepository.save(
-                                ReportDocument(
-                                    reportId = null,
-                                    requestId = idempotenceKey,
-                                    jobId = jobId,
-                                    userId = userDocument.userId,
-                                    period = null,
-                                    interval = period,
-                                    createdAt = LocalDateTime.now(),
-                                    sellerLink = null,
-                                    categoryPublicId = categoryId,
-                                    reportType = ReportType.CATEGORY,
-                                    status = ReportStatus.PROCESSING,
-                                    version = ReportVersion.V2
-                                )
-                            ).flatMap {
-                                ResponseEntity.ok().body(GetReportBySeller200Response().apply {
-                                    this.jobId = UUID.fromString(jobId)
-                                }).toMono()
-                            }
-                        })
-                }.switchIfEmpty(Mono.defer {
-                    log.warn { "Failed to generate report by category. Category not found" }
-                    ResponseEntity.badRequest().build<GetReportBySeller200Response>().toMono()
-                })
+            val jobId = UUID.randomUUID().toString()
+            val report =
+                reportRepository.findByRequestIdAndCategoryPublicId(idempotenceKey, categoryId)
+            if (report != null) {
+                return@flatMap ResponseEntity.ok().body(GetReportBySeller200Response().apply {
+                    this.jobId = UUID.fromString(jobId)
+                    this.reportId = report.reportId
+                }).toMono()
+            } else {
+                reportRepository.saveNewCategoryReport(
+                    Reports(
+                        idempotenceKey,
+                        jobId,
+                        userDocument.userId,
+                        period,
+                        LocalDateTime.now(),
+                        null,
+                        categoryId.toString(),
+                        dev.crashteam.uzumanalytics.db.model.enums.ReportType.category,
+                        dev.crashteam.uzumanalytics.db.model.enums.ReportStatus.processing,
+                        null
+                    )
+                )
+                return@flatMap ResponseEntity.ok().body(GetReportBySeller200Response().apply {
+                    this.jobId = UUID.fromString(jobId)
+                }).toMono()
+            }
         }.doOnError { log.error(it) { "Failed to generate report by category" } }
     }
 
@@ -457,21 +454,23 @@ class MarketDbApiControllerV2(
         jobId: UUID,
         exchange: ServerWebExchange
     ): Mono<ResponseEntity<GetReportStateByJobId200Response>> {
-        return reportRepository.findByJobId(jobId.toString()).flatMap { reportDocument: ReportDocument ->
+        val report = reportRepository.findByJobId(jobId.toString())
+        if (report != null) {
             val responseBody = GetReportStateByJobId200Response().apply {
-                this.reportId = reportDocument.reportId
-                this.jobId = UUID.fromString(reportDocument.jobId)
-                this.status = reportDocument.status.name.lowercase()
-                this.interval = reportDocument.interval ?: -1
-                this.reportType = reportDocument.reportType?.name ?: "unknown"
-                this.createdAt = reportDocument.createdAt.atOffset(ZoneOffset.UTC)
-                this.sellerLink = reportDocument.sellerLink
-                this.categoryId = reportDocument.categoryPublicId
+                this.reportId = report.reportId
+                this.jobId = UUID.fromString(report.jobId)
+                this.status = report.status.name.lowercase()
+                this.interval = report.interval ?: -1
+                this.reportType = report.reportType?.name ?: "unknown"
+                this.createdAt = report.createdAt.atOffset(ZoneOffset.UTC)
+                this.sellerLink = report.sellerLink
+                this.categoryId = report.categoryid.toLong()
             }
 
-            return@flatMap ResponseEntity.ok(responseBody).toMono()
-        }.switchIfEmpty(ResponseEntity.notFound().build<GetReportStateByJobId200Response>().toMono())
-            .doOnError { log.error(it) { "Failed get report by jobId. JobId=$jobId" } }
+            return ResponseEntity.ok(responseBody).toMono()
+        } else {
+            return ResponseEntity.notFound().build<GetReportStateByJobId200Response>().toMono()
+        }
     }
 
     override fun getReports(
@@ -481,28 +480,25 @@ class MarketDbApiControllerV2(
         val apiKey = exchange.request.headers["X-API-KEY"]?.first()
             ?: return ResponseEntity.badRequest().build<Flux<Report>>().toMono()
         return userRepository.findByApiKey_HashKey(apiKey).flatMap { userDocument ->
-            return@flatMap reportRepository.findByUserIdAndCreatedAtFromTime(
-                userDocument.userId,
-                fromTime.toLocalDateTime()
-            )
-                .map { reportDoc ->
+            val reports =
+                reportRepository.findByUserIdAndCreatedAtFromTime(userDocument.userId, fromTime.toLocalDateTime()).map {
                     Report().apply {
-                        reportId = reportDoc.reportId
-                        jobId = UUID.fromString(reportDoc.jobId)
-                        status = reportDoc.status.name.lowercase()
-                        interval = reportDoc.interval ?: -1
-                        reportType = reportDoc.reportType?.name ?: "unknown"
-                        createdAt = reportDoc.createdAt.atOffset(ZoneOffset.UTC)
-                        sellerLink = reportDoc.sellerLink
-                        categoryId = reportDoc.categoryPublicId
+                        reportId = it.reportId
+                        jobId = UUID.fromString(it.jobId)
+                        status = it.status.name.lowercase()
+                        interval = it.interval ?: -1
+                        reportType = it.reportType?.name ?: "unknown"
+                        createdAt = it.createdAt.atOffset(ZoneOffset.UTC)
+                        sellerLink = it.sellerLink
+                        categoryId = it.categoryid.toLong()
                     }
-                }.collectList()
-        }.switchIfEmpty(emptyList<Report>().toMono()).flatMap { reportDocuments ->
-            if (reportDocuments.isNullOrEmpty()) {
+                }
+            if (reports.isEmpty()) {
                 return@flatMap ResponseEntity.notFound().build<Flux<Report>>().toMono()
+            } else {
+                return@flatMap ResponseEntity.ok(reports.toFlux()).toMono()
             }
-            ResponseEntity.ok(reportDocuments.toFlux()).toMono()
-        }.doOnError { log.error(it) { "Failed get reports" } }
+        }
     }
 
     override fun giveawayDemoSubscription(

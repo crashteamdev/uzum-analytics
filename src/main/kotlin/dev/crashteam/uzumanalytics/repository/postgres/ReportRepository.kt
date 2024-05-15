@@ -1,25 +1,38 @@
 package dev.crashteam.uzumanalytics.repository.postgres
 
 import dev.crashteam.uzumanalytics.db.model.enums.ReportStatus
-import dev.crashteam.uzumanalytics.domain.mongo.ReportType
-import dev.crashteam.uzumanalytics.db.model.tables.records.ReportsRecord
+import dev.crashteam.uzumanalytics.db.model.enums.ReportType
+import dev.crashteam.uzumanalytics.db.model.tables.pojos.Reports
+import java.io.InputStream
 import java.time.LocalDateTime
 
 interface ReportRepository {
 
-    fun findByJobId(jobId: String): ReportsRecord?
+    fun saveNewCategoryReport(report: Reports)
 
-    fun findAllByStatus(reportStatus: ReportStatus): List<ReportsRecord>
+    fun saveNewSellerReport(report: Reports)
 
-    fun findByRequestIdAndSellerLink(requestId: String, sellerLink: String): ReportsRecord?
+    fun findByJobId(jobId: String): Reports?
 
-    fun findByRequestIdAndCategoryPublicId(requestId: String, categoryPublicId: Long): ReportsRecord?
+    fun findAllByStatus(reportStatus: ReportStatus): List<Reports>
+
+    fun findByRequestIdAndSellerLink(requestId: String, sellerLink: String): Reports?
+
+    fun findByRequestIdAndCategoryPublicId(requestId: String, categoryPublicId: Long): Reports?
 
     fun countByUserIdAndCreatedAtBetweenAndReportType(
         userId: String,
         fromTime: LocalDateTime,
         toTime: LocalDateTime,
         reportType: ReportType
-    ): Long
+    ): Int
+
+    fun findByUserIdAndCreatedAtFromTime(userId: String, fromTime: LocalDateTime): List<Reports>
+
+    fun updateReportStatusByJobId(jobId: String, reportStatus: ReportStatus): Int
+
+    fun updateReportIdByJobId(jobId: String, reportId: String): Int
+
+    fun saveJobIdFile(jobId: String, inputStream: InputStream): String?
 
 }
