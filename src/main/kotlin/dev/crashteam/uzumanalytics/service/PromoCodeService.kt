@@ -3,7 +3,6 @@ package dev.crashteam.uzumanalytics.service
 import dev.crashteam.uzumanalytics.domain.mongo.PromoCodeDocument
 import dev.crashteam.uzumanalytics.promo.PromoCodeConfig
 import dev.crashteam.uzumanalytics.promo.PromoCodeGenerator
-import dev.crashteam.uzumanalytics.repository.mongo.PromoCodeRepository
 import dev.crashteam.uzumanalytics.service.model.PromoCodeCheckCode
 import dev.crashteam.uzumanalytics.service.model.PromoCodeCheckResult
 import dev.crashteam.uzumanalytics.service.model.PromoCodeCreateData

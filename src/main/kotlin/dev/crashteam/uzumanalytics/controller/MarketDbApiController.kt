@@ -11,11 +11,11 @@ import dev.crashteam.uzumanalytics.report.model.ReportJob
 import dev.crashteam.uzumanalytics.repository.mongo.CategoryRepository
 import dev.crashteam.uzumanalytics.repository.mongo.ProductCustomRepositoryImpl
 import dev.crashteam.uzumanalytics.repository.mongo.ReportRepository
-import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
 import dev.crashteam.uzumanalytics.repository.mongo.model.FindProductFilter
 import dev.crashteam.uzumanalytics.repository.mongo.model.ProductTotalOrderAggregate
 import dev.crashteam.uzumanalytics.repository.mongo.model.ShopTotalOrder
 import dev.crashteam.uzumanalytics.repository.mongo.pageable.PageResult
+import dev.crashteam.uzumanalytics.repository.postgres.UserRepository
 import dev.crashteam.uzumanalytics.service.CategoryService
 import dev.crashteam.uzumanalytics.service.ProductService
 import dev.crashteam.uzumanalytics.service.UserRestrictionService
@@ -38,7 +38,6 @@ import java.math.RoundingMode
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.*
-
 
 private val log = KotlinLogging.logger {}
 
@@ -343,7 +342,7 @@ class MarketDbApiController(
         @RequestHeader(name = "X-API-KEY", required = true) apiKey: String,
         @RequestHeader(name = "Idempotence-Key", required = true) idempotenceKey: String
     ): ResponseEntity<ReportJob> {
-        val user = userRepository.findByApiKey_HashKey(apiKey).awaitSingleOrNull()
+        val user = userRepository.findByApiKey_HashKey(apiKey)
             ?: throw IllegalStateException("User not found")
 
         // Check report period permission
@@ -393,7 +392,7 @@ class MarketDbApiController(
         @RequestHeader(name = "X-API-KEY", required = true) apiKey: String,
         @RequestHeader(name = "Idempotence-Key", required = true) idempotenceKey: String
     ): ResponseEntity<Any> {
-        val user = userRepository.findByApiKey_HashKey(apiKey).awaitSingleOrNull()
+        val user = userRepository.findByApiKey_HashKey(apiKey)
             ?: throw IllegalStateException("User not found")
 
         // Check report period permission
@@ -483,7 +482,7 @@ class MarketDbApiController(
         @RequestHeader(name = "X-API-KEY", required = true) apiKey: String,
         @RequestParam(name = "from_time") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromTime: LocalDateTime,
     ): ResponseEntity<MutableList<ReportStatusView>> {
-        val user = userRepository.findByApiKey_HashKey(apiKey).awaitSingleOrNull()
+        val user = userRepository.findByApiKey_HashKey(apiKey)
             ?: return ResponseEntity.notFound().build()
         val reportDocuments =
             reportRepository.findByUserIdAndCreatedAtFromTime(user.userId, fromTime).map { reportDoc ->
@@ -508,7 +507,7 @@ class MarketDbApiController(
     ): Boolean {
         val daysCount = ChronoUnit.DAYS.between(fromTime, toTime)
         if (daysCount <= 0) return true
-        val user = userRepository.findByApiKey_HashKey(apiKey).awaitSingleOrNull()
+        val user = userRepository.findByApiKey_HashKey(apiKey)
             ?: throw IllegalStateException("User not found")
         val checkDaysAccess = userRestrictionService.checkDaysAccess(user, daysCount.toInt())
         if (checkDaysAccess == UserRestrictionService.RestrictionResult.PROHIBIT) {

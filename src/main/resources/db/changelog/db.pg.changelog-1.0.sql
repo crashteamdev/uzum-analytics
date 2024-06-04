@@ -7,6 +7,9 @@ CREATE
 CREATE
     TYPE report_status AS ENUM ('deleted','processing', 'failed', 'completed');
 
+CREATE
+    TYPE subscription_type AS ENUM ('default','advanced', 'pro');
+
 CREATE TABLE payment
 (
     payment_id        CHARACTER VARYING PRIMARY KEY,
@@ -38,26 +41,18 @@ CREATE TABLE sellers
     PRIMARY KEY (seller_id, account_id)
 );
 
-CREATE TABLE user_subscription
-(
-    id         BIGSERIAL PRIMARY KEY,
-    type       CHARACTER VARYING           NOT NULL,
-    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    end_at     TIMESTAMP WITHOUT TIME ZONE NOT NULL
-);
-
 CREATE TABLE users
 (
-    user_id          CHARACTER VARYING PRIMARY KEY,
-    subscription_id  INT,
-    api_key_prefix   CHARACTER VARYING,
-    api_key_key      CHARACTER VARYING,
-    api_key_hash_key CHARACTER VARYING,
-    api_key_blocked  BOOLEAN,
-    email            CHARACTER VARYING,
-    role             CHARACTER VARYING,
-
-    CONSTRAINT fk_user_subscription FOREIGN KEY (subscription_id) REFERENCES user_subscription (id)
+    user_id                 CHARACTER VARYING PRIMARY KEY,
+    api_key_prefix          CHARACTER VARYING,
+    api_key_key             CHARACTER VARYING,
+    api_key_hash_key        CHARACTER VARYING,
+    api_key_blocked         BOOLEAN,
+    subscription_type       subscription_type,
+    subscription_created_at TIMESTAMP WITHOUT TIME ZONE,
+    subscription_end_at     TIMESTAMP WITHOUT TIME ZONE,
+    email                   CHARACTER VARYING,
+    role                    CHARACTER VARYING
 );
 
 CREATE UNIQUE INDEX user_api_hash_key_idx ON users (api_key_hash_key);

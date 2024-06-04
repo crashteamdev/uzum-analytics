@@ -7,9 +7,8 @@ import dev.crashteam.uzumanalytics.extensions.toLocalDates
 import dev.crashteam.uzumanalytics.extensions.toRepositoryDomain
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.SortBy
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.SortField
-import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
+import dev.crashteam.uzumanalytics.repository.postgres.UserRepository
 import dev.crashteam.uzumanalytics.service.CategoryAnalyticsCacheableDecorator
-import dev.crashteam.uzumanalytics.service.CategoryAnalyticsService
 import dev.crashteam.uzumanalytics.service.ProductServiceAnalytics
 import dev.crashteam.uzumanalytics.service.UserRestrictionService
 import io.grpc.stub.StreamObserver
@@ -301,7 +300,7 @@ class ExternalCategoryAnalyticsService(
         log.debug { "Check request days permission. userId=$userId; fromDate=$fromDate; toDate=$toDate" }
         val daysCount = ChronoUnit.DAYS.between(fromDate, toDate)
         if (daysCount <= 0) return true
-        val user = userRepository.findByUserId(userId).block()
+        val user = userRepository.findByUserId(userId)
             ?: throw IllegalStateException("User not found")
         val checkDaysAccess = userRestrictionService.checkDaysAccess(user, daysCount.toInt())
         if (checkDaysAccess == UserRestrictionService.RestrictionResult.PROHIBIT) {

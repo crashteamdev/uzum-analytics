@@ -4,11 +4,10 @@ import dev.crashteam.payment.PaymentCreated
 import dev.crashteam.payment.PaymentEvent
 import dev.crashteam.payment.PaymentStatus
 import dev.crashteam.payment.UzumAnalyticsContext
-import dev.crashteam.uzumanalytics.domain.mongo.PaymentDocument
+import dev.crashteam.uzumanalytics.db.model.tables.pojos.Payment
 import dev.crashteam.uzumanalytics.extensions.toLocalDateTime
-import dev.crashteam.uzumanalytics.repository.mongo.PaymentRepository
+import dev.crashteam.uzumanalytics.repository.postgres.PaymentRepository
 import dev.crashteam.uzumanalytics.service.PaymentService
-import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
@@ -25,9 +24,9 @@ class UzumPaymentCreatedEventHandler(
         runBlocking {
             for (paymentEvent in events) {
                 val paymentCreated = paymentEvent.payload.paymentChange.paymentCreated
-                val paymentDocument = paymentRepository.findByPaymentId(paymentCreated.paymentId).awaitSingleOrNull()
+                val paymentEntity = paymentRepository.findByPaymentId(paymentCreated.paymentId)
 
-                if (paymentDocument != null) continue
+                if (paymentEntity != null) continue
 
                 if (paymentCreated.status == PaymentStatus.PAYMENT_STATUS_SUCCESS) {
                     log.info { "Create payment with final state. paymentId=${paymentCreated.paymentId}; userId=${paymentCreated.userId}" }
@@ -52,19 +51,19 @@ class UzumPaymentCreatedEventHandler(
     }
 
     private suspend fun createPayment(paymentCreated: PaymentCreated) {
-        val newPaymentDocument = PaymentDocument(
-            paymentId = paymentCreated.paymentId,
-            userId = paymentCreated.userId,
-            createdAt = paymentCreated.createdAt.toLocalDateTime(),
-            status = mapPaymentStatus(paymentCreated.status),
-            paid = false,
-            amount = paymentCreated.amount.value.toBigDecimal().movePointLeft(2),
-            multiply = paymentCreated.userPaidService.paidService.context.multiply.toShort(),
+        val payment = Payment().apply {
+            this.paymentId = paymentCreated.paymentId
+            this.userId = paymentCreated.userId
+            createdAt = paymentCreated.createdAt.toLocalDateTime()
+            status = mapPaymentStatus(paymentCreated.status)
+            paid = false
+            amount = paymentCreated.amount.value.toBigDecimal().movePointLeft(2).toString()
+            multiply = paymentCreated.userPaidService.paidService.context.multiply.toShort()
             subscriptionType = mapProtoSubscriptionPlan(
                 paymentCreated.userPaidService.paidService.context.uzumAnalyticsContext.plan
-            )
-        )
-        paymentRepository.save(newPaymentDocument).awaitSingleOrNull()
+            ).toShort()
+        }
+        paymentRepository.saveNewPayment(payment)
     }
 
     private fun mapPaymentStatus(paymentStatus: PaymentStatus): String {

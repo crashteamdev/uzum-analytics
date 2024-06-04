@@ -22,4 +22,11 @@ class CategoryJooqRepository(
                 )
             ).execute()
     }
+
+    override fun findByPublicId(publicId: Long): CategoryHierarchical? {
+        val ch = CATEGORY_HIERARCHICAL
+        return dsl.selectFrom(ch)
+            .where(ch.CATEGORY_ID.eq(publicId))
+            .fetchOneInto(CategoryHierarchical::class.java)
+    }
 }

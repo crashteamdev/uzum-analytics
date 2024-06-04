@@ -2,12 +2,10 @@ package dev.crashteam.uzumanalytics.stream.handler.payment
 
 import dev.crashteam.payment.PaymentEvent
 import dev.crashteam.payment.PaymentStatus
-import dev.crashteam.uzumanalytics.repository.mongo.PaymentRepository
+import dev.crashteam.uzumanalytics.repository.postgres.PaymentRepository
 import dev.crashteam.uzumanalytics.service.PaymentService
-import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import org.springframework.core.convert.ConversionService
 import org.springframework.stereotype.Component
 
 private val log = KotlinLogging.logger {}
@@ -22,31 +20,29 @@ class UzumPaymentStatusEventHandler(
         runBlocking {
             for (event in events) {
                 val paymentStatusChanged = event.payload.paymentChange.paymentStatusChanged
-                val paymentDocument =
-                    paymentRepository.findByPaymentId(paymentStatusChanged.paymentId).awaitSingleOrNull()
-                        ?: continue
                 val paymentStatus = mapPaymentStatus(paymentStatusChanged.status)
-                val updatePaymentDocument = paymentDocument.copy(status = paymentStatus)
                 when (paymentStatusChanged.status) {
                     PaymentStatus.PAYMENT_STATUS_PENDING,
                     PaymentStatus.PAYMENT_STATUS_CANCELED,
                     PaymentStatus.PAYMENT_STATUS_FAILED -> {
-                        log.warn { "Failed payment: $updatePaymentDocument" }
-                        paymentRepository.save(updatePaymentDocument).awaitSingleOrNull()
+                        log.warn { "Failed payment. paymentId=${paymentStatusChanged.paymentId}" }
+                        paymentRepository.updatePaymentStatus(paymentStatusChanged.paymentId, paymentStatus, false)
                     }
 
                     PaymentStatus.PAYMENT_STATUS_SUCCESS -> {
                         log.info { "Success payment. paymentId=${paymentStatusChanged.paymentId}" }
-                        if (paymentDocument.status != "success") {
+                        val paymentEntity = paymentRepository.findByPaymentId(paymentStatusChanged.paymentId)
+                        if (paymentEntity?.status != "success") {
                             paymentService.callbackPayment(
                                 paymentId = paymentStatusChanged.paymentId,
-                                userId = paymentDocument.userId,
+                                userId = paymentEntity?.userId!!,
                             )
                         }
                     }
 
                     PaymentStatus.PAYMENT_STATUS_UNKNOWN, PaymentStatus.UNRECOGNIZED -> {
-                        log.warn { "Received payment event with unknown status: ${paymentStatusChanged.status}" }
+                        log.warn { "Received payment event with unknown status: ${paymentStatusChanged.status}." +
+                                " paymentId=${paymentStatusChanged.paymentId}" }
                     }
                 }
             }

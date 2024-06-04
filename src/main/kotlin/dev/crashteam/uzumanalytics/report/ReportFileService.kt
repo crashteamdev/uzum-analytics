@@ -1,15 +1,6 @@
 package dev.crashteam.uzumanalytics.report
 
-import com.mongodb.BasicDBObject
-import com.mongodb.DBObject
-import com.mongodb.client.gridfs.GridFSFindIterable
-import com.mongodb.client.gridfs.model.GridFSFile
-import org.apache.poi.common.usermodel.HyperlinkType
-import org.apache.poi.hssf.util.HSSFColor
-import org.apache.poi.ss.usermodel.*
-import org.apache.poi.xssf.streaming.SXSSFSheet
-import org.apache.poi.xssf.streaming.SXSSFWorkbook
-import org.apache.poi.xssf.usermodel.XSSFFont
+import dev.crashteam.uzumanalytics.db.model.enums.ReportStatus
 import dev.crashteam.uzumanalytics.report.model.CustomCellStyle
 import dev.crashteam.uzumanalytics.report.model.Report
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductSalesReport
@@ -18,11 +9,14 @@ import dev.crashteam.uzumanalytics.service.ProductService
 import dev.crashteam.uzumanalytics.service.ProductServiceV2
 import dev.crashteam.uzumanalytics.service.model.AggregateSalesProduct
 import mu.KotlinLogging
-import org.springframework.data.mongodb.core.query.Criteria
-import org.springframework.data.mongodb.core.query.Query
-import org.springframework.data.mongodb.gridfs.GridFsOperations
-import org.springframework.data.mongodb.gridfs.GridFsTemplate
+import org.apache.poi.common.usermodel.HyperlinkType
+import org.apache.poi.hssf.util.HSSFColor
+import org.apache.poi.ss.usermodel.*
+import org.apache.poi.xssf.streaming.SXSSFSheet
+import org.apache.poi.xssf.streaming.SXSSFWorkbook
+import org.apache.poi.xssf.usermodel.XSSFFont
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
@@ -56,22 +50,17 @@ class ReportFileService(
     }
 
     suspend fun getReport(jobId: String): Report? {
-        val file: GridFSFile = gridFsTemplate.findOne(Query(Criteria.where("_id").`is`(jobId)))
-        if (file.length <= 0) return null
-        val inputStream = gridFsOperations.getResource(file).inputStream
-        val seller = file.metadata?.get("seller")
-        val categoryTitle = file.metadata?.get("categoryTitle")
-        val reportName = seller?.toString() ?: (categoryTitle?.toString() ?: "unknown")
+        val fileByteArray = reportRepository.getFileByJobId(jobId) ?: return null
 
-        return Report(reportName, inputStream)
+        return Report("unknown", fileByteArray.inputStream())
     }
 
-    suspend fun deleteReportWithTtl(uploadDate: LocalDateTime) {
-        gridFsTemplate.delete(Query(Criteria.where("uploadDate").lt(uploadDate)))
-    }
-
-    suspend fun findReportWithTtl(uploadDate: LocalDateTime): GridFSFindIterable {
-        return gridFsTemplate.find(Query(Criteria.where("uploadDate").lt(uploadDate)))
+    @Transactional
+    suspend fun removeFileOlderThan(maxDataTime: LocalDateTime) {
+        reportRepository.removeAllJobFileBeforeDate(maxDataTime)
+        for (reports in reportRepository.findAllCreatedLessThan(maxDataTime)) {
+            reportRepository.updateReportStatusByJobId(reports.jobId, ReportStatus.deleted)
+        }
     }
 
     suspend fun generateReportBySellerV2(

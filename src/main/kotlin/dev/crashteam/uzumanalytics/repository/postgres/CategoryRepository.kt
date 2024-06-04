@@ -6,4 +6,6 @@ interface CategoryRepository {
 
     fun save(categoryHierarchical: CategoryHierarchical)
 
+    fun findByPublicId(publicId: Long): CategoryHierarchical?
+
 }

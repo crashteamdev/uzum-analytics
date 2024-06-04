@@ -23,7 +23,7 @@ class ReportJooqRepository(
             r.USER_ID,
             r.CREATED_AT,
             r.INTERVAL,
-            r.CATEGORYID,
+            r.CATEGORY_ID,
             r.REPORT_TYPE,
             r.STATUS
         ).values(
@@ -32,7 +32,7 @@ class ReportJooqRepository(
             report.userId,
             report.createdAt,
             report.interval,
-            report.categoryid,
+            report.categoryId,
             report.reportType,
             report.status
         ).onConflictDoNothing().execute()
@@ -86,7 +86,7 @@ class ReportJooqRepository(
     override fun findByRequestIdAndCategoryPublicId(requestId: String, categoryPublicId: Long): Reports? {
         val r = REPORTS
         return dsl.selectFrom(r)
-            .where(r.REPORT_ID.eq(requestId).and(r.CATEGORYID.eq(categoryPublicId.toString())))
+            .where(r.REPORT_ID.eq(requestId).and(r.CATEGORY_ID.eq(categoryPublicId.toString())))
             .fetchOneInto(Reports::class.java)
     }
 
@@ -133,5 +133,27 @@ class ReportJooqRepository(
             .where(r.JOB_ID.eq(jobId))
             .returning(r.REPORT_ID)
             .fetchOne()?.getValue(r.REPORT_ID)
+    }
+
+    override fun findAllCreatedLessThan(dateTime: LocalDateTime): List<Reports> {
+        val r = REPORTS
+        return dsl.select(r.FILE)
+            .where(r.CREATED_AT.lessOrEqual(dateTime))
+            .fetchInto(Reports::class.java)
+    }
+
+    override fun removeAllJobFileBeforeDate(dateTime: LocalDateTime): Int {
+        val r = REPORTS
+        return dsl.update(r)
+            .set(r.FILE, null as ByteArray?)
+            .where(r.CREATED_AT.lessOrEqual(dateTime))
+            .execute()
+    }
+
+    override fun getFileByJobId(jobId: String): ByteArray? {
+        val r = REPORTS
+        return dsl.select(r.FILE)
+            .where(r.JOB_ID.eq(jobId))
+            .fetchOne()?.value1()
     }
 }

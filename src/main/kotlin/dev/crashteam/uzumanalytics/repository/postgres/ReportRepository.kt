@@ -35,4 +35,10 @@ interface ReportRepository {
 
     fun saveJobIdFile(jobId: String, inputStream: InputStream): String?
 
+    fun findAllCreatedLessThan(dateTime: LocalDateTime): List<Reports>
+
+    fun removeAllJobFileBeforeDate(dateTime: LocalDateTime): Int
+
+    fun getFileByJobId(jobId: String): ByteArray?
+
 }

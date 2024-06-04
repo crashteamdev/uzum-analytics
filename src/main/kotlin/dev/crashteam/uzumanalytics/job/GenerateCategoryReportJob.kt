@@ -1,17 +1,15 @@
 package dev.crashteam.uzumanalytics.job
 
-import kotlinx.coroutines.reactor.awaitSingleOrNull
-import kotlinx.coroutines.runBlocking
-import mu.KotlinLogging
-import dev.crashteam.uzumanalytics.domain.mongo.ReportStatus
 import dev.crashteam.uzumanalytics.domain.mongo.ReportVersion
 import dev.crashteam.uzumanalytics.extensions.getApplicationContext
 import dev.crashteam.uzumanalytics.report.ReportFileService
 import dev.crashteam.uzumanalytics.report.ReportService
-import dev.crashteam.uzumanalytics.repository.mongo.CategoryRepository
-import dev.crashteam.uzumanalytics.repository.mongo.ReportRepository
+import dev.crashteam.uzumanalytics.repository.postgres.CategoryRepository
+import dev.crashteam.uzumanalytics.repository.postgres.ReportRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import mu.KotlinLogging
 import org.apache.commons.io.FileUtils
 import org.quartz.Job
 import org.quartz.JobExecutionContext
@@ -73,13 +71,13 @@ class GenerateCategoryReportJob : Job {
                     )
                 } else if (version == ReportVersion.V1) {
                     val categoryRepository = applicationContext.getBean(CategoryRepository::class.java)
-                    val categoryDocument = categoryRepository.findByPublicId(categoryPublicId).awaitSingleOrNull()
+                    val categoryHierarchical = categoryRepository.findByPublicId(categoryPublicId)
                         ?: throw IllegalStateException("Unknown category publicId=${categoryPublicId}")
                     val generatedReport =
-                        reportFileService.generateReportByCategory(categoryDocument.title, fromTime, toTime, 10000)
+                        reportFileService.generateReportByCategory(categoryHierarchical.title, fromTime, toTime, 10000)
                     reportService.saveCategoryReport(
                         categoryPublicId,
-                        categoryDocument.title,
+                        categoryHierarchical.title,
                         interval,
                         jobId,
                         generatedReport
@@ -89,8 +87,12 @@ class GenerateCategoryReportJob : Job {
                 }
             } catch (e: Exception) {
                 log.error(e) { "Failed to generate report. categoryPublicId=$categoryPublicId; interval=$interval; jobId=$jobId" }
-                val reportRepository = applicationContext.getBean(ReportRepository::class.java)
-                reportRepository.updateReportStatus(jobId, ReportStatus.FAILED).awaitSingleOrNull()
+                val reportRepository =
+                    applicationContext.getBean(ReportRepository::class.java)
+                reportRepository.updateReportStatusByJobId(
+                    jobId,
+                    dev.crashteam.uzumanalytics.db.model.enums.ReportStatus.failed
+                )
             } finally {
                 tempFilePath.deleteIfExists()
             }
