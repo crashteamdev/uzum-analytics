@@ -393,7 +393,7 @@ class CHProductRepository(
                                    product_id,
                                    sum(minMerge(min_available_amount))
                                        over (partition by product_id, date order by date) AS available_amount_sum
-                            FROM uzum.ke_product_daily_sales
+                            FROM uzum.uzum_product_daily_sales
                             WHERE product_id = ?
                               AND date BETWEEN ? AND ?
                             GROUP BY product_id, sku_id, date
