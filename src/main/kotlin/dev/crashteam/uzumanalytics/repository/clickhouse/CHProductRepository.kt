@@ -386,8 +386,21 @@ class CHProductRepository(
                    groupArray(purchase_price / 100) AS price_chart,
                    groupArray(revenue / 100)        AS revenue_chart,
                    groupArray(final_order_amount)   AS order_chart,
-                   groupArray(available_amount)     AS available_chart,
-                   (SELECT min(date) as first_discovered
+                   (SELECT groupArray(last_available_amount)
+                    FROM (SELECT anyLast(available_amount_sum) AS last_available_amount
+                      FROM (
+                            SELECT date,
+                                   product_id,
+                                   sum(minMerge(min_available_amount))
+                                       over (partition by product_id, date order by date) AS available_amount_sum
+                            FROM uzum.ke_product_daily_sales
+                            WHERE product_id = ?
+                              AND date BETWEEN ? AND ?
+                            GROUP BY product_id, sku_id, date
+                            ORDER BY date)
+                      GROUP BY product_id, date
+                      ORDER BY date))               AS available_chart,
+                   (SELECT min(date)                AS first_discovered
                     FROM uzum.uzum_product_daily_sales
                     WHERE product_id = ?
                     GROUP BY product_id)            AS first_discovered
@@ -398,7 +411,6 @@ class CHProductRepository(
                             anyLastMerge(title)                                                                              AS title,
                             minMerge(min_total_order_amount)                                                                 AS total_orders_amount_min,
                             maxMerge(max_total_order_amount)                                                                 AS total_orders_amount_max,
-                            minMerge(min_available_amount)                                                                   AS available_amount,
                             total_orders_amount_max - total_orders_amount_min                                                AS daily_order_amount,
                             lagInFrame(total_orders_amount_max)
                                        over (partition by product_id order by date ROWS BETWEEN 1 PRECEDING AND 1 PRECEDING) AS max_total_order_amount_delta,
@@ -450,7 +462,7 @@ class CHProductRepository(
         return jdbcTemplate.queryForObject(
             GET_PRODUCT_DAILY_ANALYTICS_SQL,
             ProductDailyAnalyticsMapper(),
-            productId, productId, fromDate, toDate,
+            productId, fromDate, toDate, productId, productId, fromDate, toDate,
         )
     }
 
