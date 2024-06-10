@@ -47,7 +47,6 @@ class MarketDbApiControllerV2(
     private val sellerService: SellerService,
     private val userRepository: UserRepository,
     private val userRestrictionService: UserRestrictionService,
-    private val promoCodeService: PromoCodeService,
     private val conversionService: ConversionService,
     private val reportService: ReportService,
     private val reportRepository: ReportRepository,
@@ -214,7 +213,7 @@ class MarketDbApiControllerV2(
                 this.link = it.link
                 this.accountId = it.accountId
             }
-        }).toMono().doOnError { log.error(it) { "Failed to get seller shops" } }
+        }.toFlux()).toMono().doOnError { log.error(it) { "Failed to get seller shops" } }
     }
 
     override fun getProductSales(
@@ -258,63 +257,6 @@ class MarketDbApiControllerV2(
                 }
             }
             return@flatMap ResponseEntity.ok(productSales.toFlux()).toMono()
-        }
-    }
-
-    override fun createPromoCode(
-        xRequestID: UUID,
-        promoCode: Mono<PromoCode>,
-        exchange: ServerWebExchange
-    ): Mono<ResponseEntity<PromoCode>> {
-        return exchange.getPrincipal<Principal>().flatMap { principal ->
-            promoCode.flatMap { promoCode ->
-                val user = userRepository.findByUserId(principal.name)
-                if (user?.role != UserRole.ADMIN.name) {
-                    return@flatMap ResponseEntity.status(HttpStatus.FORBIDDEN).build<PromoCode>().toMono()
-                }
-                promoCodeService.createPromoCode(
-                    PromoCodeCreateData(
-                        description = promoCode.description,
-                        validUntil = promoCode.validUntil.toLocalDateTime(),
-                        useLimit = promoCode.useLimit,
-                        type = when (promoCode.context.type) {
-                            PromoCodeContext.TypeEnum.ADDITIONAL_TIME -> PromoCodeType.ADDITIONAL_DAYS
-                            PromoCodeContext.TypeEnum.DISCOUNT -> PromoCodeType.DISCOUNT
-                            else -> PromoCodeType.DISCOUNT
-                        },
-                        discount = if (promoCode.context is DiscountPromoCode) {
-                            (promoCode.context as DiscountPromoCode).discount.toShort()
-                        } else null,
-                        additionalDays = if (promoCode.context is AdditionalTimePromoCode) {
-                            (promoCode.context as AdditionalTimePromoCode).additionalDays
-                        } else null,
-                        prefix = promoCode.prefix,
-                    )
-                ).flatMap { promoCodeDocument ->
-                    ResponseEntity.ok(conversionService.convert(promoCodeDocument, PromoCode::class.java)).toMono()
-                }
-            }
-        }
-    }
-
-    override fun checkPromoCode(
-        xRequestID: UUID,
-        promoCode: String,
-        exchange: ServerWebExchange
-    ): Mono<ResponseEntity<PromoCodeCheckResult>> {
-        return exchange.getPrincipal<Principal>().flatMap { _ ->
-            promoCodeService.checkPromoCode(promoCode).flatMap { promoCodeCheckResult ->
-                val codeCheckResult = PromoCodeCheckResult().apply {
-                    code = when (promoCodeCheckResult.checkCode) {
-                        PromoCodeCheckCode.INVALID_USE_LIMIT -> PromoCodeCheckResult.CodeEnum.INVALIDPROMOCODEUSELIMIT
-                        PromoCodeCheckCode.INVALID_DATE_LIMIT -> PromoCodeCheckResult.CodeEnum.INVALIDPROMOCODEDATE
-                        PromoCodeCheckCode.NOT_FOUND -> PromoCodeCheckResult.CodeEnum.NOTFOUNDPROMOCODE
-                        PromoCodeCheckCode.VALID -> PromoCodeCheckResult.CodeEnum.VALIDPROMOCODE
-                    }
-                    message = promoCodeCheckResult.description
-                }
-                ResponseEntity.ok(codeCheckResult).toMono()
-            }
         }
     }
 
@@ -512,11 +454,8 @@ class MarketDbApiControllerV2(
                     ResponseEntity.status(HttpStatus.FORBIDDEN).build<Void>().toMono()
                 } else {
                     try {
-                        userSubscriptionService.giveawayDemoSubscription(giveawayUserDemoRequest.userId).flatMap {
-                            ResponseEntity.ok().build<Void>().toMono()
-                        }.doOnError {
-                            ResponseEntity.badRequest().build<Void>().toMono()
-                        }
+                        userSubscriptionService.giveawayDemoSubscription(giveawayUserDemoRequest.userId)
+                        ResponseEntity.ok().build<Void>().toMono()
                     } catch (e: UserSubscriptionGiveawayException) {
                         ResponseEntity.badRequest().build<Void>().toMono()
                     }

@@ -1,18 +1,16 @@
 package dev.crashteam.uzumanalytics.service
 
-import dev.crashteam.uzumanalytics.domain.mongo.SellerDetailDocument
-import dev.crashteam.uzumanalytics.repository.mongo.SellerRepository
+import dev.crashteam.uzumanalytics.db.model.tables.pojos.Sellers
+import dev.crashteam.uzumanalytics.repository.postgres.SellerRepository
 import org.springframework.stereotype.Service
-import reactor.core.publisher.Flux
 
 @Service
 class SellerService(
     private val sellerRepository: SellerRepository
 ) {
 
-    fun findSellersByLink(sellerLink: String): Flux<SellerDetailDocument> {
-        return sellerRepository.findByLink(sellerLink).flatMapMany { sellerDetailDocument ->
-            sellerRepository.findByAccountId(sellerDetailDocument.accountId)
-        }
+    fun findSellersByLink(sellerLink: String): List<Sellers> {
+        val seller = sellerRepository.findBySellerLink(sellerLink) ?: return emptyList()
+        return sellerRepository.findByAccountId(seller.accountId)
     }
 }

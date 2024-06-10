@@ -8,7 +8,7 @@ CREATE
     TYPE report_status AS ENUM ('deleted','processing', 'failed', 'completed');
 
 CREATE
-    TYPE subscription_type AS ENUM ('default','advanced', 'pro');
+    TYPE subscription_type AS ENUM ('demo', 'default','advanced', 'pro');
 
 CREATE TABLE payment
 (

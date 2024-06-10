@@ -1,16 +1,13 @@
 package dev.crashteam.uzumanalytics.job
 
-import kotlinx.coroutines.reactor.awaitSingleOrNull
-import kotlinx.coroutines.runBlocking
-import mu.KotlinLogging
-import dev.crashteam.uzumanalytics.domain.mongo.ReportStatus
 import dev.crashteam.uzumanalytics.domain.mongo.ReportVersion
 import dev.crashteam.uzumanalytics.extensions.getApplicationContext
 import dev.crashteam.uzumanalytics.report.ReportFileService
 import dev.crashteam.uzumanalytics.report.ReportService
-import dev.crashteam.uzumanalytics.repository.mongo.ReportRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import mu.KotlinLogging
 import org.apache.commons.io.FileUtils
 import org.quartz.Job
 import org.quartz.JobExecutionContext
@@ -57,19 +54,26 @@ class GenerateSellerReportJob : Job {
                     )
                     log.info(
                         "Save generated seller file. name=${tempFilePath.fileName};" +
-                                " size=${FileUtils.byteCountToDisplaySize(BigInteger.valueOf(tempFilePath.toFile().length()))}",
+                                " size=${
+                                    FileUtils.byteCountToDisplaySize(
+                                        BigInteger.valueOf(
+                                            tempFilePath.toFile().length()
+                                        )
+                                    )
+                                }",
                     )
                     reportService.saveSellerReportV2(sellerLink, interval, jobId, tempFilePath.inputStream())
-                } else if (version == ReportVersion.V1) {
-                    val generatedReport = reportFileService.generateReportBySeller(sellerLink, fromTime, toTime)
-                    reportService.saveSellerReport(sellerLink, interval, jobId, generatedReport)
                 } else {
                     throw IllegalStateException("Unknown report version: $version")
                 }
             } catch (e: Exception) {
                 log.error(e) { "Failed to generate report. seller=$sellerLink; interval=$interval; jobId=$jobId" }
-                val reportRepository = applicationContext.getBean(ReportRepository::class.java)
-                reportRepository.updateReportStatus(jobId, ReportStatus.FAILED).awaitSingleOrNull()
+                val reportRepository =
+                    applicationContext.getBean(dev.crashteam.uzumanalytics.repository.postgres.ReportRepository::class.java)
+                reportRepository.updateReportStatusByJobId(
+                    jobId,
+                    dev.crashteam.uzumanalytics.db.model.enums.ReportStatus.failed
+                )
             } finally {
                 tempFilePath.deleteIfExists()
             }

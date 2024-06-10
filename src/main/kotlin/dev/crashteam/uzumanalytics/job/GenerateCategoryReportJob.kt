@@ -69,19 +69,6 @@ class GenerateCategoryReportJob : Job {
                         jobId,
                         tempFilePath.inputStream()
                     )
-                } else if (version == ReportVersion.V1) {
-                    val categoryRepository = applicationContext.getBean(CategoryRepository::class.java)
-                    val categoryHierarchical = categoryRepository.findByPublicId(categoryPublicId)
-                        ?: throw IllegalStateException("Unknown category publicId=${categoryPublicId}")
-                    val generatedReport =
-                        reportFileService.generateReportByCategory(categoryHierarchical.title, fromTime, toTime, 10000)
-                    reportService.saveCategoryReport(
-                        categoryPublicId,
-                        categoryHierarchical.title,
-                        interval,
-                        jobId,
-                        generatedReport
-                    )
                 } else {
                     throw IllegalStateException("Unknown report version: $version")
                 }

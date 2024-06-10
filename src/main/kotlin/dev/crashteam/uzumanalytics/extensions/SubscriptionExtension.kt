@@ -1,10 +1,7 @@
 package dev.crashteam.uzumanalytics.extensions
 
 import dev.crashteam.uzumanalytics.db.model.enums.SubscriptionType
-import dev.crashteam.uzumanalytics.domain.AdvancedSubscription
-import dev.crashteam.uzumanalytics.domain.DefaultSubscription
-import dev.crashteam.uzumanalytics.domain.ProSubscription
-import dev.crashteam.uzumanalytics.domain.UserSubscription
+import dev.crashteam.uzumanalytics.domain.*
 import dev.crashteam.uzumanalytics.domain.mongo.SubscriptionDocument
 
 fun Int.mapToSubscription(): UserSubscription? {
@@ -30,17 +27,13 @@ fun SubscriptionDocument.mapToUserSubscription(): UserSubscription? {
 
 fun SubscriptionType.mapToUserSubscription(): UserSubscription {
     return when (this) {
-        SubscriptionType.default_ -> {
-            DefaultSubscription
-        }
+        SubscriptionType.default_ -> DefaultSubscription
 
-        SubscriptionType.advanced -> {
-            AdvancedSubscription
-        }
+        SubscriptionType.advanced -> AdvancedSubscription
 
-        SubscriptionType.pro -> {
-            ProSubscription
-        }
+        SubscriptionType.pro -> ProSubscription
+
+        SubscriptionType.demo -> DemoSubscription
     }
 }
 

@@ -1,7 +1,7 @@
 package dev.crashteam.uzumanalytics.config
 
 import dev.crashteam.uzumanalytics.config.properties.UzumProperties
-import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
+import dev.crashteam.uzumanalytics.repository.postgres.UserRepository
 import dev.crashteam.uzumanalytics.repository.redis.ApiKeyUserSessionInfo
 import dev.crashteam.uzumanalytics.security.ApiKeyAuthHandlerFilter
 import dev.crashteam.uzumanalytics.security.ApiUserLimiterFilter

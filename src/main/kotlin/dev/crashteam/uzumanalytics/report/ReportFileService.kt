@@ -5,7 +5,6 @@ import dev.crashteam.uzumanalytics.report.model.CustomCellStyle
 import dev.crashteam.uzumanalytics.report.model.Report
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductSalesReport
 import dev.crashteam.uzumanalytics.repository.postgres.ReportRepository
-import dev.crashteam.uzumanalytics.service.ProductService
 import dev.crashteam.uzumanalytics.service.ProductServiceV2
 import dev.crashteam.uzumanalytics.service.model.AggregateSalesProduct
 import mu.KotlinLogging
@@ -17,7 +16,6 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook
 import org.apache.poi.xssf.usermodel.XSSFFont
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.math.RoundingMode
@@ -29,7 +27,6 @@ private val log = KotlinLogging.logger {}
 @Service
 class ReportFileService(
     private val reportRepository: ReportRepository,
-    private val productService: ProductService,
     private val productServiceV2: ProductServiceV2,
     private val stylesGenerator: StylesGenerator,
 ) {
@@ -263,64 +260,6 @@ class ReportFileService(
                         "CHOOSE(MATCH((SUMIF(\$I\$2:\$J$totalRowCount,\">\"&\$I$columnCursor)+\$I$columnCursor)/SUM(\$I\$2:\$I$totalRowCount),{0,0.81,0.96}),\"A\",\"B\",\"C\")"
                 }
             }
-        }
-    }
-
-    suspend fun generateReportBySeller(link: String, fromTime: LocalDateTime, toTime: LocalDateTime): ByteArray {
-        SXSSFWorkbook().use { wb ->
-            val styles = stylesGenerator.prepareStyles(wb)
-            val sheet: SXSSFSheet = wb.createSheet("ABC отчет")
-            wb.createSheet("marketdb.org")
-            wb.createSheet("Report range - ${Duration.between(fromTime, toTime).toDays()}")
-
-            createHeaderRow(sheet, styles, headerNames)
-
-            val sellerSales: List<AggregateSalesProduct> =
-                productService.getSellerSales(link = link, fromTime = fromTime, toTime = toTime)
-                    ?: throw IllegalArgumentException("Unknown seller link '${link}'")
-
-            fillWorkBookData(sheet, wb, sellerSales)
-
-            val resultByteArray = ByteArrayOutputStream().use {
-                wb.write(it)
-                return@use it.toByteArray()
-            }
-            wb.dispose()
-
-            return resultByteArray
-        }
-    }
-
-    suspend fun generateReportByCategory(
-        categoryTitle: String,
-        fromTime: LocalDateTime,
-        toTime: LocalDateTime,
-        limit: Int
-    ): ByteArray {
-        SXSSFWorkbook().use { wb ->
-            val styles = stylesGenerator.prepareStyles(wb)
-            val sheet: SXSSFSheet = wb.createSheet("ABC отчет")
-            wb.createSheet("marketdb.org")
-            wb.createSheet("Report range - ${Duration.between(fromTime, toTime).toDays()}")
-
-            createHeaderRow(sheet, styles, headerNames)
-
-            val sellerSales: List<AggregateSalesProduct> =
-                productService.getCategorySalesWithLimit(
-                    categoryTitle = categoryTitle,
-                    fromTime = fromTime,
-                    toTime = toTime,
-                    limit = limit
-                )
-            fillWorkBookData(sheet, wb, sellerSales)
-
-            val resultByteArray = ByteArrayOutputStream().use {
-                wb.write(it)
-                return@use it.toByteArray()
-            }
-            wb.dispose()
-
-            return resultByteArray
         }
     }
 

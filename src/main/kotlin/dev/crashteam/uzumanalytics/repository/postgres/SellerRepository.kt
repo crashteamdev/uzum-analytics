@@ -6,4 +6,8 @@ interface SellerRepository {
     fun save(seller: Sellers)
 
     fun saveBatch(sellers: Collection<Sellers>): IntArray
+
+    fun findBySellerLink(sellerLink: String): Sellers?
+
+    fun findByAccountId(accountId: Long): List<Sellers>
 }

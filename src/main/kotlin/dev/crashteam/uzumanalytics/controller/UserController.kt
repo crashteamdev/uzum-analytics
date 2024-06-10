@@ -1,14 +1,12 @@
 package dev.crashteam.uzumanalytics.controller
 
-import kotlinx.coroutines.reactor.awaitSingleOrNull
-import mu.KotlinLogging
-import dev.crashteam.uzumanalytics.controller.model.ReferralCodeView
 import dev.crashteam.uzumanalytics.controller.model.UserApiKey
 import dev.crashteam.uzumanalytics.controller.model.UserSubscriptionView
 import dev.crashteam.uzumanalytics.extensions.mapToUserSubscription
-import dev.crashteam.uzumanalytics.repository.mongo.UserRepository
+import dev.crashteam.uzumanalytics.repository.postgres.UserRepository
 import dev.crashteam.uzumanalytics.service.UserService
-import org.springframework.http.HttpStatus
+import kotlinx.coroutines.reactor.awaitSingleOrNull
+import mu.KotlinLogging
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
@@ -72,17 +70,17 @@ class UserController(
     suspend fun getSubscriptionWithApiKey(
         @RequestHeader(name = "X-API-KEY", required = true) apiKey: String,
     ): ResponseEntity<UserSubscriptionView> {
-        val user = userRepository.findByApiKey_HashKey(apiKey).awaitSingleOrNull()
-        if (user?.subscription == null) {
+        val user = userRepository.findByApiKey_HashKey(apiKey)
+        if (user?.subscriptionType == null) {
             return ResponseEntity.notFound().build()
         }
 
         val sub = UserSubscriptionView(
-            user.subscription.endAt > LocalDateTime.now(),
-            user.subscription.createdAt,
-            user.subscription.endAt,
-            user.subscription.subType,
-            user.subscription.mapToUserSubscription()!!.num
+            user.subscriptionEndAt > LocalDateTime.now(),
+            user.subscriptionCreatedAt,
+            user.subscriptionEndAt,
+            user.subscriptionType.literal,
+            user.subscriptionType.mapToUserSubscription().num
         )
         return ResponseEntity.ok(sub)
     }

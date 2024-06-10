@@ -35,4 +35,18 @@ class SellerJooqRepository(
             },
         ).execute()
     }
+
+    override fun findBySellerLink(sellerLink: String): Sellers? {
+        val s = SELLERS
+        return dsl.selectFrom(s)
+            .where(s.LINK.eq(sellerLink))
+            .fetchOneInto(Sellers::class.java)
+    }
+
+    override fun findByAccountId(accountId: Long): List<Sellers> {
+        val s = SELLERS
+        return dsl.selectFrom(s)
+            .where(s.ACCOUNT_ID.eq(accountId))
+            .fetchInto(Sellers::class.java)
+    }
 }
