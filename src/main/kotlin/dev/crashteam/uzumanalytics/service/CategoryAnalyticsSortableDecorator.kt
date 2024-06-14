@@ -9,50 +9,44 @@ import dev.crashteam.uzumanalytics.config.RedisConfig
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChCategoryHierarchy
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.SortBy
 import dev.crashteam.uzumanalytics.service.model.CategoryAnalyticsCacheableWrapper
+import dev.crashteam.uzumanalytics.service.model.CategoryAnalyticsInfo
 import dev.crashteam.uzumanalytics.service.model.CategoryDailyAnalytics
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 
 @Service
-class CategoryAnalyticsCacheableDecorator(
+class CategoryAnalyticsSortableDecorator(
     private val categoryAnalyticsService: CategoryAnalyticsService
 ) {
 
-    @Cacheable(
-        value = [RedisConfig.EXTERNAL_CATEGORY_ANALYTICS_CACHE_NAME],
-        key = "{#datePeriod, #sortBy}",
-        unless = "#result == null || #result.categoryAnalytics.isEmpty()"
-    )
     suspend fun getRootCategoryAnalytics(
         datePeriod: DatePeriod,
         sortBy: SortBy? = null
-    ): CategoryAnalyticsCacheableWrapper {
-        return CategoryAnalyticsCacheableWrapper(
-            categoryAnalyticsService.getRootCategoryAnalytics(
-                datePeriod,
-                sortBy
-            )
-        )
+    ): List<CategoryAnalyticsInfo> {
+        var categoryAnalytics = categoryAnalyticsService.getRootCategoryAnalytics(datePeriod).categoryAnalytics
+            ?: return emptyList()
+        categoryAnalytics = if (sortBy != null) {
+            categoryAnalyticsService.sortCategoryAnalytics(categoryAnalytics, sortBy)
+        } else {
+            categoryAnalytics
+        }
+        return categoryAnalytics
     }
 
-    @Cacheable(
-        value = [RedisConfig.EXTERNAL_CATEGORY_ANALYTICS_CACHE_NAME],
-        key = "{#categoryId, #datePeriod, #sortBy}",
-        unless = "#result == null || #result.categoryAnalytics.isEmpty()"
-    )
     suspend fun getCategoryAnalytics(
         categoryId: Long,
         datePeriod: DatePeriod,
         sortBy: SortBy? = null
-    ): CategoryAnalyticsCacheableWrapper {
-        return CategoryAnalyticsCacheableWrapper(
-            categoryAnalyticsService.getCategoryAnalytics(
-                categoryId,
-                datePeriod,
-                sortBy
-            )
-        )
+    ): List<CategoryAnalyticsInfo> {
+        var categoryAnalytics = categoryAnalyticsService.getCategoryAnalytics(categoryId, datePeriod).categoryAnalytics
+            ?: return emptyList()
+        categoryAnalytics = if (sortBy != null) {
+            categoryAnalyticsService.sortCategoryAnalytics(categoryAnalytics, sortBy)
+        } else {
+            categoryAnalytics
+        }
+        return categoryAnalytics
     }
 
     fun getCategoryDailyAnalytics(
