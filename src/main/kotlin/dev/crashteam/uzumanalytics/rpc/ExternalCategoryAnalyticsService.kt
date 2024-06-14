@@ -60,7 +60,7 @@ class ExternalCategoryAnalyticsService(
                                     }
                                 )
                             } else null
-                        ).categoryAnalytics
+                        )
                     } else {
                         categoryAnalyticsService.getRootCategoryAnalytics(
                             datePeriod = request.datePeriod,
@@ -74,7 +74,7 @@ class ExternalCategoryAnalyticsService(
                                     }
                                 )
                             } else null
-                        ).categoryAnalytics
+                        )
                     }
                 } catch (e: Exception) {
                     log.error(e) { "Exception during get categories. request=$request" }
