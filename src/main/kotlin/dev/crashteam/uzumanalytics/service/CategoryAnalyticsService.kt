@@ -5,6 +5,7 @@ import dev.crashteam.mp.base.Filter
 import dev.crashteam.mp.base.LimitOffsetPagination
 import dev.crashteam.mp.base.Sort
 import dev.crashteam.mp.external.analytics.category.ProductAnalytics
+import dev.crashteam.uzumanalytics.config.RedisConfig
 import dev.crashteam.uzumanalytics.extensions.toLocalDates
 import dev.crashteam.uzumanalytics.extensions.toMoney
 import dev.crashteam.uzumanalytics.extensions.toRepositoryDomain
@@ -14,6 +15,7 @@ import dev.crashteam.uzumanalytics.repository.clickhouse.model.*
 import dev.crashteam.uzumanalytics.service.model.*
 import kotlinx.coroutines.*
 import mu.KotlinLogging
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.core.convert.ConversionService
 import org.springframework.stereotype.Service
 import java.math.RoundingMode
@@ -27,14 +29,18 @@ class CategoryAnalyticsService(
     private val conversionService: ConversionService,
 ) {
 
+    @Cacheable(
+        value = [RedisConfig.EXTERNAL_CATEGORY_ANALYTICS_CACHE_NAME],
+        key = "{#datePeriod}",
+        unless = "#result == null || #result.categoryAnalytics.isEmpty()"
+    )
     suspend fun getRootCategoryAnalytics(
         datePeriod: DatePeriod,
-        sortBy: SortBy? = null
-    ): List<CategoryAnalyticsInfo>? {
+    ): CategoryAnalyticsCacheableWrapper {
         return withContext(Dispatchers.IO) {
             try {
                 log.debug {
-                    "Get root categories analytics (Async). queryPeriod=$datePeriod; sortBy=$sortBy"
+                    "Get root categories analytics (Async). queryPeriod=$datePeriod;"
                 }
                 val rootCategoryIds = chCategoryRepository.getDescendantCategories(0, 1)
                 log.debug { "Root categories: $rootCategoryIds" }
@@ -46,32 +52,32 @@ class CategoryAnalyticsService(
                 log.debug {
                     "Finish get root categories analytics (Async)." +
                             " queryPeriod=$datePeriod" +
-                            " sortBy=$sortBy; resultSize=${categoryAnalyticsInfoList?.size}"
+                            " resultSize=${categoryAnalyticsInfoList?.size}"
                 }
                 if (categoryAnalyticsInfoList == null) {
-                    return@withContext emptyList()
+                    return@withContext CategoryAnalyticsCacheableWrapper(emptyList())
                 }
-                val categoryAnalyticsInfos = if (sortBy != null) {
-                    sortCategoryAnalytics(categoryAnalyticsInfoList, sortBy)
-                } else {
-                    categoryAnalyticsInfoList
-                }
-                categoryAnalyticsInfos
+                CategoryAnalyticsCacheableWrapper(categoryAnalyticsInfoList)
             } catch (e: Exception) {
                 log.error(e) {
                     "Exception during get root categories analytics." +
-                            " queryPeriod=$datePeriod; sortBy=$sortBy"
+                            " queryPeriod=$datePeriod;"
                 }
-                emptyList()
+                CategoryAnalyticsCacheableWrapper(emptyList())
             }
         }
     }
 
+    @Cacheable(
+        value = [RedisConfig.EXTERNAL_CATEGORY_ANALYTICS_CACHE_NAME],
+        key = "{#categoryId, #datePeriod}",
+        unless = "#result == null || #result.categoryAnalytics.isEmpty()"
+    )
     suspend fun getCategoryAnalytics(
         categoryId: Long,
         datePeriod: DatePeriod,
         sortBy: SortBy? = null
-    ): List<CategoryAnalyticsInfo>? {
+    ): CategoryAnalyticsCacheableWrapper {
         return withContext(Dispatchers.IO) {
             try {
                 log.debug {
@@ -91,20 +97,16 @@ class CategoryAnalyticsService(
                             " sortBy=$sortBy; resultSize=${categoryAnalyticsInfoList?.size}"
                 }
                 if (categoryAnalyticsInfoList == null) {
-                    return@withContext emptyList()
+                    return@withContext CategoryAnalyticsCacheableWrapper(emptyList())
                 }
                 log.debug { "Category analytics (no proto): $categoryAnalyticsInfoList" }
-                if (sortBy != null) {
-                    sortCategoryAnalytics(categoryAnalyticsInfoList, sortBy)
-                } else {
-                    categoryAnalyticsInfoList
-                }
+                CategoryAnalyticsCacheableWrapper(categoryAnalyticsInfoList)
             } catch (e: Exception) {
                 log.error(e) {
                     "Exception during get categories analytics." +
                             " categoryId=$categoryId; queryPeriod=$datePeriod; sortBy=$sortBy"
                 }
-                emptyList()
+                CategoryAnalyticsCacheableWrapper(emptyList())
             }
         }
     }
@@ -184,6 +186,29 @@ class CategoryAnalyticsService(
         return chCategoryRepository.getCategoryHierarchy(categoryId)
     }
 
+    fun sortCategoryAnalytics(
+        categoryAnalytics: List<CategoryAnalyticsInfo>,
+        sortBy: SortBy
+    ): List<CategoryAnalyticsInfo> {
+        val comparators = sortBy.sortFields.map { sortField ->
+            when (sortField.fieldName) {
+                "order_amount" -> compareBy<CategoryAnalyticsInfo> { it.analytics.salesCount }
+                "revenue" -> compareBy { it.analytics.revenue }
+                "average_bill" -> compareBy { it.analytics.averageBill }
+                "seller_count" -> compareBy { it.analytics.sellerCount }
+                "product_count" -> compareBy { it.analytics.productCount }
+                "order_per_product" -> compareBy { it.analytics.tsts }
+                "order_per_seller" -> compareBy { it.analytics.tstc }
+                "revenue_per_product" -> compareBy { it.analytics.revenuePerProduct }
+                else -> throw IllegalArgumentException("Unknown field name: ${sortField.fieldName}")
+            }.let { comparator ->
+                if (sortField.order == SortOrder.DESC) comparator.reversed() else comparator
+            }
+        }
+
+        return categoryAnalytics.sortedWith(comparators.reduce { acc, comparator -> acc.then(comparator) })
+    }
+
     private suspend fun calculateCategoryAnalytics(
         categoryId: Long,
         datePeriod: DatePeriod,
@@ -212,29 +237,6 @@ class CategoryAnalyticsService(
             analyticsPrevPeriod = mapPrevCategoryAnalytics(chCategoryAnalyticsPair),
             analyticsDifference = mapCategoryAnalyticsDifference(chCategoryAnalyticsPair),
         )
-    }
-
-    private fun sortCategoryAnalytics(
-        categoryAnalytics: List<CategoryAnalyticsInfo>,
-        sortBy: SortBy
-    ): List<CategoryAnalyticsInfo> {
-        val comparators = sortBy.sortFields.map { sortField ->
-            when (sortField.fieldName) {
-                "order_amount" -> compareBy<CategoryAnalyticsInfo> { it.analytics.salesCount }
-                "revenue" -> compareBy { it.analytics.revenue }
-                "average_bill" -> compareBy { it.analytics.averageBill }
-                "seller_count" -> compareBy { it.analytics.sellerCount }
-                "product_count" -> compareBy { it.analytics.productCount }
-                "order_per_product" -> compareBy { it.analytics.tsts }
-                "order_per_seller" -> compareBy { it.analytics.tstc }
-                "revenue_per_product" -> compareBy { it.analytics.revenuePerProduct }
-                else -> throw IllegalArgumentException("Unknown field name: ${sortField.fieldName}")
-            }.let { comparator ->
-                if (sortField.order == SortOrder.DESC) comparator.reversed() else comparator
-            }
-        }
-
-        return categoryAnalytics.sortedWith(comparators.reduce { acc, comparator -> acc.then(comparator) })
     }
 
     private fun mapCategoryAnalyticsDifference(
