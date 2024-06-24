@@ -1,10 +1,8 @@
 package dev.crashteam.uzumanalytics.job
 
-import dev.crashteam.uzumanalytics.domain.mongo.ReportVersion
 import dev.crashteam.uzumanalytics.extensions.getApplicationContext
 import dev.crashteam.uzumanalytics.report.ReportFileService
 import dev.crashteam.uzumanalytics.report.ReportService
-import dev.crashteam.uzumanalytics.repository.postgres.CategoryRepository
 import dev.crashteam.uzumanalytics.repository.postgres.ReportRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -36,7 +34,6 @@ class GenerateCategoryReportJob : Job {
             ?: throw IllegalStateException("interval can't be null")
         val jobId = context.jobDetail.jobDataMap["job_id"] as? String
             ?: throw IllegalStateException("job_id can't be null")
-        val version = ReportVersion.valueOf(context.jobDetail.jobDataMap["version"] as? String ?: ReportVersion.V1.name)
         val now = LocalDateTime.now().toLocalDate().atStartOfDay()
         val fromTime = now.minusDays(interval.toLong())
         val toTime = now
@@ -45,33 +42,29 @@ class GenerateCategoryReportJob : Job {
                 Files.createTempFile("link-${UUID.randomUUID()}", "")
             }
             try {
-                log.info { "Generating report job. categoryPublicId=$categoryPublicId; categoryPath=$categoryPath; jobId=$jobId; version=$version" }
-                if (version == ReportVersion.V2) {
-                    reportFileService.generateReportByCategoryV2(
-                        categoryPublicId,
-                        fromTime,
-                        toTime,
-                        tempFilePath.outputStream()
-                    )
-                    log.info(
-                        "Save generated category file. name=${tempFilePath.fileName};" +
-                                " size=${
-                                    FileUtils.byteCountToDisplaySize(
-                                        BigInteger.valueOf(
-                                            tempFilePath.toFile().length()
-                                        )
+                log.info { "Generating report job. categoryPublicId=$categoryPublicId; categoryPath=$categoryPath; jobId=$jobId;" }
+                reportFileService.generateReportByCategoryV2(
+                    categoryPublicId,
+                    fromTime,
+                    toTime,
+                    tempFilePath.outputStream()
+                )
+                log.info(
+                    "Save generated category file. name=${tempFilePath.fileName};" +
+                            " size=${
+                                FileUtils.byteCountToDisplaySize(
+                                    BigInteger.valueOf(
+                                        tempFilePath.toFile().length()
                                     )
-                                }",
-                    )
-                    reportService.saveCategoryReportV2(
-                        categoryPublicId,
-                        interval,
-                        jobId,
-                        tempFilePath.inputStream()
-                    )
-                } else {
-                    throw IllegalStateException("Unknown report version: $version")
-                }
+                                )
+                            }",
+                )
+                reportService.saveCategoryReportV2(
+                    categoryPublicId,
+                    interval,
+                    jobId,
+                    tempFilePath.inputStream()
+                )
             } catch (e: Exception) {
                 log.error(e) { "Failed to generate report. categoryPublicId=$categoryPublicId; interval=$interval; jobId=$jobId" }
                 val reportRepository =

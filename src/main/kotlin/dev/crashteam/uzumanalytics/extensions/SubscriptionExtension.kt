@@ -2,7 +2,6 @@ package dev.crashteam.uzumanalytics.extensions
 
 import dev.crashteam.uzumanalytics.db.model.enums.SubscriptionType
 import dev.crashteam.uzumanalytics.domain.*
-import dev.crashteam.uzumanalytics.domain.mongo.SubscriptionDocument
 
 fun Int.mapToSubscription(): UserSubscription? {
     return UserSubscription::class.sealedSubclasses.firstOrNull {
@@ -13,15 +12,6 @@ fun Int.mapToSubscription(): UserSubscription? {
 fun String.mapToSubscription(): UserSubscription? {
     return UserSubscription::class.sealedSubclasses.firstOrNull {
         it.objectInstance?.name == this
-    }?.objectInstance
-}
-
-fun SubscriptionDocument.mapToUserSubscription(): UserSubscription? {
-    if (this.type != null && this.subType == null) {
-        return DefaultSubscription
-    }
-    return UserSubscription::class.sealedSubclasses.firstOrNull {
-        it.objectInstance?.name == this.subType
     }?.objectInstance
 }
 

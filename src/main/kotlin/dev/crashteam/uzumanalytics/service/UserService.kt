@@ -3,10 +3,8 @@ package dev.crashteam.uzumanalytics.service
 import com.google.common.hash.Hashing
 import dev.crashteam.uzumanalytics.db.model.tables.pojos.Users
 import dev.crashteam.uzumanalytics.domain.ApiKey
-import dev.crashteam.uzumanalytics.generator.ReferralCodeGenerator
 import dev.crashteam.uzumanalytics.repository.postgres.UserRepository
 import dev.crashteam.uzumanalytics.service.exception.ApiKeyAlreadyExists
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.stereotype.Service
 import java.nio.charset.Charset
 import java.util.*
@@ -14,8 +12,6 @@ import java.util.*
 @Service
 class UserService(
     val userRepository: UserRepository,
-    val referralCodeGenerator: ReferralCodeGenerator,
-    val reactiveMongoTemplate: ReactiveMongoTemplate
 ) {
 
     suspend fun findUser(userId: String): Users? {

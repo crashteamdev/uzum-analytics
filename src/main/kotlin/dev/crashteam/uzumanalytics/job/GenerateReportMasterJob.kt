@@ -1,15 +1,10 @@
 package dev.crashteam.uzumanalytics.job
 
 import dev.crashteam.uzumanalytics.db.model.tables.pojos.Reports
-import kotlinx.coroutines.reactor.awaitSingleOrNull
-import kotlinx.coroutines.runBlocking
-import mu.KotlinLogging
-import dev.crashteam.uzumanalytics.domain.mongo.ReportDocument
-import dev.crashteam.uzumanalytics.domain.mongo.ReportStatus
-import dev.crashteam.uzumanalytics.domain.mongo.ReportType
-import dev.crashteam.uzumanalytics.domain.mongo.ReportVersion
 import dev.crashteam.uzumanalytics.extensions.getApplicationContext
 import dev.crashteam.uzumanalytics.repository.postgres.ReportRepository
+import kotlinx.coroutines.runBlocking
+import mu.KotlinLogging
 import org.quartz.*
 import org.springframework.scheduling.quartz.SimpleTriggerFactoryBean
 import java.util.*
@@ -32,11 +27,13 @@ class GenerateReportMasterJob : Job {
                         val jobIdentity = "${reportDoc.sellerLink}-seller-report-${reportDoc.jobId}-Job"
                         scheduleShopReportJob(jobIdentity, reportDoc, schedulerFactoryBean)
                     }
+
                     dev.crashteam.uzumanalytics.db.model.enums.ReportType.category -> {
                         log.info { "Schedule job report. categoryPath=${reportDoc.sellerLink}; jobId=${reportDoc.jobId}" }
                         val jobIdentity = "${reportDoc.categoryId}-category-report-${reportDoc.jobId}-Job"
                         schedulerCategoryReportJob(jobIdentity, reportDoc, schedulerFactoryBean)
                     }
+
                     else -> {
                         if (reportDoc.sellerLink != null) {
                             // Execute shop report
@@ -66,7 +63,6 @@ class GenerateReportMasterJob : Job {
         jobDetail.jobDataMap["interval"] = reportDoc.interval
         jobDetail.jobDataMap["job_id"] = reportDoc.jobId
         jobDetail.jobDataMap["user_id"] = reportDoc.userId
-        jobDetail.jobDataMap["version"] = ReportVersion.V2.name
         if (!schedulerFactoryBean.checkExists(jobKey)) {
             schedulerFactoryBean.scheduleJob(jobDetail, triggerFactoryBean)
         }
@@ -93,7 +89,6 @@ class GenerateReportMasterJob : Job {
         jobDetail.jobDataMap["interval"] = reportDoc.interval
         jobDetail.jobDataMap["job_id"] = reportDoc.jobId
         jobDetail.jobDataMap["user_id"] = reportDoc.userId
-        jobDetail.jobDataMap["version"] = ReportVersion.V2.name
         if (!schedulerFactoryBean.checkExists(jobKey)) {
             schedulerFactoryBean.scheduleJob(jobDetail, triggerFactoryBean)
         }

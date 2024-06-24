@@ -1,16 +1,34 @@
 --liquibase formatted sql
 --changeset vitaxa:create-initial-schema
 
-CREATE
-    TYPE report_type AS ENUM ('seller','category');
+DO
+'
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = ''report_type'') THEN
+            CREATE TYPE report_type AS ENUM (''seller'',''category'');
+        END IF;
+    END
+' LANGUAGE PLPGSQL;
 
-CREATE
-    TYPE report_status AS ENUM ('deleted','processing', 'failed', 'completed');
+DO
+'
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = ''report_status'') THEN
+            CREATE TYPE report_status AS ENUM (''deleted'',''processing'', ''failed'', ''completed'');
+        END IF;
+    END
+' LANGUAGE PLPGSQL;
 
-CREATE
-    TYPE subscription_type AS ENUM ('demo', 'default','advanced', 'pro');
+DO
+'
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = ''subscription_type'') THEN
+            CREATE TYPE subscription_type AS ENUM (''demo'', ''default'',''advanced'', ''pro'');
+        END IF;
+    END
+' LANGUAGE PLPGSQL;
 
-CREATE TABLE payment
+CREATE TABLE IF NOT EXISTS payment
 (
     payment_id        CHARACTER VARYING PRIMARY KEY,
     created_at        TIMESTAMP WITHOUT TIME ZONE NOT NULL,
@@ -22,16 +40,16 @@ CREATE TABLE payment
     multiply          SMALLINT                    NOT NULL DEFAULT 1
 );
 
-CREATE INDEX payment_user_id_idx ON payment (user_id);
+CREATE INDEX IF NOT EXISTS payment_user_id_idx ON payment (user_id);
 
-CREATE TABLE category_hierarchical
+CREATE TABLE IF NOT EXISTS category_hierarchical
 (
     category_id        BIGINT PRIMARY KEY,
     parent_category_id BIGINT            NOT NULL,
     title              CHARACTER VARYING NOT NULL
 );
 
-CREATE TABLE sellers
+CREATE TABLE IF NOT EXISTS sellers
 (
     seller_id  BIGINT            NOT NULL,
     account_id BIGINT            NOT NULL,
@@ -41,7 +59,7 @@ CREATE TABLE sellers
     PRIMARY KEY (seller_id, account_id)
 );
 
-CREATE TABLE users
+CREATE TABLE IF NOT EXISTS users
 (
     user_id                 CHARACTER VARYING PRIMARY KEY,
     api_key_prefix          CHARACTER VARYING,
@@ -55,10 +73,10 @@ CREATE TABLE users
     role                    CHARACTER VARYING
 );
 
-CREATE UNIQUE INDEX user_api_hash_key_idx ON users (api_key_hash_key);
-CREATE UNIQUE INDEX user_email_idx ON users (email);
+CREATE UNIQUE INDEX IF NOT EXISTS user_api_hash_key_idx ON users (api_key_hash_key);
+CREATE UNIQUE INDEX IF NOT EXISTS user_email_idx ON users (email);
 
-CREATE TABLE reports
+CREATE TABLE IF NOT EXISTS reports
 (
     report_id   CHARACTER VARYING PRIMARY KEY,
     job_id      CHARACTER VARYING           NOT NULL,
@@ -72,8 +90,8 @@ CREATE TABLE reports
     file        BYTEA
 );
 
-CREATE INDEX report_user_id_idx ON reports (user_id);
-CREATE UNIQUE INDEX report_job_id_idx ON reports (job_id);
+CREATE INDEX IF NOT EXISTS report_user_id_idx ON reports (user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS report_job_id_idx ON reports (job_id);
 
 --changeset vitaxa:create-qrtz-schema
 DROP TABLE IF EXISTS QRTZ_FIRED_TRIGGERS;

@@ -7,7 +7,6 @@ import dev.crashteam.uzumanalytics.extensions.mapToEntityUserSubscription
 import dev.crashteam.uzumanalytics.extensions.mapToSubscription
 import dev.crashteam.uzumanalytics.repository.postgres.PaymentRepository
 import dev.crashteam.uzumanalytics.repository.postgres.UserRepository
-import dev.crashteam.uzumanalytics.service.model.CallbackPaymentAdditionalInfo
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -30,7 +29,6 @@ class PaymentService(
         paymentId: String,
         userId: String,
         currencyId: String? = null,
-        paymentAdditionalInfo: CallbackPaymentAdditionalInfo? = null,
     ) {
         val payment = findPayment(paymentId)!!
         val user = userRepository.findByUserId(userId)

@@ -3,16 +3,12 @@ package dev.crashteam.uzumanalytics.controller
 import dev.crashteam.openapi.uzumanalytics.api.*
 import dev.crashteam.openapi.uzumanalytics.model.*
 import dev.crashteam.uzumanalytics.db.model.tables.pojos.Reports
-import dev.crashteam.uzumanalytics.domain.mongo.PromoCodeType
-import dev.crashteam.uzumanalytics.domain.mongo.UserRole
 import dev.crashteam.uzumanalytics.report.ReportFileService
 import dev.crashteam.uzumanalytics.report.ReportService
 import dev.crashteam.uzumanalytics.repository.postgres.ReportRepository
 import dev.crashteam.uzumanalytics.repository.postgres.UserRepository
 import dev.crashteam.uzumanalytics.service.*
 import dev.crashteam.uzumanalytics.service.exception.UserSubscriptionGiveawayException
-import dev.crashteam.uzumanalytics.service.model.PromoCodeCheckCode
-import dev.crashteam.uzumanalytics.service.model.PromoCodeCreateData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
@@ -450,7 +446,7 @@ class MarketDbApiControllerV2(
         return exchange.getPrincipal<Principal>().flatMap {
             val user = userRepository.findByUserId(it.name)!!
             giveawayUserDemoRequest.flatMap { giveawayUserDemoRequest ->
-                if (user.role != UserRole.ADMIN.name) {
+                if (user.role != "ADMIN") {
                     ResponseEntity.status(HttpStatus.FORBIDDEN).build<Void>().toMono()
                 } else {
                     try {
