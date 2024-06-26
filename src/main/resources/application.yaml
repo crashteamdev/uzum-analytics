@@ -59,7 +59,7 @@ spring:
       org.quartz.threadPool.threadCount: 30
       org.quartz.jobStore.isClustered: true
       org.quartz.jobStore.misfireThreshold: 30000
-      org.quartz.jobStore.class: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
       org.quartz.jobStore.dbName: uzum-analytics
       org.quartz.jobStore.collectionPrefix: qrtz
   security:
@@ -88,19 +88,6 @@ uzum:
 service:
   proxy:
     url: http://localhost:8022
-
-freekassa:
-  baseUrl: https://api.freekassa.ru
-  shopId: 26248
-  apiKey: 3359c65680927f67661345031fb0b738
-  secretWordFirst: 'mHPoH9jB_BZe%lL'
-  secretWordSecond: '{v5T0IKN93p4fKx'
-
-qiwi:
-  siteId: d9jje0-00
-  apiKey: api_key
-  publicKey: public_key
-  callbackSecret: callback_secret_key
 
 currency:
   apiKey: gPdT9h5w4KUAnbckIQw4ciZXm38KZvsu2qrdWHeH
