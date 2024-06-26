@@ -51,6 +51,7 @@ spring:
       minimum-idle: 5
       maximum-pool-size: 20
   quartz:
+    job-store-type: jdbc
     properties:
       org.quartz.scheduler.instanceName: UzumMasterScheduler
       org.quartz.scheduler.instanceId: AUTO
