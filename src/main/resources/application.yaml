@@ -60,7 +60,6 @@ spring:
       org.quartz.threadPool.threadCount: 30
       org.quartz.jobStore.isClustered: true
       org.quartz.jobStore.misfireThreshold: 30000
-      org.quartz.jobStore.class: org.quartz.impl.jdbcjobstore.JobStoreTX
       org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
   security:
     oauth2:
