@@ -52,14 +52,14 @@ spring:
       maximum-pool-size: 20
   quartz:
     job-store-type: jdbc
+    jdbc:
+      initialize-schema: never
     properties:
-      org.quartz.scheduler.instanceName: UzumMasterScheduler
-      org.quartz.scheduler.instanceId: AUTO
-      org.quartz.scheduler.skipUpdateCheck: true
-      org.quartz.scheduler.threadsInheritContextClassLoaderOfInitializer: true
       org.quartz.threadPool.threadCount: 30
+      org.quartz.threadPool.class: org.quartz.simpl.SimpleThreadPool
       org.quartz.jobStore.isClustered: true
       org.quartz.jobStore.misfireThreshold: 30000
+      org.quartz.jobStore.useProperties: true
       org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
   security:
     oauth2:
