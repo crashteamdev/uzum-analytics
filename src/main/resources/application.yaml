@@ -62,7 +62,6 @@ spring:
       org.quartz.jobStore.misfireThreshold: 30000
       org.quartz.jobStore.class: org.quartz.impl.jdbcjobstore.JobStoreTX
       org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
-      org.quartz.jobStore.dbName: uzum-analytics
       org.quartz.jobStore.collectionPrefix: qrtz
   security:
     oauth2:
