@@ -59,9 +59,8 @@ spring:
       org.quartz.threadPool.threadCount: 30
       org.quartz.jobStore.isClustered: true
       org.quartz.jobStore.misfireThreshold: 30000
-      org.quartz.jobStore.class: com.novemberain.quartz.mongodb.MongoDBJobStore
-      org.quartz.jobStore.mongoUri: ${spring.data.mongodb.uri}
-      org.quartz.jobStore.dbName: uzum
+      org.quartz.jobStore.class: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+      org.quartz.jobStore.dbName: uzum-analytics
       org.quartz.jobStore.collectionPrefix: qrtz
   security:
     oauth2:
