@@ -44,7 +44,7 @@ spring:
       ssl:
         enable: false
   datasource:
-    url: jdbc:postgresql://localhost:5432/uzum-analytics
+    jdbcUrl: jdbc:postgresql://localhost:5432/uzum-analytics
     username: postgres
     password: postgres
     hikari:

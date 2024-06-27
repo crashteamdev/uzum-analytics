@@ -1,6 +1,5 @@
 package dev.crashteam.uzumanalytics.config
 
-import com.zaxxer.hikari.HikariDataSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.autoconfigure.quartz.QuartzProperties
@@ -28,7 +27,7 @@ class QuartzConfig {
     }
 
     @Bean
-    fun schedulerFactoryBean(dataSource: HikariDataSource): SchedulerFactoryBean {
+    fun schedulerFactoryBean(dataSource: DataSource): SchedulerFactoryBean {
         val schedulerFactoryBean = SchedulerFactoryBean()
         schedulerFactoryBean.setQuartzProperties(getAllProperties())
         schedulerFactoryBean.setDataSource(dataSource)
