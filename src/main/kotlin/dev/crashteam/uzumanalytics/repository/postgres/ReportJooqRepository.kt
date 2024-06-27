@@ -71,7 +71,7 @@ class ReportJooqRepository(
 
     override fun findAllByStatus(reportStatus: ReportStatus): List<Reports> {
         val r = REPORTS
-        return dsl.select(r)
+        return dsl.selectFrom(r)
             .where(r.STATUS.eq(reportStatus))
             .fetchInto(Reports::class.java)
     }
