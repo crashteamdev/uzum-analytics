@@ -29,7 +29,7 @@ class GenerateReportMasterJob : Job {
                     }
 
                     dev.crashteam.uzumanalytics.db.model.enums.ReportType.category -> {
-                        log.info { "Schedule job report. categoryPath=${reportDoc.sellerLink}; jobId=${reportDoc.jobId}" }
+                        log.info { "Schedule job report. categoryId=${reportDoc.categoryId}; jobId=${reportDoc.jobId}" }
                         val jobIdentity = "${reportDoc.categoryId}-category-report-${reportDoc.jobId}-Job"
                         schedulerCategoryReportJob(jobIdentity, reportDoc, schedulerFactoryBean)
                     }
@@ -47,6 +47,7 @@ class GenerateReportMasterJob : Job {
     }
 
     private fun scheduleShopReportJob(jobIdentity: String, reportDoc: Reports, schedulerFactoryBean: Scheduler) {
+        log.info { "Schedule shop report job: $reportDoc" }
         val jobKey = JobKey(jobIdentity)
         val jobDetail =
             JobBuilder.newJob(GenerateSellerReportJob::class.java).withIdentity(jobKey).build()
@@ -73,6 +74,7 @@ class GenerateReportMasterJob : Job {
         reportDoc: Reports,
         schedulerFactoryBean: Scheduler
     ) {
+        log.info { "Schedule category report job: $reportDoc" }
         val jobKey = JobKey(jobIdentity)
         val jobDetail =
             JobBuilder.newJob(GenerateCategoryReportJob::class.java).withIdentity(jobKey).build()

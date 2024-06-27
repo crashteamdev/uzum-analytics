@@ -29,7 +29,6 @@ class GenerateCategoryReportJob : Job {
         val reportService = applicationContext.getBean(ReportService::class.java)
         val categoryPublicId = context.jobDetail.jobDataMap["categoryPublicId"] as? Long
             ?: throw IllegalStateException("categoryPublicId can't be null")
-        val categoryPath = context.jobDetail.jobDataMap["categoryPath"] as? String
         val interval = context.jobDetail.jobDataMap["interval"] as? Int
             ?: throw IllegalStateException("interval can't be null")
         val jobId = context.jobDetail.jobDataMap["job_id"] as? String
@@ -42,7 +41,7 @@ class GenerateCategoryReportJob : Job {
                 Files.createTempFile("link-${UUID.randomUUID()}", "")
             }
             try {
-                log.info { "Generating report job. categoryPublicId=$categoryPublicId; categoryPath=$categoryPath; jobId=$jobId;" }
+                log.info { "Generating report job. categoryPublicId=$categoryPublicId; jobId=$jobId;" }
                 reportFileService.generateReportByCategoryV2(
                     categoryPublicId,
                     fromTime,
