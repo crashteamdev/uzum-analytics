@@ -105,7 +105,7 @@ class ReportJooqRepository(
 
     override fun findByUserIdAndCreatedAtFromTime(userId: String, fromTime: LocalDateTime): List<Reports> {
         val r = REPORTS
-        return dsl.select(r)
+        return dsl.selectFrom(r)
             .where(r.USER_ID.eq(userId).and(r.CREATED_AT.greaterOrEqual(fromTime)))
             .fetchInto(Reports::class.java)
     }
@@ -137,7 +137,7 @@ class ReportJooqRepository(
 
     override fun findAllCreatedLessThan(dateTime: LocalDateTime): List<Reports> {
         val r = REPORTS
-        return dsl.select(r.FILE)
+        return dsl.selectFrom(r)
             .where(r.CREATED_AT.lessOrEqual(dateTime))
             .fetchInto(Reports::class.java)
     }
@@ -153,6 +153,7 @@ class ReportJooqRepository(
     override fun getFileByJobId(jobId: String): ByteArray? {
         val r = REPORTS
         return dsl.select(r.FILE)
+            .from(r)
             .where(r.JOB_ID.eq(jobId))
             .fetchOne()?.value1()
     }
