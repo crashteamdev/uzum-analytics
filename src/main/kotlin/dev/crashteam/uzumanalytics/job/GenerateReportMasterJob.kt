@@ -47,10 +47,17 @@ class GenerateReportMasterJob : Job {
     }
 
     private fun scheduleShopReportJob(jobIdentity: String, reportDoc: Reports, schedulerFactoryBean: Scheduler) {
-        log.info { "Schedule shop report job: $reportDoc" }
         val jobKey = JobKey(jobIdentity)
         val jobDetail =
-            JobBuilder.newJob(GenerateSellerReportJob::class.java).withIdentity(jobKey).build()
+            JobBuilder.newJob(GenerateSellerReportJob::class.java).withIdentity(jobKey)
+                .usingJobData(JobDataMap(
+                    mapOf(
+                        "sellerLink" to reportDoc.sellerLink,
+                        "interval" to reportDoc.interval,
+                        "job_id" to reportDoc.jobId,
+                        "user_id" to reportDoc.userId
+                    )
+                )).build()
         val triggerFactoryBean = SimpleTriggerFactoryBean().apply {
             setName(jobIdentity)
             setStartTime(Date())
@@ -60,10 +67,6 @@ class GenerateReportMasterJob : Job {
             setPriority(Int.MAX_VALUE)
             afterPropertiesSet()
         }.getObject()
-        jobDetail.jobDataMap["sellerLink"] = reportDoc.sellerLink
-        jobDetail.jobDataMap["interval"] = reportDoc.interval
-        jobDetail.jobDataMap["job_id"] = reportDoc.jobId
-        jobDetail.jobDataMap["user_id"] = reportDoc.userId
         if (!schedulerFactoryBean.checkExists(jobKey)) {
             schedulerFactoryBean.scheduleJob(jobDetail, triggerFactoryBean)
         }
@@ -74,10 +77,20 @@ class GenerateReportMasterJob : Job {
         reportDoc: Reports,
         schedulerFactoryBean: Scheduler
     ) {
-        log.info { "Schedule category report job: $reportDoc" }
         val jobKey = JobKey(jobIdentity)
         val jobDetail =
-            JobBuilder.newJob(GenerateCategoryReportJob::class.java).withIdentity(jobKey).build()
+            JobBuilder.newJob(GenerateCategoryReportJob::class.java).withIdentity(jobKey)
+                .usingJobData(
+                    JobDataMap(
+                        mapOf<String, Any>(
+                            "categoryPublicId" to reportDoc.categoryId,
+                            "interval" to reportDoc.interval,
+                            "job_id" to reportDoc.jobId,
+                            "user_id" to reportDoc.userId
+                        )
+                    )
+
+                ).build()
         val triggerFactoryBean = SimpleTriggerFactoryBean().apply {
             setName(jobIdentity)
             setStartTime(Date())
@@ -87,10 +100,6 @@ class GenerateReportMasterJob : Job {
             setPriority(Int.MAX_VALUE)
             afterPropertiesSet()
         }.getObject()
-        jobDetail.jobDataMap["categoryPublicId"] = reportDoc.categoryId
-        jobDetail.jobDataMap["interval"] = reportDoc.interval
-        jobDetail.jobDataMap["job_id"] = reportDoc.jobId
-        jobDetail.jobDataMap["user_id"] = reportDoc.userId
         if (!schedulerFactoryBean.checkExists(jobKey)) {
             schedulerFactoryBean.scheduleJob(jobDetail, triggerFactoryBean)
         }
