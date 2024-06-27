@@ -28,8 +28,13 @@ class QuartzConfig {
     }
 
     @Bean
-    fun schedulerFactoryBean(schedulerFactoryBean: SchedulerFactoryBean): SchedulerFactoryBean {
+    fun schedulerFactoryBean(dataSource: HikariDataSource): SchedulerFactoryBean {
+        val schedulerFactoryBean = SchedulerFactoryBean()
+        schedulerFactoryBean.setQuartzProperties(getAllProperties())
+        schedulerFactoryBean.setDataSource(dataSource)
+        schedulerFactoryBean.setWaitForJobsToCompleteOnShutdown(true)
         schedulerFactoryBean.setApplicationContextSchedulerContextKey("applicationContext")
+
         return schedulerFactoryBean
     }
 }
