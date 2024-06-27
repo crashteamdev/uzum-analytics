@@ -43,7 +43,6 @@ class MarketDbApiControllerV2(
     private val sellerService: SellerService,
     private val userRepository: UserRepository,
     private val userRestrictionService: UserRestrictionService,
-    private val conversionService: ConversionService,
     private val reportService: ReportService,
     private val reportRepository: ReportRepository,
     private val reportFileService: ReportFileService,
