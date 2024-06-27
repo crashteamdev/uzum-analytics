@@ -46,8 +46,8 @@ class ReportFileService(
         return reportId
     }
 
-    suspend fun getReport(jobId: String): Report? {
-        val fileByteArray = reportRepository.getFileByJobId(jobId) ?: return null
+    suspend fun getReport(reportId: String): Report? {
+        val fileByteArray = reportRepository.getFileByReportId(reportId) ?: return null
 
         return Report("unknown", fileByteArray.inputStream())
     }

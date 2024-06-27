@@ -41,4 +41,6 @@ interface ReportRepository {
 
     fun getFileByJobId(jobId: String): ByteArray?
 
+    fun getFileByReportId(reportId: String): ByteArray?
+
 }

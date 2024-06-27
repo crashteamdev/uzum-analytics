@@ -157,4 +157,12 @@ class ReportJooqRepository(
             .where(r.JOB_ID.eq(jobId))
             .fetchOne()?.value1()
     }
+
+    override fun getFileByReportId(reportId: String): ByteArray? {
+        val r = REPORTS
+        return dsl.select(r.FILE)
+            .from(r)
+            .where(r.REPORT_ID.eq(reportId))
+            .fetchOne()?.value1()
+    }
 }

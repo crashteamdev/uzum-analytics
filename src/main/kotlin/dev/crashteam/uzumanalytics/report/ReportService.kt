@@ -23,14 +23,6 @@ class ReportService(
     }
 
     @Transactional
-    suspend fun saveSellerReport(sellerLink: String, interval: Int, jobId: String, report: ByteArray) {
-        val reportId: String =
-            reportFileService.saveReport(jobId, report.inputStream())
-        reportRepository.updateReportStatusByJobId(jobId, ReportStatus.completed)
-        reportRepository.updateReportIdByJobId(jobId, reportId)
-    }
-
-    @Transactional
     suspend fun saveCategoryReportV2(
         categoryPublicId: Long,
         interval: Int,
@@ -42,43 +34,12 @@ class ReportService(
         reportRepository.updateReportIdByJobId(jobId, reportId)
     }
 
-    @Transactional
-    suspend fun saveCategoryReport(
-        categoryPublicId: Long,
-        categoryTitle: String,
-        interval: Int,
-        jobId: String,
-        report: ByteArray
-    ) {
-        val reportId: String = reportFileService.saveReport(jobId, report.inputStream())
-        reportRepository.updateReportStatusByJobId(jobId, ReportStatus.completed)
-        reportRepository.updateReportIdByJobId(jobId, reportId)
-    }
-
-    suspend fun getUserShopReportDailyReportCount(userId: String): Int {
-        return reportRepository.countByUserIdAndCreatedAtBetweenAndReportType(
-            userId,
-            LocalDate.now().atStartOfDay(),
-            LocalDate.now().atTime(LocalTime.MAX),
-            ReportType.seller
-        )
-    }
-
     fun getUserShopReportDailyReportCountV2(userId: String): Int {
         return reportRepository.countByUserIdAndCreatedAtBetweenAndReportType(
             userId,
             LocalDate.now().atStartOfDay(),
             LocalDate.now().atTime(LocalTime.MAX),
             ReportType.seller
-        )
-    }
-
-    suspend fun getUserCategoryReportDailyReportCount(userId: String): Int {
-        return reportRepository.countByUserIdAndCreatedAtBetweenAndReportType(
-            userId,
-            LocalDate.now().atStartOfDay(),
-            LocalDate.now().atTime(LocalTime.MAX),
-            ReportType.category
         )
     }
 
