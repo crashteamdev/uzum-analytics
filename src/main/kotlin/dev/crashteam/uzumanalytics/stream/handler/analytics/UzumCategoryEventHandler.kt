@@ -2,22 +2,17 @@ package dev.crashteam.uzumanalytics.stream.handler.analytics
 
 import dev.crashteam.uzum.scrapper.data.v1.UzumCategory
 import dev.crashteam.uzum.scrapper.data.v1.UzumScrapperEvent
-import dev.crashteam.uzumanalytics.domain.mongo.CategoryDocument
-import dev.crashteam.uzumanalytics.domain.mongo.CategoryTreeDocument
-import dev.crashteam.uzumanalytics.repository.mongo.CategoryDao
-import dev.crashteam.uzumanalytics.repository.mongo.CategoryTreeDao
-import kotlinx.coroutines.reactor.awaitSingleOrNull
+import dev.crashteam.uzumanalytics.db.model.tables.pojos.CategoryHierarchical
+import dev.crashteam.uzumanalytics.repository.postgres.CategoryRepository
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
-import java.time.LocalDateTime
 
 private val log = KotlinLogging.logger {}
 
 @Component
 class UzumCategoryEventHandler(
-    private val categoryDao: CategoryDao,
-    private val categoryTreeDao: CategoryTreeDao,
+    private val categoryRepository: CategoryRepository,
 ) : UzumScrapEventHandler {
 
     override fun handle(events: List<UzumScrapperEvent>) {
@@ -30,23 +25,6 @@ class UzumCategoryEventHandler(
                                 " categoryId=${uzumCategoryChange.category.categoryId};" +
                                 " childCount=${uzumCategoryChange.category.childrenList?.size}"
                     }
-                    val categoryDocument = CategoryDocument(
-                        uzumCategoryChange.category.categoryId,
-                        null,
-                        uzumCategoryChange.category.isAdult,
-                        uzumCategoryChange.category.isEco,
-                        uzumCategoryChange.category.title.trim(),
-                        null,
-                        LocalDateTime.now()
-                    )
-                    categoryDao.saveCategory(categoryDocument).awaitSingleOrNull()
-                    saveChildCategories(
-                        uzumCategoryChange.category,
-                        uzumCategoryChange.category.childrenList ?: emptyList(),
-                        null
-                    )
-
-                    // Save hierarchical category view
                     saveHierarchicalRootCategory(uzumCategoryChange.category)
                 }
             } catch (e: Exception) {
@@ -59,41 +37,16 @@ class UzumCategoryEventHandler(
         return event.eventPayload.hasUzumCategoryChange()
     }
 
-    private suspend fun saveChildCategories(
-        rootCategory: UzumCategory,
-        children: List<UzumCategory>,
-        path: String?,
-    ) {
-        for (childCategory in children) {
-            val categoryDocument = CategoryDocument(
-                childCategory.categoryId,
-                null,
-                childCategory.isAdult,
-                childCategory.isEco,
-                childCategory.title.trim(),
-                if (path == null) {
-                    ",${rootCategory.title.trim()},${childCategory.title.trim()},"
-                } else "$path${childCategory.title.trim()},",
-                LocalDateTime.now()
-            )
-            log.info { "Save child category: $categoryDocument" }
-            categoryDao.saveCategory(categoryDocument).awaitSingleOrNull()
-            if (childCategory.childrenList?.isNotEmpty() == true) {
-                saveChildCategories(childCategory, childCategory.childrenList, categoryDocument.path)
-            }
-        }
-    }
-
     private suspend fun saveHierarchicalRootCategory(
         rootCategoryRecord: UzumCategory,
     ) {
-        val rootCategory = CategoryTreeDocument(
-            categoryId = rootCategoryRecord.categoryId,
-            parentCategoryId = 0,
-            title = rootCategoryRecord.title
+        val rootCategory = CategoryHierarchical(
+            rootCategoryRecord.categoryId,
+            0,
+            rootCategoryRecord.title
         )
         log.info { "Save root category: $rootCategory" }
-        categoryTreeDao.saveCategory(rootCategory).awaitSingleOrNull()
+        categoryRepository.save(rootCategory)
         if (rootCategoryRecord.childrenList?.isNotEmpty() == true) {
             saveHierarchicalChildCategory(rootCategoryRecord, rootCategoryRecord.childrenList)
         }
@@ -104,12 +57,12 @@ class UzumCategoryEventHandler(
         childCategoryRecords: List<UzumCategory>
     ) {
         for (childrenRecord in childCategoryRecords) {
-            val childCategory = CategoryTreeDocument(
-                categoryId = childrenRecord.categoryId,
-                parentCategoryId = currentCategoryRecord.categoryId,
-                title = childrenRecord.title,
+            val childCategory = CategoryHierarchical(
+                childrenRecord.categoryId,
+                currentCategoryRecord.categoryId,
+                childrenRecord.title
             )
-            categoryTreeDao.saveCategory(childCategory).awaitSingleOrNull()
+            categoryRepository.save(childCategory)
             if (childrenRecord.childrenList?.isNotEmpty() == true) {
                 saveHierarchicalChildCategory(childrenRecord, childrenRecord.childrenList)
             }

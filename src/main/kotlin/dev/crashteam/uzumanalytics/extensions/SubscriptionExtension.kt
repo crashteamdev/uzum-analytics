@@ -1,8 +1,7 @@
 package dev.crashteam.uzumanalytics.extensions
 
-import dev.crashteam.uzumanalytics.domain.mongo.DefaultSubscription
-import dev.crashteam.uzumanalytics.domain.mongo.SubscriptionDocument
-import dev.crashteam.uzumanalytics.domain.mongo.UserSubscription
+import dev.crashteam.uzumanalytics.db.model.enums.SubscriptionType
+import dev.crashteam.uzumanalytics.domain.*
 
 fun Int.mapToSubscription(): UserSubscription? {
     return UserSubscription::class.sealedSubclasses.firstOrNull {
@@ -16,12 +15,24 @@ fun String.mapToSubscription(): UserSubscription? {
     }?.objectInstance
 }
 
-fun SubscriptionDocument.mapToUserSubscription(): UserSubscription? {
-    if (this.type != null && this.subType == null) {
-        return DefaultSubscription
+fun SubscriptionType.mapToUserSubscription(): UserSubscription {
+    return when (this) {
+        SubscriptionType.default_ -> DefaultSubscription
+
+        SubscriptionType.advanced -> AdvancedSubscription
+
+        SubscriptionType.pro -> ProSubscription
+
+        SubscriptionType.demo -> DemoSubscription
     }
-    return UserSubscription::class.sealedSubclasses.firstOrNull {
-        it.objectInstance?.name == this.subType
-    }?.objectInstance
+}
+
+fun String.mapToEntityUserSubscription(): SubscriptionType {
+    return when (this) {
+        "default" -> SubscriptionType.default_
+        "advanced" -> SubscriptionType.advanced
+        "pro" -> SubscriptionType.pro
+        else -> throw IllegalArgumentException("Unknown type: $this")
+    }
 }
 

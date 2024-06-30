@@ -1,28 +1,21 @@
 package dev.crashteam.uzumanalytics.report
 
-import com.mongodb.BasicDBObject
-import com.mongodb.DBObject
-import com.mongodb.client.gridfs.GridFSFindIterable
-import com.mongodb.client.gridfs.model.GridFSFile
+import dev.crashteam.uzumanalytics.db.model.enums.ReportStatus
+import dev.crashteam.uzumanalytics.report.model.CustomCellStyle
+import dev.crashteam.uzumanalytics.report.model.Report
+import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductSalesReport
+import dev.crashteam.uzumanalytics.repository.postgres.ReportRepository
+import dev.crashteam.uzumanalytics.service.ProductServiceV2
+import dev.crashteam.uzumanalytics.service.model.AggregateSalesProduct
+import mu.KotlinLogging
 import org.apache.poi.common.usermodel.HyperlinkType
 import org.apache.poi.hssf.util.HSSFColor
 import org.apache.poi.ss.usermodel.*
 import org.apache.poi.xssf.streaming.SXSSFSheet
 import org.apache.poi.xssf.streaming.SXSSFWorkbook
 import org.apache.poi.xssf.usermodel.XSSFFont
-import dev.crashteam.uzumanalytics.report.model.CustomCellStyle
-import dev.crashteam.uzumanalytics.report.model.Report
-import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductSalesReport
-import dev.crashteam.uzumanalytics.service.ProductService
-import dev.crashteam.uzumanalytics.service.ProductServiceV2
-import dev.crashteam.uzumanalytics.service.model.AggregateSalesProduct
-import mu.KotlinLogging
-import org.springframework.data.mongodb.core.query.Criteria
-import org.springframework.data.mongodb.core.query.Query
-import org.springframework.data.mongodb.gridfs.GridFsOperations
-import org.springframework.data.mongodb.gridfs.GridFsTemplate
 import org.springframework.stereotype.Service
-import java.io.ByteArrayOutputStream
+import org.springframework.transaction.annotation.Transactional
 import java.io.InputStream
 import java.io.OutputStream
 import java.math.RoundingMode
@@ -33,9 +26,7 @@ private val log = KotlinLogging.logger {}
 
 @Service
 class ReportFileService(
-    private val gridFsTemplate: GridFsTemplate,
-    private val gridFsOperations: GridFsOperations,
-    private val productService: ProductService,
+    private val reportRepository: ReportRepository,
     private val productServiceV2: ProductServiceV2,
     private val stylesGenerator: StylesGenerator,
 ) {
@@ -46,55 +37,27 @@ class ReportFileService(
         "Цена", "Заказов", "Выручка", "ABC заказы", "ABC выручка"
     )
 
-    suspend fun saveSellerReport(
-        sellerLink: String,
+    suspend fun saveReport(
         jobId: String,
         fileInputStream: InputStream,
-        fileName: String
     ): String {
-        val metaData: DBObject = BasicDBObject()
-        metaData.put("type", "xlsx")
-        metaData.put("seller", sellerLink)
-        metaData.put("created_at", LocalDateTime.now())
-        metaData.put("job_id", jobId)
-        val store = gridFsTemplate.store(fileInputStream, fileName, metaData)
-
-        return store.toString()
+        val reportId = reportRepository.saveJobIdFile(jobId, fileInputStream)
+            ?: throw IllegalStateException("Empty report id")
+        return reportId
     }
 
-    suspend fun saveCategoryReport(
-        categoryPublicId: Long,
-        jobId: String,
-        fileInputStream: InputStream,
-        fileName: String
-    ): String {
-        val metaData: DBObject = BasicDBObject()
-        metaData.put("type", "xlsx")
-        metaData.put("categoryPublicId", categoryPublicId)
-        metaData.put("created_at", LocalDateTime.now())
-        metaData.put("job_id", jobId)
-        val store = gridFsTemplate.store(fileInputStream, fileName, metaData)
+    suspend fun getReport(reportId: String): Report? {
+        val fileByteArray = reportRepository.getFileByReportId(reportId) ?: return null
 
-        return store.toString()
+        return Report("unknown", fileByteArray.inputStream())
     }
 
-    suspend fun getReport(jobId: String): Report? {
-        val file: GridFSFile = gridFsTemplate.findOne(Query(Criteria.where("_id").`is`(jobId)))
-        if (file.length <= 0) return null
-        val inputStream = gridFsOperations.getResource(file).inputStream
-        val seller = file.metadata?.get("seller")
-        val categoryTitle = file.metadata?.get("categoryTitle")
-        val reportName = seller?.toString() ?: (categoryTitle?.toString() ?: "unknown")
-
-        return Report(reportName, inputStream)
-    }
-
-    suspend fun deleteReportWithTtl(uploadDate: LocalDateTime) {
-        gridFsTemplate.delete(Query(Criteria.where("uploadDate").lt(uploadDate)))
-    }
-
-    suspend fun findReportWithTtl(uploadDate: LocalDateTime): GridFSFindIterable {
-        return gridFsTemplate.find(Query(Criteria.where("uploadDate").lt(uploadDate)))
+    @Transactional
+    suspend fun removeFileOlderThan(maxDataTime: LocalDateTime) {
+        reportRepository.removeAllJobFileBeforeDate(maxDataTime)
+        for (reports in reportRepository.findAllCreatedLessThan(maxDataTime)) {
+            reportRepository.updateReportStatusByJobId(reports.jobId, ReportStatus.deleted)
+        }
     }
 
     suspend fun generateReportBySellerV2(
@@ -297,64 +260,6 @@ class ReportFileService(
                         "CHOOSE(MATCH((SUMIF(\$I\$2:\$J$totalRowCount,\">\"&\$I$columnCursor)+\$I$columnCursor)/SUM(\$I\$2:\$I$totalRowCount),{0,0.81,0.96}),\"A\",\"B\",\"C\")"
                 }
             }
-        }
-    }
-
-    suspend fun generateReportBySeller(link: String, fromTime: LocalDateTime, toTime: LocalDateTime): ByteArray {
-        SXSSFWorkbook().use { wb ->
-            val styles = stylesGenerator.prepareStyles(wb)
-            val sheet: SXSSFSheet = wb.createSheet("ABC отчет")
-            wb.createSheet("marketdb.org")
-            wb.createSheet("Report range - ${Duration.between(fromTime, toTime).toDays()}")
-
-            createHeaderRow(sheet, styles, headerNames)
-
-            val sellerSales: List<AggregateSalesProduct> =
-                productService.getSellerSales(link = link, fromTime = fromTime, toTime = toTime)
-                    ?: throw IllegalArgumentException("Unknown seller link '${link}'")
-
-            fillWorkBookData(sheet, wb, sellerSales)
-
-            val resultByteArray = ByteArrayOutputStream().use {
-                wb.write(it)
-                return@use it.toByteArray()
-            }
-            wb.dispose()
-
-            return resultByteArray
-        }
-    }
-
-    suspend fun generateReportByCategory(
-        categoryTitle: String,
-        fromTime: LocalDateTime,
-        toTime: LocalDateTime,
-        limit: Int
-    ): ByteArray {
-        SXSSFWorkbook().use { wb ->
-            val styles = stylesGenerator.prepareStyles(wb)
-            val sheet: SXSSFSheet = wb.createSheet("ABC отчет")
-            wb.createSheet("marketdb.org")
-            wb.createSheet("Report range - ${Duration.between(fromTime, toTime).toDays()}")
-
-            createHeaderRow(sheet, styles, headerNames)
-
-            val sellerSales: List<AggregateSalesProduct> =
-                productService.getCategorySalesWithLimit(
-                    categoryTitle = categoryTitle,
-                    fromTime = fromTime,
-                    toTime = toTime,
-                    limit = limit
-                )
-            fillWorkBookData(sheet, wb, sellerSales)
-
-            val resultByteArray = ByteArrayOutputStream().use {
-                wb.write(it)
-                return@use it.toByteArray()
-            }
-            wb.dispose()
-
-            return resultByteArray
         }
     }
 

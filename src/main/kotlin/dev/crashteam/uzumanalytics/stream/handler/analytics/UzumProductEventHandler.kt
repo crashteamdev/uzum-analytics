@@ -2,9 +2,8 @@ package dev.crashteam.uzumanalytics.stream.handler.analytics
 
 import dev.crashteam.uzum.scrapper.data.v1.UzumScrapperEvent
 import dev.crashteam.uzumanalytics.converter.clickhouse.ChUzumProductConverterResultWrapper
-import dev.crashteam.uzumanalytics.domain.mongo.SellerDetailDocument
+import dev.crashteam.uzumanalytics.db.model.tables.pojos.Sellers
 import dev.crashteam.uzumanalytics.repository.clickhouse.CHProductRepository
-import dev.crashteam.uzumanalytics.repository.mongo.SellerRepository
 import dev.crashteam.uzumanalytics.stream.handler.model.UzumProductWrapper
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -19,7 +18,7 @@ private val log = KotlinLogging.logger {}
 class UzumProductEventHandler(
     private val conversionService: ConversionService,
     private val chProductRepository: CHProductRepository,
-    private val sellerRepository: SellerRepository,
+    private val sellerRepository: dev.crashteam.uzumanalytics.repository.postgres.SellerRepository,
 ) : UzumScrapEventHandler {
 
     override fun handle(events: List<UzumScrapperEvent>) {
@@ -41,14 +40,14 @@ class UzumProductEventHandler(
             val sellerTask = async {
                 try {
                     val sellerDetailDocuments = uzumProductChanges.map {
-                        SellerDetailDocument(
-                            sellerId = it.product.seller.id,
-                            accountId = it.product.seller.accountId,
-                            title = it.product.seller.sellerTitle,
-                            link = it.product.seller.sellerLink
+                        Sellers(
+                            it.product.seller.id,
+                            it.product.seller.accountId,
+                            it.product.seller.sellerTitle,
+                            it.product.seller.sellerLink
                         )
                     }.toSet()
-                    sellerRepository.saveSellerBatch(sellerDetailDocuments).subscribe()
+                    sellerRepository.saveBatch(sellerDetailDocuments)
                 } catch (e: Exception) {
                     log.error(e) { "Exception during save seller info" }
                 }

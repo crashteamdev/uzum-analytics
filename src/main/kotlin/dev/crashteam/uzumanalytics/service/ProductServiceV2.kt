@@ -1,6 +1,9 @@
 package dev.crashteam.uzumanalytics.service
 
+import dev.crashteam.uzumanalytics.repository.clickhouse.CHProductPositionRepository
 import dev.crashteam.uzumanalytics.repository.clickhouse.CHProductRepository
+import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductPosition
+import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductPositionHistory
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductSalesReport
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
@@ -11,6 +14,7 @@ private val log = KotlinLogging.logger {}
 @Service
 class ProductServiceV2(
     private val chProductRepository: CHProductRepository,
+    private val chProductPositionRepository: CHProductPositionRepository,
 ) {
 
     fun getSellerSales(
@@ -45,6 +49,22 @@ class ProductServiceV2(
             toTime,
             limit,
             offset
+        )
+    }
+
+    fun getProductPosition(
+        categoryId: Long,
+        productId: Long,
+        skuId: Long,
+        fromTime: LocalDateTime,
+        toTime: LocalDateTime,
+    ): MutableList<ChProductPositionHistory> {
+        return chProductPositionRepository.getProductPositionHistory(
+            categoryId.toString(),
+            productId.toString(),
+            skuId.toString(),
+            fromTime,
+            toTime,
         )
     }
 }

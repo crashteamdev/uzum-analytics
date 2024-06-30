@@ -36,8 +36,6 @@ spring:
   main:
     allow-bean-definition-overriding: true
   data:
-    mongodb:
-      uri: mongodb://${MONGO_USER:uzum}:${MONGO_PASSWORD:my5053strongPassword}@${MONGO_HOST:77.37.140.106}/${MONGO_DATABASE:uzum}?authSource=uzum&replicaSet=${MONGO_REPLICASET:marketdb}&tls=true&maxPoolSize=200
     redis:
       host: marketdb-redis-do-user-9153772-0.b.db.ondigitalocean.com
       port: 25061
@@ -45,19 +43,30 @@ spring:
       password: password
       ssl:
         enable: false
+  datasource:
+    jdbcUrl: jdbc:postgresql://localhost:5432/uzum-analytics
+    username: postgres
+    password: postgres
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
   quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: never
     properties:
-      org.quartz.scheduler.instanceName: UzumMasterScheduler
+      org.quartz.scheduler.instanceName: uzum-analytics
       org.quartz.scheduler.instanceId: AUTO
       org.quartz.scheduler.skipUpdateCheck: true
       org.quartz.scheduler.threadsInheritContextClassLoaderOfInitializer: true
       org.quartz.threadPool.threadCount: 30
+      org.quartz.threadPool.threadPriority: 5
       org.quartz.jobStore.isClustered: true
       org.quartz.jobStore.misfireThreshold: 30000
-      org.quartz.jobStore.class: com.novemberain.quartz.mongodb.MongoDBJobStore
-      org.quartz.jobStore.mongoUri: ${spring.data.mongodb.uri}
-      org.quartz.jobStore.dbName: uzum
-      org.quartz.jobStore.collectionPrefix: qrtz
+      org.quartz.jobStore.class: org.springframework.scheduling.quartz.LocalDataSourceJobStore
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+      org.quartz.jobStore.useProperties: false
+      org.quartz.jobStore.tablePrefix: QRTZ_
   security:
     oauth2:
       resourceserver:
@@ -84,19 +93,6 @@ uzum:
 service:
   proxy:
     url: http://localhost:8022
-
-freekassa:
-  baseUrl: https://api.freekassa.ru
-  shopId: 26248
-  apiKey: 3359c65680927f67661345031fb0b738
-  secretWordFirst: 'mHPoH9jB_BZe%lL'
-  secretWordSecond: '{v5T0IKN93p4fKx'
-
-qiwi:
-  siteId: d9jje0-00
-  apiKey: api_key
-  publicKey: public_key
-  callbackSecret: callback_secret_key
 
 currency:
   apiKey: gPdT9h5w4KUAnbckIQw4ciZXm38KZvsu2qrdWHeH
@@ -133,6 +129,10 @@ clickhouse:
   ssl: false
   liquibase:
     change-log: "classpath:db/changelog/db.ch.changelog-main.yml"
+
+postgresql:
+  liquibase:
+    change-log: "classpath:db/changelog/db.pg.changelog-main.yml"
 
 aws-stream:
   kinesisEndpoint: 'fake-endpoint'
