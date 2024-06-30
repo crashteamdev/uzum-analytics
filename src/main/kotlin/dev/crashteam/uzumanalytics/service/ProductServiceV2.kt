@@ -2,7 +2,6 @@ package dev.crashteam.uzumanalytics.service
 
 import dev.crashteam.uzumanalytics.repository.clickhouse.CHProductPositionRepository
 import dev.crashteam.uzumanalytics.repository.clickhouse.CHProductRepository
-import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductPosition
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductPositionHistory
 import dev.crashteam.uzumanalytics.repository.clickhouse.model.ChProductSalesReport
 import mu.KotlinLogging
@@ -41,8 +40,10 @@ class ProductServiceV2(
         limit: Int,
         offset: Int,
     ): List<ChProductSalesReport> {
-        log.info { "Get category sales by categoryId=$categoryId;" +
-                " fromTime=$fromTime; toTime=$toTime; limit=$limit' offset=$offset" }
+        log.info {
+            "Get category sales by categoryId=$categoryId;" +
+                    " fromTime=$fromTime; toTime=$toTime; limit=$limit' offset=$offset"
+        }
         return chProductRepository.getCategorySalesForReport(
             categoryId,
             fromTime,
