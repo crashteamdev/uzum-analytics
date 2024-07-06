@@ -402,7 +402,7 @@ class MarketDbApiControllerV2(
                 this.reportType = report.reportType?.name ?: "unknown"
                 this.createdAt = report.createdAt.atOffset(ZoneOffset.UTC)
                 this.sellerLink = report.sellerLink
-                this.categoryId = report.categoryId.toLong()
+                this.categoryId = report.categoryId?.toLong()
             }
 
             return ResponseEntity.ok(responseBody).toMono()
