@@ -43,8 +43,8 @@ class UzumProductEventHandler(
                         Sellers(
                             it.product.seller.id,
                             it.product.seller.accountId,
+                            it.product.seller.sellerLink,
                             it.product.seller.sellerTitle,
-                            it.product.seller.sellerLink
                         )
                     }.toSet()
                     sellerRepository.saveBatch(sellerDetailDocuments)
