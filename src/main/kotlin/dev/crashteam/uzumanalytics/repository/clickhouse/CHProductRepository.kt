@@ -435,7 +435,8 @@ class CHProductRepository(
                      WHERE product_id = ?
                        AND date BETWEEN ? AND ?
                      GROUP BY product_id, date
-                     ORDER BY date
+                     ORDER BY date WITH FILL FROM toDate(?) TO toDate(?)
+                     INTERPOLATE (product_id, category_id, title)
                      )
             GROUP BY product_id
         """.trimIndent()
@@ -462,7 +463,7 @@ class CHProductRepository(
         return jdbcTemplate.queryForObject(
             GET_PRODUCT_DAILY_ANALYTICS_SQL,
             ProductDailyAnalyticsMapper(),
-            productId, fromDate, toDate, productId, productId, fromDate, toDate,
+            productId, fromDate, toDate, productId, productId, fromDate, toDate, fromDate, toDate,
         )
     }
 
