@@ -5,6 +5,7 @@ import dev.crashteam.uzumanalytics.repository.postgres.UserRepository
 import dev.crashteam.uzumanalytics.repository.redis.ApiKeyUserSessionInfo
 import dev.crashteam.uzumanalytics.security.ApiKeyAuthHandlerFilter
 import dev.crashteam.uzumanalytics.security.ApiUserLimiterFilter
+import jakarta.annotation.PostConstruct
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -26,6 +27,11 @@ import org.springframework.security.web.server.util.matcher.ServerWebExchangeMat
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.reactive.CorsConfigurationSource
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource
+import java.security.cert.X509Certificate
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 @EnableWebFluxSecurity
 @EnableReactiveMethodSecurity
@@ -39,20 +45,20 @@ class SecurityConfig(
     @Value("\${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
     private lateinit var issuer: String
 
-//    @PostConstruct
-//    fun trustAll() {
-//        val trm: TrustManager = object : X509TrustManager {
-//            override fun checkClientTrusted(certs: Array<X509Certificate>, authType: String?) {}
-//            override fun checkServerTrusted(certs: Array<X509Certificate>, authType: String?) {}
-//            override fun getAcceptedIssuers(): Array<X509Certificate>? {
-//                return null
-//            }
-//        }
-//        val sc = SSLContext.getInstance("TLS")
-//        sc.init(null, arrayOf(trm), null)
-//        HttpsURLConnection.setDefaultSSLSocketFactory(sc.socketFactory)
-//        HttpsURLConnection.setDefaultHostnameVerifier { _, _ -> true }
-//    }
+    @PostConstruct
+    fun trustAll() {
+        val trm: TrustManager = object : X509TrustManager {
+            override fun checkClientTrusted(certs: Array<X509Certificate>, authType: String?) {}
+            override fun checkServerTrusted(certs: Array<X509Certificate>, authType: String?) {}
+            override fun getAcceptedIssuers(): Array<X509Certificate>? {
+                return null
+            }
+        }
+        val sc = SSLContext.getInstance("TLS")
+        sc.init(null, arrayOf(trm), null)
+        HttpsURLConnection.setDefaultSSLSocketFactory(sc.socketFactory)
+        HttpsURLConnection.setDefaultHostnameVerifier { _, _ -> true }
+    }
 
     @Bean
     @Order(1)
