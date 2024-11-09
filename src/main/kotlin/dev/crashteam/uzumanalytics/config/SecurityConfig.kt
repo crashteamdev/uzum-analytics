@@ -45,20 +45,20 @@ class SecurityConfig(
     @Value("\${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
     private lateinit var issuer: String
 
-    @PostConstruct
-    fun trustAll() {
-        val trm: TrustManager = object : X509TrustManager {
-            override fun checkClientTrusted(certs: Array<X509Certificate>, authType: String?) {}
-            override fun checkServerTrusted(certs: Array<X509Certificate>, authType: String?) {}
-            override fun getAcceptedIssuers(): Array<X509Certificate>? {
-                return null
-            }
-        }
-        val sc = SSLContext.getInstance("TLS")
-        sc.init(null, arrayOf(trm), null)
-        HttpsURLConnection.setDefaultSSLSocketFactory(sc.socketFactory)
-        HttpsURLConnection.setDefaultHostnameVerifier { _, _ -> true }
-    }
+//    @PostConstruct
+//    fun trustAll() {
+//        val trm: TrustManager = object : X509TrustManager {
+//            override fun checkClientTrusted(certs: Array<X509Certificate>, authType: String?) {}
+//            override fun checkServerTrusted(certs: Array<X509Certificate>, authType: String?) {}
+//            override fun getAcceptedIssuers(): Array<X509Certificate>? {
+//                return null
+//            }
+//        }
+//        val sc = SSLContext.getInstance("TLS")
+//        sc.init(null, arrayOf(trm), null)
+//        HttpsURLConnection.setDefaultSSLSocketFactory(sc.socketFactory)
+//        HttpsURLConnection.setDefaultHostnameVerifier { _, _ -> true }
+//    }
 
     @Bean
     @Order(1)
