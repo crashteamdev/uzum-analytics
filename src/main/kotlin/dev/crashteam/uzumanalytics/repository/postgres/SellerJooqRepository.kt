@@ -1,6 +1,6 @@
 package dev.crashteam.uzumanalytics.repository.postgres
 
-import dev.crashteam.uzumanalytics.db.model.tables.Sellers.*
+import dev.crashteam.uzumanalytics.db.model.tables.Sellers.SELLERS
 import dev.crashteam.uzumanalytics.db.model.tables.pojos.Sellers
 import org.jooq.DSLContext
 import org.springframework.stereotype.Repository
@@ -31,7 +31,10 @@ class SellerJooqRepository(
                     s, s.SELLER_ID, s.ACCOUNT_ID, s.TITLE, s.LINK
                 ).values(
                     seller.sellerId, seller.accountId, seller.title, seller.link
-                ).onConflict().doUpdate().set(s.TITLE, seller.title).set(s.LINK, seller.link)
+                ).onConflict().doUpdate()
+                    .set(s.ACCOUNT_ID, seller.accountId)
+                    .set(s.TITLE, seller.title)
+                    .set(s.LINK, seller.link)
             },
         ).execute()
     }
