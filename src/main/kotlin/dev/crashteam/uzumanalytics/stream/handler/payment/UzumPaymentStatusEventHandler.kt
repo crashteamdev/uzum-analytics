@@ -20,13 +20,17 @@ class UzumPaymentStatusEventHandler(
         runBlocking {
             for (event in events) {
                 val paymentStatusChanged = event.payload.paymentChange.paymentStatusChanged
-                val paymentStatus = mapPaymentStatus(paymentStatusChanged.status)
-                when (paymentStatusChanged.status) {
+                val status = paymentStatusChanged.status ?: PaymentStatus.PAYMENT_STATUS_UNKNOWN
+                when (status) {
                     PaymentStatus.PAYMENT_STATUS_PENDING,
                     PaymentStatus.PAYMENT_STATUS_CANCELED,
                     PaymentStatus.PAYMENT_STATUS_FAILED -> {
                         log.warn { "Failed payment. paymentId=${paymentStatusChanged.paymentId}" }
-                        paymentRepository.updatePaymentStatus(paymentStatusChanged.paymentId, paymentStatus, false)
+                        paymentRepository.updatePaymentStatus(
+                            paymentStatusChanged.paymentId,
+                            mapPaymentStatus(paymentStatusChanged?.status),
+                            false
+                        )
                     }
 
                     PaymentStatus.PAYMENT_STATUS_SUCCESS -> {
@@ -41,8 +45,10 @@ class UzumPaymentStatusEventHandler(
                     }
 
                     PaymentStatus.PAYMENT_STATUS_UNKNOWN, PaymentStatus.UNRECOGNIZED -> {
-                        log.warn { "Received payment event with unknown status: ${paymentStatusChanged.status}." +
-                                " paymentId=${paymentStatusChanged.paymentId}" }
+                        log.warn {
+                            "Received payment event with unknown status: ${paymentStatusChanged.status}." +
+                                    " paymentId=${paymentStatusChanged.paymentId}"
+                        }
                     }
                 }
             }
@@ -53,13 +59,14 @@ class UzumPaymentStatusEventHandler(
         return event.payload.hasPaymentChange() && event.payload.paymentChange.hasPaymentStatusChanged()
     }
 
-    private fun mapPaymentStatus(paymentStatus: PaymentStatus): String {
+    private fun mapPaymentStatus(paymentStatus: PaymentStatus?): String {
         return when (paymentStatus) {
             PaymentStatus.PAYMENT_STATUS_PENDING -> "pending"
             PaymentStatus.PAYMENT_STATUS_SUCCESS -> "success"
             PaymentStatus.PAYMENT_STATUS_CANCELED -> "canceled"
             PaymentStatus.PAYMENT_STATUS_FAILED -> "failed"
             PaymentStatus.PAYMENT_STATUS_UNKNOWN, PaymentStatus.UNRECOGNIZED -> "unknown"
+            else -> "unknown"
         }
     }
 }
