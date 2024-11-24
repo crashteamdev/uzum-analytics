@@ -35,7 +35,6 @@ class SellerJooqRepository(
                     .set(s.SELLER_ID, seller.sellerId)
                     .set(s.ACCOUNT_ID, seller.accountId)
                     .set(s.TITLE, seller.title)
-                    .set(s.LINK, seller.link)
             },
         ).execute()
     }
