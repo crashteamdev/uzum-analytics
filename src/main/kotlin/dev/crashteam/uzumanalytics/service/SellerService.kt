@@ -10,7 +10,9 @@ class SellerService(
 ) {
 
     fun findSellersByLink(sellerLink: String): List<Sellers> {
-        val seller = sellerRepository.findBySellerLink(sellerLink) ?: return emptyList()
-        return sellerRepository.findByAccountId(seller.accountId)
+        val accountIds = sellerRepository.findAccountIdsBySellerLink(sellerLink)
+        return accountIds.flatMap {
+            sellerRepository.findByAccountId(it)
+        }
     }
 }
