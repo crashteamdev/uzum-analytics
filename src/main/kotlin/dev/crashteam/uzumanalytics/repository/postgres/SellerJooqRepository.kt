@@ -35,6 +35,11 @@ class SellerJooqRepository(
                     .set(s.SELLER_ID, seller.sellerId)
                     .set(s.ACCOUNT_ID, seller.accountId)
                     .set(s.TITLE, seller.title)
+                    .where(
+                        s.SELLER_ID.eq(seller.sellerId)
+                            .and(s.ACCOUNT_ID.eq(seller.accountId))
+                            .not()
+                    )
             },
         ).execute()
     }
