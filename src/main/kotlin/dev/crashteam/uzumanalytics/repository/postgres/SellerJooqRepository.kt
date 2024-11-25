@@ -31,7 +31,7 @@ class SellerJooqRepository(
                     s, s.SELLER_ID, s.ACCOUNT_ID, s.TITLE, s.LINK
                 ).values(
                     seller.sellerId, seller.accountId, seller.title, seller.link
-                ).onConflict().doUpdate()
+                ).onConflict(s.LINK).doUpdate()
                     .set(s.SELLER_ID, seller.sellerId)
                     .set(s.ACCOUNT_ID, seller.accountId)
                     .set(s.TITLE, seller.title)
